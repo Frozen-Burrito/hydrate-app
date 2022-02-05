@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/pages/articles_tab.dart';
 import 'package:hydrate_app/src/provider/nav_provider.dart';
+import 'package:hydrate_app/src/pages/articles_tab.dart';
+import 'package:hydrate_app/src/pages/history_tab.dart';
+import 'package:hydrate_app/src/pages/home_tab.dart';
 
 class TabPageView extends StatelessWidget {
   const TabPageView({ Key? key }) : super(key: key);
@@ -16,10 +18,10 @@ class TabPageView extends StatelessWidget {
       onPageChanged: (int pageIndex) => navProvider.activePage = pageIndex,
       controller: navProvider.pageController,
       physics: const BouncingScrollPhysics(),
-      children: const <Widget> [
-        ArticlesTab('Articulos'),
-        ArticlesTab('Inicio'),
-        ArticlesTab('Historial'),
+      children: <Widget> [
+        ArticlesTab(),
+        const HomeTab(),
+        const HistoryTab(),
       ],
     );
   }
