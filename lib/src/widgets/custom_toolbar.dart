@@ -13,6 +13,7 @@ class CustomToolbar extends StatelessWidget {
   final List<Widget>? startActions;
   /// Lista opcional de acciones alineadas al final (derecha) de la pantalla.
   final List<Widget>? endActions;
+  
   /// [Widget] hijo opcional, mostrado abajo del toolbar.
   final Widget? child;
 
@@ -29,7 +30,7 @@ class CustomToolbar extends StatelessWidget {
         color: Colors.white, //TODO: Usar tema de color de la app
         child: SafeArea(
           top: true,
-          bottom: false,
+          bottom: true,
           child: Column(
             children: <Widget> [
               Padding(
@@ -38,12 +39,12 @@ class CustomToolbar extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SizedBox(
-                      width: 100.0,
+                      width: 80.0,
                       child: Row (
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: <Widget> [ 
                           ...?startActions, 
-                          const SizedBox( width: 5.0,) 
+                          // const SizedBox( width: 5.0,) 
                         ],
                       ),
                     ),
@@ -54,7 +55,7 @@ class CustomToolbar extends StatelessWidget {
                     ),
         
                     SizedBox(
-                      width: 100.0,
+                      width: 80.0,
                       child: Row (
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: <Widget> [ 
@@ -67,7 +68,7 @@ class CustomToolbar extends StatelessWidget {
                 ),
               ),
         
-              const Divider(thickness: 1.0,),
+              const Divider(thickness: 1.0, height: 1.0,),
         
               Container(
                 child: child,

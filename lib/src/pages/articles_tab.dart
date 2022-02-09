@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/widgets/custom_toolbar.dart';
+import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 
 class ArticlesTab extends StatelessWidget {
   
@@ -41,12 +42,25 @@ class ArticlesTab extends StatelessWidget {
           SliverPersistentHeader(
             floating: true,
             delegate: _SliverCustomHeaderDelegate(
-              minHeight: 184,
-              maxHeight: 190,
+              minHeight: 168,
+              maxHeight: 168,
               child: CustomToolbar(
                 title: 'Artículos',
                 endActions: [
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+                  OptionsPopupMenu(
+                    options: <MenuItem> [
+                      MenuItem(
+                        icon: Icons.account_circle_rounded, 
+                        label: 'Iniciar Sesión',
+                        onSelected: () => print('Iniciando sesion...'),
+                      ),
+                      MenuItem(
+                        icon: Icons.settings, 
+                        label: 'Ajustes',
+                        onSelected: () => Navigator.pushNamed(context, '/config'),
+                      ),
+                    ]
+                  )
                 ],
                 child: const TabBar(
                   tabs: <Tab> [
