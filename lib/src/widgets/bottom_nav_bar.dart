@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/provider/nav_provider.dart';
 import 'package:provider/provider.dart';
 
+/// Una [BottomNavigationBar] con las tres principales opciones de navegación.
 class BottomNavBar extends StatelessWidget {
   const BottomNavBar({ Key? key }) : super(key: key);
 

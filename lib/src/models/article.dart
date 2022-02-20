@@ -1,5 +1,9 @@
 
-
+/// Un modelo que representa un Recurso Informativo.
+/// 
+/// Contiene un método de factory [Article.fromJson(json)], que crea una nueva 
+/// instancia a partir de un mapa JSON. [toJson()] retorna un mapa JSON que 
+/// representa este objeto.
 class Article {
   
   int id;
