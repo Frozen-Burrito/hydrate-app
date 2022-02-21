@@ -1,10 +1,11 @@
+import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 /// Un modelo que representa un Recurso Informativo.
 /// 
-/// Contiene un método de factory [Article.fromJson(json)], que crea una nueva 
-/// instancia a partir de un mapa JSON. [toJson()] retorna un mapa JSON que 
+/// Contiene un método de factory [Article.fromMap(map)], que crea una nueva 
+/// instancia a partir de un mapa JSON. [toMap()] retorna un mapa JSON que 
 /// representa este objeto.
-class Article {
+class Article extends SQLiteModel {
   
   int id;
   String title;
@@ -20,15 +21,19 @@ class Article {
     this.publishDate
   });
 
-  factory Article.fromJson(Map<String, dynamic> json) => Article(
-    id: json['id'],
-    title: json['title'],
-    description: json['description'],
-    url: json['url'],
-    publishDate: json['publishDate']
+  factory Article.fromMap(Map<String, dynamic> map) => Article(
+    id: map['id'],
+    title: map['title'],
+    description: map['description'],
+    url: map['url'],
+    publishDate: map['publishDate']
   );
 
-  Map<String, dynamic> toJson() => {
+  @override
+  String get table => 'article';
+
+  @override
+  Map<String, Object?> toMap() => {
     'id': id,
     'title': title,
     'description': description,
