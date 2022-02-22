@@ -1,9 +1,8 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+
 import 'package:hydrate_app/src/models/article.dart';
-import 'package:hydrate_app/src/widgets/custom_toolbar.dart';
+import 'package:hydrate_app/src/widgets/article_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 
 class ArticlesTab extends StatelessWidget {
@@ -35,18 +34,26 @@ class ArticlesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: <Widget> [
-    
-          SliverPersistentHeader(
-            floating: true,
-            delegate: _SliverCustomHeaderDelegate(
-              minHeight: 168,
-              maxHeight: 168,
-              child: CustomToolbar(
-                title: 'Artículos',
-                endActions: [
+      child: NestedScrollView(
+        headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+          return <Widget> [
+            SliverOverlapAbsorber(
+              handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+              sliver:  SliverAppBar(
+                title: const Text('Artículos'),
+                titleTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 24),
+                centerTitle: true,
+                backgroundColor: Colors.white,
+                floating: true,
+                bottom: const TabBar(
+                  indicatorColor: Colors.blue,
+                  tabs: <Tab> [
+                    Tab(child: Text('Descubrir', style: TextStyle(color: Colors.black),), ),
+                    Tab(child: Text('Marcados', style: TextStyle(color: Colors.black),),),
+                  ],
+                ),
+                actionsIconTheme: const IconThemeData(color: Colors.black),
+                actions: [
                   OptionsPopupMenu(
                     options: <MenuItem> [
                       MenuItem(
@@ -60,82 +67,20 @@ class ArticlesTab extends StatelessWidget {
                         onSelected: () => Navigator.pushNamed(context, '/config'),
                       ),
                     ]
-                  )
+                  ),
                 ],
-                child: const TabBar(
-                  tabs: <Tab> [
-                    Tab(child: Text('Descubrir', style: TextStyle(color: Colors.black),), ),
-                    Tab(child: Text('Marcados', style: TextStyle(color: Colors.black),),),
-                  ],
-                ),
               ),
             )
-          ),
-    
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int i) {
-                return Card(
-                  child: Column(
-                    children: [
-                      ListTile(
-                        title: Text(items[i].title,),
-                        subtitle: Text(items[i].publishDate.toString()),
-                        //TODO: Cambiar el ícono del botón dependiendo de si el 
-                        // recurso informativo fue guardado
-                        trailing: IconButton(
-                          icon: const Icon(Icons.bookmark_border_outlined), 
-                          //TODO: Agregar/Remover marcador del artículo en onPressed
-                          onPressed: () {},
-                        ),
-                      ),
-          
-                      Padding(
-                        padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
-                        child: Text(items[i].description ?? '', textAlign: TextAlign.start),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              childCount: items.length 
-            )
-          ),
-        ],
+          ];
+        },
+        body: TabBarView(
+          physics: const BouncingScrollPhysics(),
+          children: <Widget> [
+            ArticleSliverList(articles: items),
+            ArticleSliverList(articles: bookmarkedItems),
+          ]
+        ),
       ),
     );
-  }
-}
-
-class _SliverCustomHeaderDelegate extends SliverPersistentHeaderDelegate {
-
-  final double minHeight;
-  final double maxHeight;
-  final Widget child;
-
-  _SliverCustomHeaderDelegate({
-    required this.minHeight, 
-    required this.maxHeight, 
-    required this.child
-  });
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return SizedBox.expand(
-      child: child,
-    );
-  }
-
-  @override
-  double get maxExtent => max(minHeight, maxHeight);
-
-  @override
-  double get minExtent => min(minHeight, maxHeight);
-
-  @override
-  bool shouldRebuild(covariant _SliverCustomHeaderDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight || 
-           minHeight != oldDelegate.minHeight ||
-           child != oldDelegate.child;
   }
 }
