@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/db/sqlite_db.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
+import 'package:hydrate_app/src/provider/article_provider.dart';
+import 'package:provider/provider.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
@@ -23,7 +24,7 @@ class ArticleSliverList extends StatelessWidget {
                 handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               ),
               SliverPadding(
-                padding: EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8.0),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (BuildContext context, int i) {
@@ -49,6 +50,9 @@ class _ArticleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final articleProvider = Provider.of<ArticleProvider>(context);
+
     return Card(
       child: Column(
         children: [
@@ -58,9 +62,17 @@ class _ArticleCard extends StatelessWidget {
             //TODO: Cambiar el ícono del botón dependiendo de si el 
             // recurso informativo fue guardado
             trailing: IconButton(
-              icon: const Icon(Icons.bookmark_border_outlined), 
+              icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
+              color: article.isBookmarked ? Colors.blue : Colors.grey,
               //TODO: Agregar/Remover marcador del artículo en onPressed
-              onPressed: () async => SQLiteDB.db.insert(article).then((value) => print('Inserted article in DB, id: $value')),
+              onPressed: () async {
+                final id = await articleProvider.bookmarkArticle(article);
+                final snackBar = SnackBar(
+                  content: Text((id > -1) ? 'Artículo marcado' : 'No se pudo marcar el artículo')
+                );
+
+                ScaffoldMessenger.of(context).showSnackBar(snackBar);
+              } 
             ),
           ),
 

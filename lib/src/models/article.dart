@@ -12,13 +12,15 @@ class Article extends SQLiteModel {
   String? description;
   String url;
   DateTime? publishDate;
+  bool isBookmarked;
 
   Article({
     required this.id,
     required this.title,
     this.description,
     required this.url,
-    this.publishDate
+    this.publishDate,
+    this.isBookmarked = false,
   });
 
   factory Article.fromMap(Map<String, dynamic> map) => Article(
@@ -26,7 +28,8 @@ class Article extends SQLiteModel {
     title: map['title'],
     description: map['description'],
     url: map['url'],
-    publishDate: map['publishDate']
+    publishDate: map['publishDate'],
+    isBookmarked: false
   );
 
   @override
@@ -38,6 +41,6 @@ class Article extends SQLiteModel {
     'title': title,
     'description': description,
     'url': url,
-    'publishDate': publishDate,
+    'publishDate': publishDate?.toIso8601String() ?? 'No date',
   };
 }

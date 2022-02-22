@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:path/path.dart';
 
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:sqflite/sqflite.dart';
@@ -16,7 +16,11 @@ class SQLiteDB {
   Future<Database> get database async => _db ?? await init('hydrate.db');
 
   // Abre la base de datos. Si no existe previamente, es creada.
-  Future<Database> init(String path) async {
+  Future<Database> init(String filePath) async {
+    
+    // Obtiene el path para la base de datos.
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
 
     return await openDatabase(
       path,

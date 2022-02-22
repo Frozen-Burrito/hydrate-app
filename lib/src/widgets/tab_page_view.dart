@@ -18,10 +18,10 @@ class TabPageView extends StatelessWidget {
       onPageChanged: (int pageIndex) => navProvider.activePage = pageIndex,
       controller: navProvider.pageController,
       physics: const BouncingScrollPhysics(),
-      children: <Widget> [
+      children: const <Widget> [
         ArticlesTab(),
-        const HomeTab(),
-        const HistoryTab(),
+        HomeTab(),
+        HistoryTab(),
       ],
     );
   }
