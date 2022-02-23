@@ -23,12 +23,12 @@ class Article extends SQLiteModel {
     this.isBookmarked = false,
   });
 
-  factory Article.fromMap(Map<String, dynamic> map) => Article(
+  static Article fromMap(Map<String, dynamic> map) => Article(
     id: map['id'],
     title: map['title'],
     description: map['description'],
     url: map['url'],
-    publishDate: map['publishDate'],
+    publishDate: DateTime.parse(map['publishDate']),
     isBookmarked: false
   );
 

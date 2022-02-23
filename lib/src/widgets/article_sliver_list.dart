@@ -42,11 +42,42 @@ class ArticleSliverList extends StatelessWidget {
   }
 }
 
+/// Muestra los datos de un [Article] en una [Card].
 class _ArticleCard extends StatelessWidget {
 
+  /// EL [Article] de la tarjeta.
   final Article article;
 
   const _ArticleCard({ required this.article, Key? key }) : super(key: key);
+
+  /// Activa o desactiva una marca de leer más tarde de un [Artículo]
+  /// 
+  /// Si el [Article] no está marcado, guarda el artículo en la base de datos
+  /// usando [ArticleProvider.bookmarkArticle()]. 
+  ///  
+  /// Si el [Article] ya está marcado, remueve el artículo en la base de datos
+  /// usando [ArticleProvider.removeArticle()].  
+  /// 
+  /// Retorna un SnackBar con un mensaje de confirmación.
+  Future<SnackBar> addOrRemoveBookmark(BuildContext context, ArticleProvider provider) async {
+    // El mensaje para confirmar la marca/eliminación.
+    String snackMsg = '';
+
+    if (article.isBookmarked) {
+      // Si está marcado, quitar marca.
+      int id = await provider.removeArticle(article.id);
+      snackMsg = id > -1 ? 'Artículo removido' : 'No se pudo remover el artículo.';
+
+    } else {
+      // Si no está marcado, marcar y guardar el recurso informativo.
+      final id = await provider.bookmarkArticle(article);
+      snackMsg = id > -1 ? 'Artículo marcado.' : 'No se pudo marcar el artículo.';
+    }
+
+    return SnackBar(
+      content: Text(snackMsg)
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,20 +90,13 @@ class _ArticleCard extends StatelessWidget {
           ListTile(
             title: Text(article.title,),
             subtitle: Text(article.publishDate.toString()),
-            //TODO: Cambiar el ícono del botón dependiendo de si el 
-            // recurso informativo fue guardado
             trailing: IconButton(
               icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
               color: article.isBookmarked ? Colors.blue : Colors.grey,
-              //TODO: Agregar/Remover marcador del artículo en onPressed
               onPressed: () async {
-                final id = await articleProvider.bookmarkArticle(article);
-                final snackBar = SnackBar(
-                  content: Text((id > -1) ? 'Artículo marcado' : 'No se pudo marcar el artículo')
-                );
-
+                final snackBar = await addOrRemoveBookmark(context, articleProvider);
                 ScaffoldMessenger.of(context).showSnackBar(snackBar);
-              } 
+              },
             ),
           ),
 

@@ -61,20 +61,14 @@ class SQLiteDB {
   }
 
   /// Retorna una lista con todos los registros de una tabla.
-  Future<List<SQLiteModel>> select(final String table, final int? id) async {
+  Future<Iterable<T>> select<T extends SQLiteModel>(T Function(Map<String, Object?>) mapper, final String table, { final int? id }) async {
     final db = await database;
 
     final result = await db.query(table);
 
     if (result.isEmpty) return [];
 
-    List<SQLiteModel> data = [];
-
-    switch (table) {
-      case 'article': //TODO: Quitar el nombre de tabla hardcoded
-        data = result.map((e) => Article.fromMap(e)).toList();
-        break;
-    }
+    Iterable<T> data = result.map((e) => mapper(e));
 
     return data;
   }

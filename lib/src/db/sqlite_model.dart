@@ -2,7 +2,7 @@
 /// Representa una entidad en una base de datos de SQLite.
 /// 
 /// Utilizada como clase base de las entidades.
-class SQLiteModel {
+abstract class SQLiteModel {
 
   /// Retorna el nombre de la tabla del modelo en SQLite.
   String get table => 'default';
