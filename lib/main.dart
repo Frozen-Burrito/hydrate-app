@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/pages/main_page.dart';
 import 'package:hydrate_app/src/pages/config_page.dart';
 import 'package:hydrate_app/src/pages/connection_page.dart';
+import 'package:hydrate_app/src/pages/new_goal_page.dart';
 
 /// El punto de entrada de [MyApp]
 void main() => runApp(const MyApp());
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const MainPage(),
         '/config': (context) => const ConfigPage(),
         '/ble-pair': (context) => const ConnectionPage(),
+        '/new-goal': (context) => const NewGoalPage(),
       },
     );
   }

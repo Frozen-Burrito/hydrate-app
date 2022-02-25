@@ -20,7 +20,10 @@ class HomeTab extends StatelessWidget {
           floating: true,
           actionsIconTheme: const IconThemeData(color: Colors.black),
           actions: <Widget> [
-            IconButton(onPressed: (){}, icon: const Icon(Icons.task_alt)),
+            IconButton(
+              icon: const Icon(Icons.task_alt),
+              onPressed: () => Navigator.pushNamed(context, '/new-goal'), 
+            ),
             OptionsPopupMenu(
               options: <MenuItem> [
                 MenuItem(
