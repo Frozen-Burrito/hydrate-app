@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/db/sqlite_db.dart';
 
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 
@@ -7,6 +8,9 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    SQLiteDB.db;
+    
     return CustomScrollView(
       slivers: <Widget> [
         SliverAppBar(

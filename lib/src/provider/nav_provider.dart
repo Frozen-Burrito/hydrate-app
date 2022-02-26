@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 class NavigationProvider with ChangeNotifier {
 
   /// El índice de la página activa en la navegación.
-  int _activePage = 0;
+  int _activePage = 1;
 
   /// Controlador para el [PageView] principal.
   final PageController _pageController = PageController(initialPage: 1);

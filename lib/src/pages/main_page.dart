@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/provider/nav_provider.dart';

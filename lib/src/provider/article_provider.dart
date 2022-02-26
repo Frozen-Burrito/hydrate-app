@@ -58,7 +58,7 @@ class ArticleProvider with ChangeNotifier {
 
     try {
       _bookmarkedArticles.clear();
-      final articles = await SQLiteDB.db.select<Article>(Article.fromMap, 'article');
+      final articles = await SQLiteDB.db.select<Article>(Article.fromMap, 'recurso_inf');
 
       _bookmarkedArticles.addAll(articles.map((a) {
         a.isBookmarked = true;
