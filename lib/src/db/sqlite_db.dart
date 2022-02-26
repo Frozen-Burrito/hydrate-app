@@ -211,6 +211,19 @@ class SQLiteDB {
     return data;
   }
 
+  /// Actualiza la fila con el id y los valores de [entity].
+  Future<int> update(SQLiteModel entity) async {
+    final db = await database;
+    final result = await db.update(
+      entity.table, 
+      entity.toMap(), 
+      where: 'id = ?', 
+      whereArgs: [entity.toMap()['id']]
+    );
+
+    return result;
+  }
+
   /// Elimina de la [table] un registro con el [id] especificado.
   Future<int> delete(final String table, final int id) async {
     final db = await database;
