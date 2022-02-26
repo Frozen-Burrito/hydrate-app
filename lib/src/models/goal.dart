@@ -12,7 +12,7 @@ class Goal extends SQLiteModel {
   int id;
   GoalTerm term;
   DateTime? startDate;
-  DateTime endDate;
+  DateTime? endDate;
   int reward;
   int quantity;
   String? notes;
@@ -46,7 +46,7 @@ class Goal extends SQLiteModel {
   static Goal fromMap(Map<String, dynamic> map) {
     final goal = Goal(
       id: map['id'],
-      term: GoalTerm.values[ int.tryParse(map['plazo']) ?? 0],
+      term: GoalTerm.values[map['plazo']],
       startDate: DateTime.parse(map['fecha_inicio']),
       endDate: DateTime.parse(map['fecha_final']),
       reward: map['recompensa'],
@@ -62,7 +62,7 @@ class Goal extends SQLiteModel {
     // 'id': id,
     'plazo': term.index,
     'fecha_inicio': startDate?.toIso8601String(), 
-    'fecha_final': endDate.toIso8601String(),
+    'fecha_final': endDate?.toIso8601String(),
     'recompensa': reward,
     'cantidad': quantity,
     'notas': notes,
@@ -112,6 +112,22 @@ class Goal extends SQLiteModel {
     return (termIndex >= 0 && termIndex < GoalTerm.values.length) 
         ? null
         : 'Plazo para meta no válido';
+  }
+
+  static String? validateEndDate(DateTime? startDateValue, String? endDateInput) {
+
+    print('Validating endDate: $startDateValue, $endDateInput');
+
+    if (endDateInput != null) {
+      DateTime? endDateValue = DateTime.tryParse(endDateInput);
+
+      if (endDateValue != null && startDateValue != null)
+      {
+        return (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue))
+          ? 'La fecha de termino debe ser mayor que la fecha de inicio.' 
+          : null;
+      }
+    }
   }
 
   static String? validateWaterQuantity(String? inputValue) {

@@ -120,9 +120,6 @@ class SQLiteDB {
     return result;
   }
 
-  //TODO: Manejar insercion, seleccion y eliminacion con estructura de modelos.
-  //TODO: Probar con insercion de metas y etiquetas
-
   /// Retorna una lista con todos los registros de una tabla.
   Future<Iterable<T>> select<T extends SQLiteModel>(T Function(Map<String, Object?>) mapper, final String table, { final int? id }) async {
     final db = await database;
