@@ -7,18 +7,26 @@ class Tag extends SQLiteModel {
 
   Tag(this.id, this.value);
 
+  String get table => 'etiqueta';
+
+  static const String createTableQuery = '''
+    CREATE TABLE etiqueta (
+      id ${SQLiteModel.idType},
+      valor ${SQLiteModel.textType} ${SQLiteModel.notNullType}
+    )
+  ''';
+
   static Tag fromMap(Map<String, dynamic> map) => Tag(
     map['id'],
-    map['value'],
+    map['valor'],
   );
 
   @override 
-  String get table => 'tag';
 
   @override
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'value': value,
+    // 'id': id,
+    'valor': value,
   };
   
   @override

@@ -29,34 +29,44 @@ class Goal extends SQLiteModel {
   }) : tags = [];
 
   @override
-  String get table => 'goal';
+  String get table => 'meta';
+
+  static const String createTableQuery = '''
+    CREATE TABLE meta (
+      id ${SQLiteModel.idType},
+      plazo ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+      fecha_inicio ${SQLiteModel.textType} ${SQLiteModel.notNullType},
+      fecha_final ${SQLiteModel.textType} ${SQLiteModel.notNullType},
+      recompensa ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+      cantidad ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+      notas ${SQLiteModel.textType}
+    )
+  ''';
 
   static Goal fromMap(Map<String, dynamic> map) {
     final goal = Goal(
       id: map['id'],
       term: GoalTerm.values[ int.tryParse(map['plazo']) ?? 0],
       startDate: DateTime.parse(map['fecha_inicio']),
-      endDate: DateTime.parse(map['fecha_fin']),
+      endDate: DateTime.parse(map['fecha_final']),
       reward: map['recompensa'],
       quantity: map['cantidad'],
       notes: map['notas']
     );
-
-    goal.parseTags(map['etiquetas']);
 
     return goal;
   } 
 
   @override
   Map<String, dynamic> toMap() => {
-    'id': id,
+    // 'id': id,
     'plazo': term.index,
     'fecha_inicio': startDate?.toIso8601String(), 
-    'fecha_fin': endDate.toIso8601String(),
+    'fecha_final': endDate.toIso8601String(),
     'recompensa': reward,
     'cantidad': quantity,
     'notas': notes,
-    'etiquetas': tags.map((e) => e.toMap()).toList()
+    'etiquetas': tags
   };
 
   /// Obtiene una [List<Tag>] a partir de un [inputValue], con cada etiquta 
