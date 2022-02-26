@@ -26,7 +26,8 @@ class Goal extends SQLiteModel {
     this.reward = 0,
     this.quantity = 0,
     this.notes,
-  }) : tags = [];
+    required this.tags,
+  });
 
   @override
   String get table => 'meta';
@@ -44,6 +45,14 @@ class Goal extends SQLiteModel {
   ''';
 
   static Goal fromMap(Map<String, dynamic> map) {
+
+    var tags = map['etiquetas'];
+    List<Tag> tagList = <Tag>[];
+
+    if (tags is List<Map<String, dynamic>> && tags.isNotEmpty) {
+      tagList = tags.map((tagMap) => Tag.fromMap(tagMap)).toList();
+    }
+
     final goal = Goal(
       id: map['id'],
       term: GoalTerm.values[map['plazo']],
@@ -51,7 +60,8 @@ class Goal extends SQLiteModel {
       endDate: DateTime.parse(map['fecha_final']),
       reward: map['recompensa'],
       quantity: map['cantidad'],
-      notes: map['notas']
+      notes: map['notas'],
+      tags: tagList,
     );
 
     return goal;

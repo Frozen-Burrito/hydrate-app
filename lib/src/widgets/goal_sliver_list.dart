@@ -29,7 +29,12 @@ class _GoalSliverListState extends State<GoalSliverList> {
       });
     }
 
-    final goals = await SQLiteDB.db.select<Goal>(Goal.fromMap, 'meta');
+    final goals = await SQLiteDB.db.select<Goal>(
+      Goal.fromMap, 
+      'meta', 
+      queryManyToMany: true,
+      limit: 20,
+    );
 
     if (mounted) {
       setState(() {
@@ -84,9 +89,32 @@ class _GoalCard extends StatelessWidget {
 
           Padding(
             padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
-            child: Text(
-              '${goal.startDate.toString()} hasta ${goal.endDate.toString()}', 
-              textAlign: TextAlign.start
+            child: Column(
+              children: [
+                goal.tags.isNotEmpty 
+                ? SizedBox(
+                  height: 48.0,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: goal.tags.length,
+                    itemBuilder: (BuildContext context, int i) {
+                      return Container(
+                        margin: const EdgeInsets.only( right: 8.0 ),
+                        child: Chip(
+                          key: Key(goal.tags[i].id.toString()),
+                          label: Text(goal.tags[i].value),
+                        ),
+                      );
+                    }
+                  ),
+                )
+                : Container(),
+                
+                Text(
+                  '${goal.startDate.toString()} hasta ${goal.endDate.toString()}', 
+                  textAlign: TextAlign.start
+                ),
+              ],
             ),
           ),
         ],

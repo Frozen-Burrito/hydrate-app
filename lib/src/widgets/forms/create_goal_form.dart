@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/goal.dart';
+import 'package:hydrate_app/src/models/tag.dart';
 
 class CreateGoalForm extends StatefulWidget {
 
@@ -18,7 +20,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     id: 0, 
     term: GoalTerm.daily, 
     startDate: DateTime.now(), 
-    endDate: DateTime.now()
+    endDate: DateTime.now(),
+    tags: <Tag>[]
   );
 
   bool isLoading = false;
@@ -53,7 +56,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   /// meta en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, String? redirectRoute) async {
     if (_formKey.currentState!.validate()) {
-      int resultado = 1;//await SQLiteDB.db.insert(newGoal);
+      int resultado = await SQLiteDB.db.insert(newGoal);
 
       if (resultado >= 0) {
         Navigator.pushReplacementNamed(context, redirectRoute ?? '/');

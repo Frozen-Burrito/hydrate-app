@@ -55,7 +55,7 @@ class HomeTab extends StatelessWidget {
             )
           ),
 
-          GoalSliverList(),
+          const GoalSliverList(),
         ], 
       ),
     );

@@ -78,42 +78,52 @@ class SQLiteDB {
     // Todas las columnas con tipos primarios, que no son entidades anidadas.
     Map<String, dynamic> simpleEntityColumns = {};
 
-    Map<String, int> secondaryInsertions = {};
+    Map<String, List<int>> secondaryInsertions = {};
 
-    print("Entity to insert: ${entity.toMap()}");
+    for (var column in entity.toMap().entries) {
 
-    entity.toMap().forEach((column, value) async { 
+      dynamic value = column.value;
 
       // Revisar si el valor es un modelo anidado.
       if (value is List<SQLiteModel>) {
         for (var nestedEntity in value) { 
-          print("Inserting a secondary entity: ${nestedEntity.toMap()}");
 
-          int secondaryId = await insert(nestedEntity); 
+          int secondaryId = await db.insert(nestedEntity.table, nestedEntity.toMap()); 
 
           if (secondaryId >= 0) {
-            secondaryInsertions[nestedEntity.table] = secondaryId;
+
+            if (secondaryInsertions[nestedEntity.table] != null) {
+              secondaryInsertions[nestedEntity.table]?.add(secondaryId); 
+            } else {
+              secondaryInsertions[nestedEntity.table] = <int>[secondaryId];
+            }
           }
         }
       } else {
-
-        simpleEntityColumns[column] = value;
+        simpleEntityColumns[column.key] = value;
       }
-    });
+    }
 
-    print("Inserting main entity");
     final result = await db.insert(entity.table, simpleEntityColumns);
 
     // Hacer las inserciones necesarias en tablas muchos-a-muchos.
-    for (var insertion in secondaryInsertions.entries) {
-      String? mtmTable = manyToManyTables[entity.table]?[insertion.key];
+    for (var entry in secondaryInsertions.entries) {
+      String? mtmTable = manyToManyTables[entity.table]?[entry.key];
 
       if (mtmTable != null) {
-        print("Inserting result into many-to-many table.");
-        await db.insert(mtmTable, {
-          'id_${entity.table}': result,
-          'id_${insertion.key}': insertion.value 
-        });
+
+        for (var insertedId in entry.value) {
+          final manyToManyMap = {
+            'id_${entity.table}': result,
+            'id_${entry.key}': insertedId 
+          };
+          
+          print("Inserting result into many-to-many table ($mtmTable): $manyToManyMap");
+
+          await db.insert(mtmTable, manyToManyMap);
+        }
+      } else {
+        print('Warning: ManyToMany table name string was: $mtmTable');
       }
     }
 
@@ -121,14 +131,82 @@ class SQLiteDB {
   }
 
   /// Retorna una lista con todos los registros de una tabla.
-  Future<Iterable<T>> select<T extends SQLiteModel>(T Function(Map<String, Object?>) mapper, final String table, { final int? id }) async {
+  Future<Iterable<T>> select<T extends SQLiteModel>(
+    T Function(Map<String, Object?>) mapper, 
+    final String table, 
+    { 
+      final String? whereColumn,
+      final String? whereOperator,
+      final List<String>? whereArgs,
+      final int? limit,
+      final bool queryManyToMany = false,
+    }
+  ) async {
+
     final db = await database;
 
-    final result = await db.query(table);
+    final records = await db.query(table, 
+      where: (whereColumn != null) ? '$whereColumn ${whereOperator ?? '='} ?' : null,
+      whereArgs: whereArgs ?? [],
+      limit: limit,  
+    );
 
-    if (result.isEmpty) return [];
+    if (records.isEmpty) return [];
 
-    Iterable<T> data = result.map((e) => mapper(e));
+    List<Map<String, Object?>> fullRecords = records.map((record) => Map<String, Object?>.from(record)).toList();
+
+    print('Query result example: ${records[0]}');
+
+    if (queryManyToMany && manyToManyTables[table] != null) {
+      // Existe al menos 1 tabla muchos a muchos que usa la entidad solicitada.
+      final resultIds = reduceIds(records, 'id').toList();
+
+      for (var mtmTable in manyToManyTables[table]!.entries) {
+        
+        String otherEntityTable = mtmTable.key; // El nombre de la tabla de la otra entidad relacionada.
+        String relationshipTable = mtmTable.value; // El nombre de la tabla muchos a muchos. 
+
+        // Obtener todas las filas de la tabla muchos a muchos con un Id encontrado
+        // en los resultados del query principal.
+        final mtmResults = await db.query(
+          relationshipTable, 
+          where: 'id_$table IN (${resultIds.join(',')})', 
+          // whereArgs: ['(${resultIds.join(',')})'],
+        );
+
+        print('Many to many results: $mtmResults');
+
+        final otherEntityIds = reduceIds(mtmResults, 'id_$otherEntityTable').toList();
+
+        final otherEntityResults = await db.query(
+          otherEntityTable, 
+          where: 'id IN (${otherEntityIds.join(',')})',
+        );
+
+        for (var row in fullRecords) { 
+
+            // Todos los row con el id del row principal (si meta.id = 5, todos los row con 5).
+            final mtmOccurrences = mtmResults.where((result) => result['id_$table'] == row['id']);
+            
+            // Los ids de las entidades relacionadas con el row principal.
+            final otherIds = reduceIds(mtmOccurrences.toList(), 'id_$otherEntityTable');
+
+            row['${otherEntityTable}s'] = otherEntityResults
+                .where((otherRow) => otherIds.contains(otherRow['id']))
+                .map((e) => Map<String, Object?>.from(e))
+                .toList();
+
+            // row['${otherEntityTable}s'] es un List<Map<String, Object?>> donde 
+            // cada elemento es un mapa de la entidad asociada.
+            // Si la entidad original es un Goal, cada Map representa un Tag asociado
+            // con el Goal.
+
+            print('Entidades relacionadas con el row(${row['id']}: ${row['${otherEntityTable}s']}');
+        }
+      }
+    }
+
+    Iterable<T> data = fullRecords.map((e) => mapper(e));
 
     return data;
   }
@@ -139,5 +217,9 @@ class SQLiteDB {
     final result = await db.delete(table, where: 'id = ?', whereArgs: [id]);
 
     return result;
+  }
+
+  Iterable<int> reduceIds(List<Map<String, dynamic>> rows, String idColumn) {
+    return rows.map((row) => int.tryParse(row[idColumn].toString()) ?? -1);
   }
 }
