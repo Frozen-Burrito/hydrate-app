@@ -10,7 +10,7 @@ class NavigationProvider with ChangeNotifier {
   int _activePage = 0;
 
   /// Controlador para el [PageView] principal.
-  final PageController _pageController = PageController();
+  final PageController _pageController = PageController(initialPage: 1);
 
   /// Es `true` si el controlador está animando una transición.
   bool isAnimatingPageChange = false;

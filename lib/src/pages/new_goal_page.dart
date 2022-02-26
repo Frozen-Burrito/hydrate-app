@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/utils/validators.dart';
+import 'package:hydrate_app/src/db/sqlite_db.dart';
 
+import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
 class NewGoalPage extends StatelessWidget {
@@ -13,27 +14,27 @@ class NewGoalPage extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         slivers: <Widget>[
           SliverAppBar(
-          title: const Padding(
-            padding: EdgeInsets.symmetric( vertical: 10.0 ),
-            child: Text('Nueva Meta'),
-          ),
-          titleTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 24),
-          centerTitle: true,
-          backgroundColor: Colors.white,
-          floating: true,
-          leading: IconButton(
-            color: Colors.black, 
-            icon: const Icon(Icons.arrow_back), 
-            onPressed: () => Navigator.pop(context)
-          ),
-          actionsIconTheme: const IconThemeData(color: Colors.black),
-          actions: <Widget> [
-            IconButton(
-              icon: const Icon(Icons.help),
-              onPressed: (){}, 
+            title: const Padding(
+              padding: EdgeInsets.symmetric( vertical: 10.0 ),
+              child: Text('Nueva Meta'),
             ),
-          ],
-        ),
+            titleTextStyle: Theme.of(context).textTheme.headline4,
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            floating: true,
+            leading: IconButton(
+              color: Colors.black, 
+              icon: const Icon(Icons.arrow_back), 
+              onPressed: () => Navigator.pop(context)
+            ),
+            actionsIconTheme: const IconThemeData(color: Colors.black),
+            actions: <Widget> [
+              IconButton(
+                icon: const Icon(Icons.help),
+                onPressed: (){}, 
+              ),
+            ],
+          ),
         
           //TODO: Agregar tarjeta con el formulario para nueva meta.
           SliverToBoxAdapter(
@@ -42,7 +43,7 @@ class NewGoalPage extends StatelessWidget {
                 WaveShape(),
 
                 Center(
-                  child: _ObjectiveForm(),
+                  child: _ObjectiveForm()
                 ),
               ],
             ),
@@ -53,15 +54,46 @@ class NewGoalPage extends StatelessWidget {
   }
 }
 
-class _ObjectiveForm extends StatelessWidget {
-  const _ObjectiveForm({
-    Key? key,
-  }) : super(key: key);
+class _ObjectiveForm extends StatefulWidget {
+
+  const _ObjectiveForm({ Key? key, }) : super(key: key);
+
+  @override
+  State<_ObjectiveForm> createState() => _ObjectiveFormState();
+}
+
+class _ObjectiveFormState extends State<_ObjectiveForm> {
+
+  final _formKey = GlobalKey<FormState>();
+
+  final Goal newGoal = Goal(term: GoalTerm.daily, id: 0, endDate: DateTime.now());
+
+  bool isLoading = false;
+
+  int tagsLength = 0;
+  int notesLength = 0;
+
+  int? selectedTerm;
+
+  final termDropdownItems = GoalTerm.values
+    .map((e) {
+
+      const termLabels = <String>['Diario','Semanal','Mensual'];
+
+      return DropdownMenuItem(
+        value: e.index,
+        child: Text(termLabels[e.index]),
+      );
+    }).toList();
+
+  
 
   @override
   Widget build(BuildContext context) {
+
     return Form(
-      autovalidateMode: AutovalidateMode.onUserInteraction,
+      key: _formKey,
+      autovalidateMode: AutovalidateMode.always,
       child: Card(
         margin: const EdgeInsets.only( top: 48.0 ),
         child: SizedBox(
@@ -78,11 +110,20 @@ class _ObjectiveForm extends StatelessWidget {
     
                 const SizedBox( height: 16.0, ),
           
-                const TextField(
-                  decoration: InputDecoration(
+                DropdownButtonFormField(
+                  decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    labelText: '¿Cuál es el plazo de tu meta?'
+                    hintText: '¿Cuál es el plazo de tu meta?' 
                   ),
+                  items: termDropdownItems,
+                  value: selectedTerm,
+                  onChanged: (int? newValue) {
+                    newGoal.term = GoalTerm.values[newValue ?? 0];
+                    setState(() {
+                      selectedTerm = newValue ?? 0;
+                    });
+                  },
+                  // validator: (int? value) => Goal.validateTerm(value),
                 ),
     
                 const SizedBox( height: 16.0, ),
@@ -91,7 +132,7 @@ class _ObjectiveForm extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children:  <Widget>[
                     Expanded(
-                      child: TextField(
+                      child: TextFormField(
                         readOnly: true,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
@@ -105,6 +146,8 @@ class _ObjectiveForm extends StatelessWidget {
                             firstDate: DateTime(2000), 
                             lastDate: DateTime(2100)
                           );
+
+                          newGoal.startDate = startDate;
                         },
                       ),
                     ),
@@ -126,6 +169,8 @@ class _ObjectiveForm extends StatelessWidget {
                             firstDate: DateTime(2000), 
                             lastDate: DateTime(2100)
                           );
+
+                          // newGoal.endDate = endDate;
                         },
                       ),
                     ),
@@ -137,14 +182,18 @@ class _ObjectiveForm extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    const Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
+                    Expanded(
+                      child: TextFormField(
+                        autocorrect: false,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                           labelText: 'Recompensa',
                           hintText: '20',
                           suffixIcon: Icon(Icons.monetization_on)
                         ),
+                        onChanged: (value) => newGoal.reward = int.tryParse(value) ?? 0,
+                        validator: (value) => Goal.validateReward(value),
                       ),
                     ),
     
@@ -156,10 +205,11 @@ class _ObjectiveForm extends StatelessWidget {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Cantidad',
+                          labelText: 'Cantidad (ml)',
                           hintText: '100ml'
                         ),
-                        validator: (value) => Validators.validateWaterAmount(value),
+                        onChanged: (value) => newGoal.quantity = int.tryParse(value) ?? 0,
+                        validator: (value) => Goal.validateWaterQuantity(value),
                       ),
                     ),
                   ]
@@ -167,23 +217,35 @@ class _ObjectiveForm extends StatelessWidget {
     
                 const SizedBox( height: 16.0, ),
     
-                const TextField(
+                TextFormField(
+                  keyboardType: TextInputType.text,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     labelText: 'Etiquetas',
-                    counterText: '0/3'
+                    counterText: '${tagsLength.toString()}/3'
                   ),
+                  onChanged: (value) => setState(() {
+                    tagsLength = newGoal.parseTags(value);
+                  }),
+                  validator: (value) => Goal.validateTags(value),
                 ),
     
                 const SizedBox( height: 16.0, ),
     
-                const TextField(
+                TextFormField(
+                  keyboardType: TextInputType.multiline,
+                  maxLength: 100,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                     labelText: 'Anotaciones',
                     hintText: 'Debo recordar tomar agua antes de...',
-                    counterText: '0/100'
+                    counterText: '${notesLength.toString()}/100'
                   ),
+                  onChanged: (value) => setState(() {
+                    newGoal.notes = value;
+                    notesLength = newGoal.notes?.length ?? 0;
+                  }),
+                  validator: (value) => Goal.validateNotes(value),
                 ),
     
                 const SizedBox( height: 16.0, ),
@@ -209,7 +271,15 @@ class _ObjectiveForm extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           primary: Colors.blue,
                         ),
-                        onPressed: () {},
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            int resultado = await SQLiteDB.db.insert(newGoal);
+
+                            if (resultado > 0) {
+                              Navigator.pushReplacementNamed(context, '/');
+                            }
+                          }
+                        },
                       ),
                     ),
                   ]
