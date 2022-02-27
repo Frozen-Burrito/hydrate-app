@@ -7,6 +7,7 @@ class Tag extends SQLiteModel {
 
   Tag(this.id, this.value);
 
+  @override
   String get table => 'etiqueta';
 
   static const String createTableQuery = '''
@@ -20,8 +21,6 @@ class Tag extends SQLiteModel {
     map['id'],
     map['valor'],
   );
-
-  @override 
 
   @override
   Map<String, dynamic> toMap() => {

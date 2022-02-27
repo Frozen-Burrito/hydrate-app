@@ -125,9 +125,7 @@ class Goal extends SQLiteModel {
   }
 
   static String? validateEndDate(DateTime? startDateValue, String? endDateInput) {
-
-    print('Validating endDate: $startDateValue, $endDateInput');
-
+    
     if (endDateInput != null) {
       DateTime? endDateValue = DateTime.tryParse(endDateInput);
 

@@ -1,3 +1,7 @@
+import 'package:hydrate_app/src/models/country.dart';
+import 'package:hydrate_app/src/models/habits.dart';
+import 'package:hydrate_app/src/models/medical_data.dart';
+import 'package:hydrate_app/src/models/user_info.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -38,7 +42,7 @@ class SQLiteDB {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onOpen: (db) {},
       onCreate: _createDatabase,
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -52,6 +56,7 @@ class SQLiteDB {
   }
 
   // Crea la base de datos, considerando la versión.
+  // Ejecuta los queries de creación de tabla para cada modelo.
   Future _createDatabase(Database db, int version) async {
 
     print('Re-creating db to version $version');
@@ -62,6 +67,15 @@ class SQLiteDB {
 
     await db.execute(Tag.createTableQuery);
 
+    await db.execute(Country.createTableQuery);
+
+    await db.execute(UserInfo.createTableQuery);
+
+    await db.execute(Habits.createTableQuery);
+
+    await db.execute(MedicalData.createTableQuery);
+
+    // Crear tabla muchos a muchos para metas y etiquetas.
     await db.execute('''
       CREATE TABLE etiquetas_meta (
         id ${SQLiteModel.idType},

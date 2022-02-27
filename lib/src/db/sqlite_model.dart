@@ -9,6 +9,7 @@ abstract class SQLiteModel {
   static const textType = 'TEXT';
   static const boolType = 'BOOLEAN';
   static const integerType = 'INTEGER';
+  static const realType = 'REAL';
   static const idType = '$integerType PRIMARY KEY AUTOINCREMENT';
   static const notNullType = 'NOT NULL';
 
