@@ -34,6 +34,22 @@ class HomeTab extends StatelessWidget {
               ),
               OptionsPopupMenu(
                 options: <MenuItem> [
+                  //TODO: Quitar los MenuItems temporales de navegacion a los formularios
+                  MenuItem(
+                    icon: Icons.checklist, 
+                    label: 'Formulario Inicial',
+                    onSelected: () => Navigator.pushNamed(context, '/form/initial'),
+                  ),
+                  MenuItem(
+                    icon: Icons.checklist, 
+                    label: 'Formulario Recurrente',
+                    onSelected: () => Navigator.pushNamed(context, '/form/periodic'),
+                  ),
+                  MenuItem(
+                    icon: Icons.checklist, 
+                    label: 'Formulario Médico',
+                    onSelected: () => Navigator.pushNamed(context, '/form/medical'),
+                  ),
                   MenuItem(
                     icon: Icons.account_circle_rounded, 
                     label: 'Iniciar Sesión',

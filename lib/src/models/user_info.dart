@@ -8,7 +8,7 @@ enum UserSex {
   man,
 }
 
-enum Ocupation {
+enum Occupation {
   notSpecified,
   student,
   officeWorker,
@@ -18,6 +18,13 @@ enum Ocupation {
   other
 }
 
+//TODO: Helper temporal
+enum UserCountry {
+  notSpecified,
+  mexico,
+  us,
+}
+
 class UserInfo extends SQLiteModel {
   
   int id;
@@ -25,7 +32,7 @@ class UserInfo extends SQLiteModel {
   double height;
   double weight;
   MedicCondition medicCondition;
-  Ocupation ocupation;
+  Occupation occupation;
   Country? country;
 
   UserInfo({
@@ -34,7 +41,7 @@ class UserInfo extends SQLiteModel {
     this.height = 0.0,
     this.weight = 0.0,
     this.medicCondition = MedicCondition.notSpecified,
-    this.ocupation = Ocupation.notSpecified,
+    this.occupation = Occupation.notSpecified,
     this.country,
   });
 
@@ -61,11 +68,11 @@ class UserInfo extends SQLiteModel {
     
     return UserInfo(
       id: map['id'],
-      sex: map['sexo'],
+      sex: UserSex.values[map['sexo']],
       height: map['estatura'],
       weight: map['peso'],
-      medicCondition: map['padecimientos'],
-      ocupation: map['ocupacion'],
+      medicCondition: MedicCondition.values[map['padecimientos']],
+      occupation: Occupation.values[map['ocupacion']],
     );
   }
 
@@ -76,8 +83,8 @@ class UserInfo extends SQLiteModel {
     'estatura': height,
     'peso': weight,
     'padecimientos': medicCondition.index,
-    'ocupacion': ocupation,
-    'pais': country,
+    'ocupacion': occupation.index,
+    // 'pais': country,
   };
   
   /// Verifica que [inputHeight] pueda convertirse a número decimal y esté en el

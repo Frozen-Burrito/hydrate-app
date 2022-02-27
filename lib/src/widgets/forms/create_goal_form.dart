@@ -69,7 +69,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
     return Form(
       key: _formKey,
-      autovalidateMode: AutovalidateMode.always,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Card(
         margin: const EdgeInsets.only( top: 48.0 ),
         child: SizedBox(

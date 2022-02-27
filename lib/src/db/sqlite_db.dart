@@ -125,6 +125,8 @@ class SQLiteDB {
             }
           }
         }
+      } else if (value is SQLiteModel) {
+        //TODO: Manejar relaciones uno a muchos.
       } else {
         simpleEntityColumns[column.key] = value;
       }
