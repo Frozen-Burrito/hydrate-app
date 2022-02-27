@@ -6,22 +6,30 @@ import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 
-/// Proporciona acceso a una base de datos local de SQLite.
+/// Proporciona acceso a una base de datos local de SQLite, a través de [instance].
+/// Permite realizar operaciones CRUD con sus métodos. Utiliza [SQLiteModel] para
+/// todas las transacciones.
 class SQLiteDB {
 
   static Database? _db;
-  static final SQLiteDB db = SQLiteDB._();
+  static final SQLiteDB instance = SQLiteDB._();
 
   SQLiteDB._();
 
   /// Obtiene la instancia de la base de datos, o la inicializa si no existe.
   Future<Database> get database async => _db ?? await init('hydrate.db');
 
+  /// Almacena los nombres de las tablas muchos a muchos. 
+  /// Se accede a ellos con los nombres de dos tablas.
+  /// ```dart
+  /// String tabla = manyToManyTables['meta']['etiqueta']; 
+  /// print(tabla); // 'etiquetas_meta'
+  /// ```
   Map<String, Map<String, String>> manyToManyTables = {
     'meta': { 'etiqueta': 'etiquetas_meta' },
   };
 
-  // Abre la base de datos. Si no existe previamente, es creada.
+  /// Abre la base de datos. Si no existe previamente, es creada.
   Future<Database> init(String filePath) async {
     
     // Obtiene el path para la base de datos.
@@ -43,7 +51,7 @@ class SQLiteDB {
     );
   }
 
-  /// Crea la base de datos, considerando la versión.
+  // Crea la base de datos, considerando la versión.
   Future _createDatabase(Database db, int version) async {
 
     print('Re-creating db to version $version');
@@ -78,8 +86,12 @@ class SQLiteDB {
     // Todas las columnas con tipos primarios, que no son entidades anidadas.
     Map<String, dynamic> simpleEntityColumns = {};
 
+    // Mapa con todas los resultados de inserciones colaterales. 
+    // La llave de cada entrada es el nombre de la tabla, y su valor es una lista
+    // con todos los IDs de las entidades insertadas en dicha tabla.
     Map<String, List<int>> secondaryInsertions = {};
 
+    // Revisar el tipo de cada columna, para ver si es anidado.
     for (var column in entity.toMap().entries) {
 
       dynamic value = column.value;
@@ -104,28 +116,12 @@ class SQLiteDB {
       }
     }
 
+    // Insertar la entidad principal.
     final result = await db.insert(entity.table, simpleEntityColumns);
 
     // Hacer las inserciones necesarias en tablas muchos-a-muchos.
-    for (var entry in secondaryInsertions.entries) {
-      String? mtmTable = manyToManyTables[entity.table]?[entry.key];
-
-      if (mtmTable != null) {
-
-        for (var insertedId in entry.value) {
-          final manyToManyMap = {
-            'id_${entity.table}': result,
-            'id_${entry.key}': insertedId 
-          };
-          
-          print("Inserting result into many-to-many table ($mtmTable): $manyToManyMap");
-
-          await db.insert(mtmTable, manyToManyMap);
-        }
-      } else {
-        print('Warning: ManyToMany table name string was: $mtmTable');
-      }
-    }
+    //TODO: Revisar los ids regresados por _insertManyToMany para manejar errores.
+    await _insertManyToMany(db, entity.table, result, secondaryInsertions);
 
     return result;
   }
@@ -230,6 +226,55 @@ class SQLiteDB {
     final result = await db.delete(table, where: 'id = ?', whereArgs: [id]);
 
     return result;
+  }
+
+  /// Inserta en una tabla las entidades necesarias para una relación 
+  /// muchos-a-muchos entre la [mainTable] y las tablas con los nombres encontrados
+  /// en [otherInsertedRows].
+  /// 
+  /// Cada registro creado en [manyToManyTable] tiene tres columnas:
+  ///  - 'id': el Id del registro en la tabla.
+  ///  - 'id_{mainTable}': almacena el id de la entidad principal.
+  ///  - 'id_{otherTable}': almacena el id de la entidad relacionada, obtenido de 
+  ///     [otherInsertedRows].
+  /// 
+  /// Por ejemplo, si mainTable es 'meta' y otherTable es 'etiqueta', una columna
+  /// será [id_meta] y la otra será [id_etiqueta].
+  Future<List<int>> _insertManyToMany(
+    Database db,
+    String mainTable,
+    int mainInsertionId,
+    Map<String, List<int>> otherInsertedRows,
+  ) async {
+
+    final List<int> resultIds = <int>[];
+
+    // Ciclar por cada tabla en donde hubo inserciones.
+    for (var insertion in otherInsertedRows.entries) {
+      
+      // Obtener los nombres de la tabla relacionada y la tabla muchos a muchos.
+      final String otherTable = insertion.key;
+      final List<int> otherIds = insertion.value;
+
+      String? mtmTable = manyToManyTables[mainTable]?[otherTable];
+
+      if (mtmTable != null) {
+
+        for (int otherId in otherIds) {
+          
+          // Mapa con datos del registro para insertar en tabla.
+          final manyToManyMap = {
+            'id_$mainTable': mainInsertionId,
+            'id_$otherTable': otherId 
+          };
+
+          int id = await db.insert(mtmTable, manyToManyMap);
+          resultIds.add(id);
+        }
+      } 
+    }
+
+    return resultIds;
   }
 
   Iterable<int> reduceIds(List<Map<String, dynamic>> rows, String idColumn) {

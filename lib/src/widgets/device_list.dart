@@ -28,7 +28,7 @@ class BleDeviceList extends StatelessWidget {
             StreamBuilder<List<BluetoothDevice>>(
               stream: Stream.periodic( const Duration(seconds: 2))
                             .asyncMap((_) => FlutterBlue.instance.connectedDevices),
-              initialData: [],
+              initialData: const [],
               builder: (BuildContext context, AsyncSnapshot<List<BluetoothDevice>> snapshot) => Column(
                 children: snapshot.data! //TODO: Buscar una forma mas eficiente
                     .map((device) => ListTile(

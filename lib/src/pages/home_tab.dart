@@ -10,7 +10,7 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    SQLiteDB.db;
+    SQLiteDB.instance;
     
     return SafeArea(
       top: false,

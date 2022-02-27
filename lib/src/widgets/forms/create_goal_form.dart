@@ -56,7 +56,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   /// meta en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, String? redirectRoute) async {
     if (_formKey.currentState!.validate()) {
-      int resultado = await SQLiteDB.db.insert(newGoal);
+      int resultado = await SQLiteDB.instance.insert(newGoal);
 
       if (resultado >= 0) {
         Navigator.pushReplacementNamed(context, redirectRoute ?? '/');

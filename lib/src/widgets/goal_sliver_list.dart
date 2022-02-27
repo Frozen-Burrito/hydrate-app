@@ -29,7 +29,7 @@ class _GoalSliverListState extends State<GoalSliverList> {
       });
     }
 
-    final goals = await SQLiteDB.db.select<Goal>(
+    final goals = await SQLiteDB.instance.select<Goal>(
       Goal.fromMap, 
       'meta', 
       queryManyToMany: true,

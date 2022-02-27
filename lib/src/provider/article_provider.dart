@@ -58,7 +58,7 @@ class ArticleProvider with ChangeNotifier {
 
     try {
       _bookmarkedArticles.clear();
-      final articles = await SQLiteDB.db.select<Article>(Article.fromMap, 'recurso_inf');
+      final articles = await SQLiteDB.instance.select<Article>(Article.fromMap, 'recurso_inf');
 
       _bookmarkedArticles.addAll(articles.map((a) {
         a.isBookmarked = true;
@@ -83,7 +83,7 @@ class ArticleProvider with ChangeNotifier {
 
     try {
       article.isBookmarked = true;
-      insertedId = await SQLiteDB.db.insert(article);
+      insertedId = await SQLiteDB.instance.insert(article);
       _bookmarkedArticles.insert(0, article);
       notifyListeners();
     } catch (e) {
@@ -102,7 +102,7 @@ class ArticleProvider with ChangeNotifier {
     int resultId = -1;
 
     try {
-      resultId = await SQLiteDB.db.delete('article', id);
+      resultId = await SQLiteDB.instance.delete('article', id);
       _bookmarkedArticles.removeWhere((article) => article.id == id);
       notifyListeners();
     } catch (e) {
