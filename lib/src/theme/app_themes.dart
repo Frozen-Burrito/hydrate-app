@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppThemes {
   
+  /// El tema claro de la app, con los colores definidos.
   static final ThemeData appLightTheme = ThemeData.light().copyWith(
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
@@ -20,6 +21,7 @@ class AppThemes {
     )
   );
 
+  /// El tema oscuro de la app, con los colores definidos.
   static final ThemeData appDarkTheme = ThemeData.dark().copyWith(
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF1C1C1E),
