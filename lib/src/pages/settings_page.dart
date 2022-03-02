@@ -23,7 +23,10 @@ class SettingsPage extends StatelessWidget {
               title: 'Ajustes',
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back), 
-                onPressed: () => Navigator.pop(context)
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  Navigator.pop(context);
+                }
               ),
               actions: <Widget>[
                 IconButton(
@@ -96,6 +99,11 @@ class _SettingsControlState extends State<_SettingsControl> {
   bool _contributeData = false; 
   bool _originalContributeData = false; 
 
+  bool _weeklyForms = false; 
+  bool _originalWeeklyForms = false; 
+
+  bool _isSnackbarActive = false;
+
   static final _themeLabels = <String>['Sistema','Claro','Oscuro'];
 
   static final _notifLabels = <String>['Ninguna','Metas','Batería','Todas'];
@@ -121,10 +129,12 @@ class _SettingsControlState extends State<_SettingsControl> {
     _originalThemeMode = widget.settingsProvider.appThemeMode;
     _originalContributeData = widget.settingsProvider.isSharingData;
     _originalNotifications = widget.settingsProvider.notificationSettings;
+    _originalWeeklyForms = widget.settingsProvider.areWeeklyFormsEnabled;
 
     _selectedThemeMode = _originalThemeMode;
     _contributeData = _originalContributeData;
     _selectedNotifications = _originalNotifications;
+    _weeklyForms = _originalWeeklyForms;
   }
 
   /// Compara los valores originales con los ajustes modificados. Si son diferentes,
@@ -134,44 +144,59 @@ class _SettingsControlState extends State<_SettingsControl> {
     bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
     bool hasDataContributionChanged = _originalContributeData != _contributeData;
     bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
+    bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
 
-    if (hasThemeChanged || hasDataContributionChanged || hasNotificationsChanged) {
+    bool settingsChanged = hasThemeChanged || hasDataContributionChanged || hasNotificationsChanged || hasWeeklyFormsChanged;
+
+    if (!_isSnackbarActive && settingsChanged) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Tienes ajustes modificados sin guardar'),
           duration: const Duration(minutes: 30),
           action: SnackBarAction(
             label: 'Guardar', 
-            onPressed: () => saveChanges(
-              hasThemeChanged, 
-              hasDataContributionChanged, 
-              hasNotificationsChanged
-            ),
+            onPressed: () {
+              saveChanges();
+              _isSnackbarActive = false;
+            },
           ),
         )
       );
+
+      _isSnackbarActive = true;
     }
   }
 
   /// Guarda los cambios de ajustes en SharedPreferences usando [SettingsProvider].
   /// 
   /// Solo guarda las modificaciones necesarias.
-  void saveChanges(bool saveTheme, bool saveDataSharing, bool saveNotifications) {
+  void saveChanges() {
 
-    if (saveTheme) {
+    bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
+    bool hasDataContributionChanged = _originalContributeData != _contributeData;
+    bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
+    bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
+
+
+    if (hasThemeChanged) {
       print('Theme was modified: de $_originalThemeMode a $_selectedThemeMode');
       widget.settingsProvider.appThemeMode = _selectedThemeMode;
       _originalThemeMode = _selectedThemeMode;
     }
 
-    if (saveDataSharing) {
+    if (hasDataContributionChanged) {
       widget.settingsProvider.isSharingData = _contributeData;
       _originalContributeData = _contributeData;
     }
 
-    if (saveNotifications) {
+    if (hasNotificationsChanged) {
       widget.settingsProvider.notificationSettings = _selectedNotifications;
       _originalNotifications = _selectedNotifications;
+    }
+
+    if (hasWeeklyFormsChanged) {
+      widget.settingsProvider.areWeeklyFormsEnabled = _weeklyForms;
+      _originalWeeklyForms = _weeklyForms;
     }
   }
 
@@ -256,7 +281,26 @@ class _SettingsControlState extends State<_SettingsControl> {
               ),
             ),
           ),
-    
+
+          const Divider( height: 1.0, ),
+          Padding(
+            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
+            child: SwitchListTile(
+              secondary: const Icon(
+                Icons.event_note, 
+                size: 24.0, 
+              ),
+              title: const Text('Formularios semanales'),
+              value: _weeklyForms,
+              onChanged: (bool value) {
+                setState(() {
+                  _weeklyForms = value;
+                  compareChanges(context);
+                });
+              },
+            ),
+          ),
+
           const Divider( height: 1.0, ),
           ListTile(
             minVerticalPadding: 24.0,

@@ -72,11 +72,15 @@ class AppThemes {
       secondaryVariant: const Color(0xFF63C166),
       surface: const Color(0xFF29292D),
       onBackground: const Color(0xFFEFEFEF),
-      onSurface: const Color(0x88D6C3C3),
+      onSurface: const Color(0x77D6C3C3),
       error: const Color(0xFFB00020),
       onError: const Color(0xFFF1F1F1),
       onPrimary: Colors.white,
       onSecondary: const Color(0xFFFEFEFE),
+    ),
+
+    snackBarTheme: const SnackBarThemeData(
+      backgroundColor: Color(0xFF29292D),
     ),
 
     iconTheme: const IconThemeData(
