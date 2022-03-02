@@ -88,8 +88,14 @@ class _ArticleCard extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
-            title: Text(article.title,),
-            subtitle: Text(article.publishDate.toString()),
+            title: Text(
+              article.title, 
+              style: Theme.of(context).textTheme.headline6,
+            ),
+            subtitle: Text(
+              'Publicación: ${article.publishDate.toString().substring(0,10)}',
+              style: Theme.of(context).textTheme.bodyText1
+            ),
             trailing: IconButton(
               icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
               color: article.isBookmarked ? Colors.blue : Colors.grey,
@@ -102,7 +108,12 @@ class _ArticleCard extends StatelessWidget {
 
           Padding(
             padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
-            child: Text(article.description ?? '', textAlign: TextAlign.start),
+            child: Text(
+              article.description ?? '', 
+              style: Theme.of(context).textTheme.bodyText2,
+              textAlign: TextAlign.start, 
+              maxLines: 3,
+            ),
           ),
         ],
       ),

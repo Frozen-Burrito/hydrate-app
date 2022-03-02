@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 
 class CommonFormPage extends StatelessWidget {
   
@@ -17,31 +18,22 @@ class CommonFormPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.blue,
       body: CustomScrollView(
-        physics: BouncingScrollPhysics(),
+        physics: const BouncingScrollPhysics(),
         slivers: <Widget>[
-          SliverAppBar(
-            title: Padding(
-              padding: const EdgeInsets.symmetric( vertical: 10.0 ),
-              child: Text(formTitle),
-            ),
-            titleTextStyle: Theme.of(context).textTheme.headline4,
-            centerTitle: true,
-            backgroundColor: Colors.white,
-            floating: true,
+          CustomSliverAppBar(
+            title: formTitle,
             leading: IconButton(
-              color: Colors.black, 
               icon: const Icon(Icons.arrow_back), 
               onPressed: () => Navigator.pop(context)
             ),
-            actionsIconTheme: const IconThemeData(color: Colors.black),
-            actions: <Widget> [
+            actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.help),
                 onPressed: (){}, 
               ),
             ],
           ),
-        
+
           SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,

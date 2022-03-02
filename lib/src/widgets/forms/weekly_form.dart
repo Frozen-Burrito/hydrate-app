@@ -43,9 +43,9 @@ class _WeeklyFormState extends State<WeeklyForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text(
+                Text(
                   '¿Cómo ha estado tu semana?', 
-                  style: TextStyle(fontSize: 16.0, color: Colors.black),
+                  style: Theme.of(context).textTheme.bodyText1,
                 ),
 
                 const SizedBox( height: 16.0, ),

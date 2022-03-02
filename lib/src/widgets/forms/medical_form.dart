@@ -45,9 +45,9 @@ class _MedicalFormState extends State<MedicalForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text(
+                Text(
                   'Introduce los siguientes datos con apoyo de tu nefrólogo:', 
-                  style: TextStyle(fontSize: 16.0, color: Colors.black),
+                  style: Theme.of(context).textTheme.bodyText1,
                 ),
 
                 const SizedBox( width: 16.0, ),

@@ -103,9 +103,9 @@ class _InitialFormState extends State<InitialForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text(
+                Text(
                   'Escribe sobre tí para conocerte mejor:', 
-                  style: TextStyle(fontSize: 16.0, color: Colors.black),
+                  style: Theme.of(context).textTheme.bodyText1,
                 ),
 
                 const SizedBox( height: 16.0, ),
@@ -122,7 +122,7 @@ class _InitialFormState extends State<InitialForm> {
                   onTap: () async {
                     DateTime? newBirthDate = await showDatePicker(
                       context: context, 
-                      initialDate: DateTime.now(), 
+                      initialDate: DateTime(DateTime.now().year - 10), 
                       firstDate: DateTime(1900), 
                       lastDate: DateTime(DateTime.now().year)
                     );
@@ -196,7 +196,7 @@ class _InitialFormState extends State<InitialForm> {
                           labelText: 'Estatura (m)',
                           hintText: '1.70',
                           helperText: ' ',
-                          suffixIcon: Icon(Icons.height)
+                          suffixIcon: Icon(Icons.height),
                         ),
                         onChanged: (value) => _userInfo.height = double.tryParse(value) ?? 0,
                         validator: (value) => UserInfo.validateHeight(value),

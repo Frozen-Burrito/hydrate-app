@@ -79,9 +79,9 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text(
+                Text(
                   'Escribe los detalles de tu nueva meta:', 
-                  style: TextStyle(fontSize: 16.0, color: Colors.black),
+                  style: Theme.of(context).textTheme.bodyText1,
                 ),
     
                 const SizedBox( height: 16.0, ),

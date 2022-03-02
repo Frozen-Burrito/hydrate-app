@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
 
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
@@ -17,17 +18,10 @@ class HomeTab extends StatelessWidget {
       bottom: false,
       child: CustomScrollView(
         slivers: <Widget> [
-          SliverAppBar(
-            title: const Padding(
-              padding: EdgeInsets.symmetric( vertical: 10.0 ),
-              child: Text('Inicio'),
-            ),
-            titleTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 24),
-            centerTitle: true,
-            backgroundColor: Colors.white,
-            floating: true,
-            actionsIconTheme: const IconThemeData(color: Colors.black),
-            actions: <Widget> [
+
+          CustomSliverAppBar(
+            title: 'Inicio',
+            actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.task_alt),
                 onPressed: () => Navigator.pushNamed(context, '/new-goal'), 

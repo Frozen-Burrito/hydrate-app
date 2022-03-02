@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({ Key? key }) : super(key: key);
@@ -18,28 +19,18 @@ class SettingsPage extends StatelessWidget {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: <Widget> [
-            SliverAppBar(
-              title: const Padding(
-                padding: EdgeInsets.symmetric( vertical: 10.0 ),
-                child: Text('Ajustes'),
-              ),
-              titleTextStyle: Theme.of(context).textTheme.headline4,
-              centerTitle: true,
-              floating: true,
+            CustomSliverAppBar(
+              title: 'Ajustes',
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back), 
                 onPressed: () => Navigator.pop(context)
               ),
-              actions: <Widget> [
+              actions: <Widget>[
                 IconButton(
                   icon: const Icon(Icons.phonelink_ring),
                   onPressed: () => Navigator.pushNamed(context, '/ble-pair'),
                 )
               ],
-              bottom: const PreferredSize(
-                preferredSize: Size(double.infinity, 5),
-                child: Divider( thickness: 1.0, height: 1.0,),
-              ),
             ),
 
             SliverToBoxAdapter(
@@ -125,7 +116,6 @@ class _SettingsControlState extends State<_SettingsControl> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     _originalThemeMode = widget.settingsProvider.appThemeMode;
@@ -189,6 +179,7 @@ class _SettingsControlState extends State<_SettingsControl> {
   Widget build(BuildContext context) {
     return ListTileTheme(
       iconColor: Theme.of(context).colorScheme.onBackground,
+      textColor: Theme.of(context).colorScheme.onBackground,
       child: ListView(
         physics: const BouncingScrollPhysics(),
         shrinkWrap: true,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 
 import 'package:provider/provider.dart';
 
@@ -22,21 +23,16 @@ class ArticlesTab extends StatelessWidget {
             return <Widget> [
               SliverOverlapAbsorber(
                 handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                sliver:  SliverAppBar(
-                  title: const Text('Artículos'),
-                  titleTextStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 24),
-                  centerTitle: true,
-                  backgroundColor: Colors.white,
-                  floating: true,
-                  bottom: const TabBar(
-                    indicatorColor: Colors.blue,
+                sliver: CustomSliverAppBar(
+                  title: 'Artículos',
+                  bottom: TabBar(
+                    indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: <Tab> [
-                      Tab(child: Text('Descubrir', style: TextStyle(color: Colors.black),), ),
-                      Tab(child: Text('Marcados', style: TextStyle(color: Colors.black),),),
+                      Tab(child: Text('Descubrir', style: Theme.of(context).textTheme.bodyText1, )),
+                      Tab(child: Text('Marcados', style: Theme.of(context).textTheme.bodyText1, )),
                     ],
                   ),
-                  actionsIconTheme: const IconThemeData(color: Colors.black),
-                  actions: [
+                  actions: <Widget>[
                     OptionsPopupMenu(
                       options: <MenuItem> [
                         MenuItem(
@@ -53,7 +49,7 @@ class ArticlesTab extends StatelessWidget {
                     ),
                   ],
                 ),
-              )
+              ),
             ];
           },
           body: Consumer<ArticleProvider>(
