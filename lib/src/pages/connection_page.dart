@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
+import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/device_list.dart';
-import 'package:hydrate_app/src/widgets/ble_off.dart';
 
 class ConnectionPage extends StatelessWidget {
   
@@ -29,18 +29,22 @@ class ConnectionPage extends StatelessWidget {
             ],
           ),
         
-          SliverToBoxAdapter(
-            child: StreamBuilder<BluetoothState>(
-              stream: FlutterBlue.instance.state,
-              initialData: BluetoothState.unknown,
-              builder: (context, AsyncSnapshot<BluetoothState> stateSnapshot) {
-                final state = stateSnapshot.data;
-                
-                return (state == BluetoothState.on) 
-                  ? const BleDeviceList() 
-                  : BleOFF(state: state);
-              }
-            ),
+          StreamBuilder<BluetoothState>(
+            stream: FlutterBlue.instance.state,
+            initialData: BluetoothState.unknown,
+            builder: (context, AsyncSnapshot<BluetoothState> stateSnapshot) {
+              final state = stateSnapshot.data;
+              
+              return (state == BluetoothState.on) 
+                ? const SliverToBoxAdapter(
+                  child: BleDeviceList()
+                ) 
+                : SliverDataPlaceholder(
+                  message: 'El adaptador de BlueTooth del celular no está disponible.\nIntenta activarlo u otorgar permisos de BlueTooth a la app.',
+                  details: '(state is "${state != null ? state.toString().substring(15) : 'not available'}")',
+                  icon: Icons.bluetooth_disabled
+                );
+            }
           ),
         ]
       ),

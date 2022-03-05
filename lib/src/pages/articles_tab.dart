@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 
 import 'package:provider/provider.dart';
@@ -57,8 +56,15 @@ class ArticlesTab extends StatelessWidget {
               return TabBarView(
                 physics: const BouncingScrollPhysics(),
                 children: <Widget> [
-                  ArticleSliverList(articles: articleProvider.articles),
-                  ArticleSliverList(articles: articleProvider.bookmarks),
+                  ArticleSliverList(
+                    articles: articleProvider.articles,
+                  ),
+                  ArticleSliverList(
+                    articles: articleProvider.bookmarks, 
+                    isBookmarks: true,
+                    isLoading: articleProvider.areBookmarksLoading,
+                    hasError: articleProvider.bookmarksError,
+                  ),
                 ]
               );
             },

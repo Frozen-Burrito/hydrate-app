@@ -2,13 +2,24 @@ import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';
+import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:provider/provider.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
   final List<Article> articles;
 
-  const ArticleSliverList({ required this.articles, Key? key }) : super(key: key);
+  final bool isBookmarks;
+  final bool hasError;
+  final bool isLoading;
+
+  const ArticleSliverList({ 
+    required this.articles, 
+    this.isBookmarks = false,
+    this.isLoading = false, 
+    this.hasError = false,
+    Key? key 
+    }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +36,40 @@ class ArticleSliverList extends StatelessWidget {
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(8.0),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int i) {
-                      return _ArticleCard(article: articles[i]);
-                    },
-                    childCount: articles.length
-                  ),
+                sliver: Builder(
+                  builder: (context) {
+
+                    String msg = '';
+                    IconData placeholderIcon = Icons.error;
+
+                    if (hasError) {
+                      msg = 'Hubo un error obteniendo los recursos informativos';
+                      placeholderIcon = isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded;
+
+                    } else if (!isLoading && articles.isEmpty) {
+                      msg = isBookmarks 
+                        ? 'Aún no has guardado recursos informativos.' 
+                        : 'No hay recursos informativos disponibles. Intenta más tarde.';
+                      placeholderIcon = Icons.inbox;
+                    }
+
+                    if (isLoading || hasError || articles.isEmpty) {
+                      return SliverDataPlaceholder(
+                        isLoading: isLoading,
+                        message: msg,
+                        icon: placeholderIcon,
+                      );
+                    }
+
+                    return SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int i) {
+                          return _ArticleCard(article: articles[i]);
+                        },
+                        childCount: articles.length
+                      ),
+                    );
+                  }
                 )
               ),
             ]

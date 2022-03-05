@@ -4,16 +4,17 @@ import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 
-class GoalSliverList extends StatefulWidget {
-  const GoalSliverList({ Key? key }) : super(key: key);
+class WaterIntakeSliverList extends StatefulWidget {
+  const WaterIntakeSliverList({ Key? key }) : super(key: key);
 
   @override
-  State<GoalSliverList> createState() => _GoalSliverListState();
+  State<WaterIntakeSliverList> createState() => _WaterIntakeSliverListState();
 }
 
-class _GoalSliverListState extends State<GoalSliverList> {
+class _WaterIntakeSliverListState extends State<WaterIntakeSliverList> {
 
-  List<Goal> userGoals = [];
+  //TODO: Crear modelo de registro de hidratacion y usarlo
+  List<Goal> intakeData = [];
   bool isLoading = false;
 
   @override
@@ -30,6 +31,7 @@ class _GoalSliverListState extends State<GoalSliverList> {
       });
     }
 
+    //TODO: obtener registros de hidratacion.
     final goals = await SQLiteDB.instance.select<Goal>(
       Goal.fromMap, 
       'meta', 
@@ -39,7 +41,7 @@ class _GoalSliverListState extends State<GoalSliverList> {
 
     if (mounted) {
       setState(() {
-        userGoals = goals.toList();
+        intakeData = goals.toList();
         isLoading = false;
       });
     }
@@ -49,16 +51,37 @@ class _GoalSliverListState extends State<GoalSliverList> {
   Widget build(BuildContext context) {
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
-      sliver: isLoading 
-        ? const SliverDataPlaceholder( isLoading: true, )
-        : SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int i) {
-              return _GoalCard(goal: userGoals[i],);
-            },
-            childCount: userGoals.length,
-          ),
-        ),
+      sliver: Builder(
+        builder: (context) {
+          String msg = '';
+          IconData placeholderIcon = Icons.info;
+
+          if (!isLoading && intakeData.isEmpty) {
+            msg = 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.';
+            placeholderIcon = Icons.fact_check_rounded;
+          }
+
+          if (isLoading || intakeData.isEmpty) {
+            return SliverDataPlaceholder(
+              isLoading: isLoading,
+              message: msg,
+              icon: placeholderIcon,
+            );
+          } else {
+            return SliverPadding(
+              padding: const EdgeInsets.all(8.0),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int i) {
+                    return _GoalCard(goal: intakeData[i],);
+                  },
+                  childCount: intakeData.length,
+                ),
+              ),
+            );
+          }
+        },
+      )
     );
   }
 }

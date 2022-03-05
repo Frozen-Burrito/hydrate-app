@@ -21,7 +21,13 @@ class ArticleProvider with ChangeNotifier {
   
   final List<Article> _bookmarkedArticles = [];
 
+  bool _bookmarksLoading = true;
+  bool _bookmarksError = false;
+
   bool _shouldRefreshBookmarks = true;
+
+  bool get areBookmarksLoading => _bookmarksLoading;
+  bool get bookmarksError => _bookmarksError;
 
   /// La lista de artículos obtenidos desde la API.
   List<Article> get articles {
@@ -43,11 +49,12 @@ class ArticleProvider with ChangeNotifier {
     try {
       if (_shouldRefreshBookmarks) {
         // Solo obtener bookmarks desde BD si hubo un cambio importante.
-        print('Loading bookmarks');
+        _bookmarksLoading = true;
         refreshBookmarks();
       }
     } catch (e) {
-      print('Error obteniendo bookmarks');
+      _bookmarksLoading = false;
+      _bookmarksError = true;
     } 
 
     return _bookmarkedArticles;
@@ -66,10 +73,14 @@ class ArticleProvider with ChangeNotifier {
       }));
 
       _shouldRefreshBookmarks = false;
+      _bookmarksLoading = false;
+      _bookmarksError = false;
       notifyListeners();
 
     } on Exception catch (e) {
-      print('Error refrescando de DB:\n$e');
+      _bookmarksLoading = false;
+      _bookmarksError = true;
+      notifyListeners();
     }    
   }
 
@@ -102,7 +113,7 @@ class ArticleProvider with ChangeNotifier {
     int resultId = -1;
 
     try {
-      resultId = await SQLiteDB.instance.delete('article', id);
+      resultId = await SQLiteDB.instance.delete('recurso_inf', id);
       _bookmarkedArticles.removeWhere((article) => article.id == id);
       notifyListeners();
     } catch (e) {
