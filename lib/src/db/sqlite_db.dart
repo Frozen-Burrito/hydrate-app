@@ -1,14 +1,10 @@
-import 'package:hydrate_app/src/models/country.dart';
-import 'package:hydrate_app/src/models/habits.dart';
-import 'package:hydrate_app/src/models/medical_data.dart';
-import 'package:hydrate_app/src/models/user_info.dart';
+import 'dart:math';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:hydrate_app/src/db/migrations.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
-import 'package:hydrate_app/src/models/article.dart';
-import 'package:hydrate_app/src/models/goal.dart';
-import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/models/models.dart';
 
 /// Proporciona acceso a una base de datos local de SQLite, a través de [instance].
 /// Permite realizar operaciones CRUD con sus métodos. Utiliza [SQLiteModel] para
@@ -30,7 +26,7 @@ class SQLiteDB {
   /// print(tabla); // 'etiquetas_meta'
   /// ```
   Map<String, Map<String, String>> manyToManyTables = {
-    'meta': { 'etiqueta': 'etiquetas_meta' },
+    Goal.tableName: { Tag.tableName: '${Tag.tableName}s_${Goal.tableName}' },
   };
 
   /// Abre la base de datos. Si no existe previamente, es creada.
@@ -40,18 +36,14 @@ class SQLiteDB {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
+    final int maxMigrationVersion = SQLiteMigrator.migrations.keys.reduce(max);
+
     return await openDatabase(
       path,
-      version: 6,
+      version: maxMigrationVersion,
       onOpen: (db) {},
       onCreate: _createDatabase,
-      onUpgrade: (db, oldVersion, newVersion) async {
-        print('Upgrading the database from $oldVersion to v$newVersion');
-        await db.close();
-        await deleteDatabase(path);
-
-        init(filePath);
-      }
+      onUpgrade: _upgradeDatabase,
     );
   }
 
@@ -59,36 +51,29 @@ class SQLiteDB {
   // Ejecuta los queries de creación de tabla para cada modelo.
   Future _createDatabase(Database db, int version) async {
 
-    print('Re-creating db to version $version');
+    SQLiteMigrator.migrations.keys.toList()
+      ..sort()
+      ..forEach((version) async { 
+        final List<String> queries = SQLiteMigrator.migrations[version] ?? [];
 
-    await db.execute(Article.createTableQuery);
+        for (var query in queries) {
+          await db.execute(query);
+        }
+      });
+  }
 
-    await db.execute(Goal.createTableQuery);
+  Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
 
-    await db.execute(Tag.createTableQuery);
+    for (var i = oldVersion+1; i <= newVersion; i++) {
+      
+      final List<String> queries = SQLiteMigrator.migrations[i] ?? [];
 
-    await db.execute(Country.createTableQuery);
+      for (var query in queries) {
+        await db.execute(query);
+      }
+    }
 
-    await db.execute(UserInfo.createTableQuery);
-
-    await db.execute(Habits.createTableQuery);
-
-    await db.execute(MedicalData.createTableQuery);
-
-    // Crear tabla muchos a muchos para metas y etiquetas.
-    await db.execute('''
-      CREATE TABLE etiquetas_meta (
-        id ${SQLiteModel.idType},
-        id_meta ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-        id_etiqueta ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-
-        ${SQLiteModel.fk} (id_meta) ${SQLiteModel.references} meta (id)
-          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction},
-
-        ${SQLiteModel.fk} (id_etiqueta) ${SQLiteModel.references} etiqueta (id)
-          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction}
-      )
-    ''');
+    print('DB upgraded from v$oldVersion to v$newVersion');
   }
 
   /// Inserta un [SQLiteModel] en la base de datos.

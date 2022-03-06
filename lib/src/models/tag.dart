@@ -7,11 +7,13 @@ class Tag extends SQLiteModel {
 
   Tag(this.id, this.value);
 
+  static const String tableName = 'etiqueta';
+
   @override
-  String get table => 'etiqueta';
+  String get table => tableName;
 
   static const String createTableQuery = '''
-    CREATE TABLE etiqueta (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       valor ${SQLiteModel.textType} ${SQLiteModel.notNullType}
     )

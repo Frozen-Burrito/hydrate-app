@@ -30,11 +30,13 @@ class MedicalData extends SQLiteModel {
     this.nextAppointment
   });
 
+  static const String tableName = 'datos_medicos';
+
   @override
-  String get table => 'datos_medicos';
+  String get table => tableName;
 
   static const String createTableQuery = '''
-    CREATE TABLE datos_medicos (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       hipervolemia ${SQLiteModel.realType} ${SQLiteModel.notNullType},
       peso_post_dial ${SQLiteModel.realType} ${SQLiteModel.notNullType},
@@ -66,7 +68,7 @@ class MedicalData extends SQLiteModel {
     'normovolemia': normovolemia,
     'ganancia_rec': recommendedGain,
     'ganancia_real': actualGain,
-    'fecha_prox_cita': nextAppointment,
+    'fecha_prox_cita': nextAppointment?.toIso8601String() ?? '',
   };
 
   //TODO: Validators

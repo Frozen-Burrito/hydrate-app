@@ -24,10 +24,12 @@ class Article extends SQLiteModel {
   });
 
   @override
-  String get table => 'recurso_inf';
+  String get table => tableName;
+
+  static const String tableName = 'recurso_inf';
 
   static const String createTableQuery = '''
-    CREATE TABLE recurso_inf (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       titulo ${SQLiteModel.textType} ${SQLiteModel.notNullType},
       descripcion ${SQLiteModel.textType},

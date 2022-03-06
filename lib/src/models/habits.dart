@@ -18,11 +18,13 @@ class Habits extends SQLiteModel {
     this.date,
   });
 
+  static const String tableName = 'reporte_habitos';
+
   @override
-  String get table => 'reporte_habitos';
+  String get table => tableName;
 
   static const String createTableQuery = '''
-    CREATE TABLE reporte_habitos (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       horas_sueno ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
       horas_act_fisica ${SQLiteModel.integerType} ${SQLiteModel.notNullType},

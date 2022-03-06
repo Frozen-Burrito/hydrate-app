@@ -45,12 +45,14 @@ class UserInfo extends SQLiteModel {
     this.country,
   });
 
+  static const String tableName = 'info_usuario';
+
   @override
-  String get table => 'info_usuario';
+  String get table => tableName;
 
   /// El string de query para crear la tabla del modelo en SQLite.
   static const String createTableQuery = '''
-    CREATE TABLE info_usuario (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       sexo ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
       estatura ${SQLiteModel.realType} ${SQLiteModel.notNullType},

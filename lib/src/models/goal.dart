@@ -29,11 +29,13 @@ class Goal extends SQLiteModel {
     required this.tags,
   });
 
+  static const String tableName = 'meta';
+
   @override
-  String get table => 'meta';
+  String get table => tableName;
 
   static const String createTableQuery = '''
-    CREATE TABLE meta (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       plazo ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
       fecha_inicio ${SQLiteModel.textType} ${SQLiteModel.notNullType},

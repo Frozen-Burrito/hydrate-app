@@ -25,6 +25,8 @@ abstract class SQLiteModel {
   static const setNullAction = 'SET NULL';
   static const restrictAction = 'RESTRICT';
 
+  static const dropTableIfExists = 'DROP TABLE IF EXISTS';
+
   /// Retorna el nombre de la tabla del modelo en SQLite.
   String get table => 'default';
 

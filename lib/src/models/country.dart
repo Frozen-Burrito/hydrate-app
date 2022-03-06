@@ -9,11 +9,13 @@ class Country extends SQLiteModel {
 
   Country({ this.id = 0, this.code = '--' });
 
+  static const String tableName = 'pais';
+
   @override
-  String get table => 'pais';
+  String get table => tableName;
 
   static const String createTableQuery = '''
-    CREATE TABLE pais (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       codigo ${SQLiteModel.textType} ${SQLiteModel.notNullType}
     )
