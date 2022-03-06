@@ -36,7 +36,7 @@ class UserInfo extends SQLiteModel {
   Country? country;
 
   UserInfo({
-    this.id = 0,
+    this.id = -1,
     this.sex = UserSex.notSpecified,
     this.height = 0.0,
     this.weight = 0.0,
@@ -79,15 +79,20 @@ class UserInfo extends SQLiteModel {
   }
 
   @override
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'sexo': sex.index,
-    'estatura': height,
-    'peso': weight,
-    'padecimientos': medicCondition.index,
-    'ocupacion': occupation.index,
-    // 'pais': country,
-  };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'sexo': sex.index,
+      'estatura': height,
+      'peso': weight,
+      'padecimientos': medicCondition.index,
+      'ocupacion': occupation.index,
+      // 'pais': country,
+    };
+
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  }
   
   /// Verifica que [inputHeight] pueda convertirse a número decimal y esté en el
   /// rango requerido.

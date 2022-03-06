@@ -8,7 +8,7 @@ class HydrationRecord extends SQLiteModel {
   DateTime? date;
 
   HydrationRecord({
-    this.id = 0,
+    this.id = -1,
     this.amount = 0,
     this.batteryPercentage = 0,
     this.date
@@ -38,14 +38,14 @@ class HydrationRecord extends SQLiteModel {
   } 
 
   @override
-  Map<String, dynamic> toMap({bool includeId = false}) {
+  Map<String, dynamic> toMap() {
     final Map<String, dynamic> map = {
       'cantidad': amount, 
       'porcentaje_bateria': batteryPercentage,
       'fecha': date?.toIso8601String(),
     };
 
-    if (includeId) map['id'] = id;
+    if (id >= 0) map['id'] = id;
 
     return map;
   }

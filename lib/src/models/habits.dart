@@ -10,7 +10,7 @@ class Habits extends SQLiteModel {
   DateTime? date;
 
   Habits({
-    this.id = 0,
+    this.id = -1,
     this.hoursOfSleep = 0,
     this.hoursOfActivity = 0,
     this.hoursOfOccupation = 0,
@@ -47,14 +47,19 @@ class Habits extends SQLiteModel {
   }
 
   @override
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'horas_sueno': hoursOfSleep,
-    'horas_act_fisica': hoursOfActivity,
-    'horas_ocupacion': hoursOfOccupation,
-    'temperatura_max': maxTemperature,
-    'fecha': date?.toIso8601String(),
-  };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'horas_sueno': hoursOfSleep,
+      'horas_act_fisica': hoursOfActivity,
+      'horas_ocupacion': hoursOfOccupation,
+      'temperatura_max': maxTemperature,
+      'fecha': date?.toIso8601String(),
+    };
+
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  }
 
   /// Verifica que la suma total de horas en [dailyHourAvgs] esté entre 0 y 24.
   static String? validateHourTotal(List<int> dailyHourAvgs) { 

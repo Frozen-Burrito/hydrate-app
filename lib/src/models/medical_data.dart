@@ -20,7 +20,7 @@ class MedicalData extends SQLiteModel {
   DateTime? nextAppointment;
 
   MedicalData({
-    this.id = 0,
+    this.id = -1,
     this.hypervolemia = 0.0,
     this.postDialysisWeight = 0.0,
     this.extracellularWater = 0.0,
@@ -60,16 +60,21 @@ class MedicalData extends SQLiteModel {
   );
 
   @override
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'hipervolemia': hypervolemia,
-    'peso_post_dial': postDialysisWeight,
-    'agua_extracel': extracellularWater,
-    'normovolemia': normovolemia,
-    'ganancia_rec': recommendedGain,
-    'ganancia_real': actualGain,
-    'fecha_prox_cita': nextAppointment?.toIso8601String() ?? '',
-  };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'hipervolemia': hypervolemia,
+      'peso_post_dial': postDialysisWeight,
+      'agua_extracel': extracellularWater,
+      'normovolemia': normovolemia,
+      'ganancia_rec': recommendedGain,
+      'ganancia_real': actualGain,
+      'fecha_prox_cita': nextAppointment?.toIso8601String() ?? '',
+    };
+
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  }
 
   //TODO: Validators
 }

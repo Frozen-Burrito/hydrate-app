@@ -70,16 +70,21 @@ class Goal extends SQLiteModel {
   } 
 
   @override
-  Map<String, dynamic> toMap() => {
-    // 'id': id,
-    'plazo': term.index,
-    'fecha_inicio': startDate?.toIso8601String(), 
-    'fecha_final': endDate?.toIso8601String(),
-    'recompensa': reward,
-    'cantidad': quantity,
-    'notas': notes,
-    'etiquetas': tags
-  };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'plazo': term.index,
+      'fecha_inicio': startDate?.toIso8601String(), 
+      'fecha_final': endDate?.toIso8601String(),
+      'recompensa': reward,
+      'cantidad': quantity,
+      'notas': notes,
+      'etiquetas': tags
+    };
+
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  }
 
   /// Obtiene una [List<Tag>] a partir de un [inputValue], con cada etiquta 
   /// separada por comas.

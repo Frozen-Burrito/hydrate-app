@@ -48,11 +48,16 @@ class Article extends SQLiteModel {
   );
 
   @override
-  Map<String, Object?> toMap() => {
-    // 'id': id,
-    'titulo': title,
-    'descripcion': description,
-    'url': url,
-    'fecha_pub': publishDate?.toIso8601String() ?? 'No date',
-  };
+  Map<String, Object?> toMap() {
+    final Map<String, dynamic> map = {
+      'titulo': title,
+      'descripcion': description,
+      'url': url,
+      'fecha_pub': publishDate?.toIso8601String() ?? 'No date',
+    };
+
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  }
 }

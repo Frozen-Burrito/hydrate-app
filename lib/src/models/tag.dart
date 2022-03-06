@@ -25,10 +25,15 @@ class Tag extends SQLiteModel {
   );
 
   @override
-  Map<String, dynamic> toMap() => {
-    // 'id': id,
-    'valor': value,
-  };
+  Map<String, dynamic> toMap() {
+    final Map<String, dynamic> map = {
+      'valor': value,
+    };
+
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  } 
   
   @override
   String toString() {

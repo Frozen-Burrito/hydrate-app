@@ -7,7 +7,7 @@ class Country extends SQLiteModel {
   int id;
   String code;
 
-  Country({ this.id = 0, this.code = '--' });
+  Country({ this.id = -1, this.code = '--' });
 
   static const String tableName = 'pais';
 
@@ -27,10 +27,16 @@ class Country extends SQLiteModel {
   );
 
   @override
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'codigo': code,
-  };
+  Map<String, dynamic> toMap() {
+
+    final Map<String, dynamic> map = {
+      'codigo': code,
+    };
+    
+    if (id >= 0) map['id'] = id;
+
+    return map;
+  } 
 
   /// Verifica que [inputCode] no sea nulo, tenga exactamente dos caracteres.
   static String? validateCountryCode(String? inputCode) {
