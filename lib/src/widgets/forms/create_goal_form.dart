@@ -16,8 +16,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final Goal newGoal = Goal(
-    id: 0, 
+  final Goal newGoal = Goal( 
     term: GoalTerm.daily, 
     startDate: DateTime.now(), 
     endDate: DateTime.now(),
@@ -54,12 +53,16 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
   /// Verifica cada campo del formulario. Si no hay errores, inserta la nueva
   /// meta en la DB y redirige a [redirectRoute]. 
-  void _validateAndSave(BuildContext context, String? redirectRoute) async {
+  void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
     if (_formKey.currentState!.validate()) {
       int resultado = await SQLiteDB.instance.insert(newGoal);
 
       if (resultado >= 0) {
-        Navigator.pushReplacementNamed(context, redirectRoute ?? '/');
+        if (redirectRoute != null) {
+          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+        } else {
+          Navigator.of(context).pop();
+        }
       }
     }
   }
@@ -264,7 +267,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                         style: ElevatedButton.styleFrom(
                           primary: Colors.blue,
                         ),
-                        onPressed: () => _validateAndSave(context, '/'),
+                        onPressed: () => _validateAndSave(context, redirectRoute: '/'),
                       ),
                     ),
                   ]

@@ -19,7 +19,7 @@ class Goal extends SQLiteModel {
   List<Tag> tags;
 
   Goal({
-    required this.id,
+    this.id = -1,
     required this.term,
     this.startDate,
     required this.endDate,

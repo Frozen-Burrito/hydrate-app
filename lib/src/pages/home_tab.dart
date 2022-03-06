@@ -17,6 +17,7 @@ class HomeTab extends StatelessWidget {
       top: false,
       bottom: false,
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: <Widget> [
 
           CustomSliverAppBar(

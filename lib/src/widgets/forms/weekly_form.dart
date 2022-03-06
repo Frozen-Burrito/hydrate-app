@@ -19,12 +19,16 @@ class _WeeklyFormState extends State<WeeklyForm> {
   
   /// Verifica cada campo del formulario. Si no hay errores, registra la nueva
   /// información del usuario en la DB y redirige a [redirectRoute]. 
-  void _validateAndSave(BuildContext context, String? redirectRoute) async {
+  void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
     if (_formKey.currentState!.validate()) {
       int resultado = await SQLiteDB.instance.insert(_userHabits);
 
       if (resultado >= 0) {
-        Navigator.pushReplacementNamed(context, redirectRoute ?? '/');
+        if (redirectRoute != null) {
+          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+        } else {
+          Navigator.of(context).pop();
+        }
       }
     }
   }
@@ -152,7 +156,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
                       style: ElevatedButton.styleFrom(
                         primary: Colors.blue,
                       ),
-                      onPressed: () => _validateAndSave(context, '/'),
+                      onPressed: () => _validateAndSave(context),
                     ),
                   ),
                 )
