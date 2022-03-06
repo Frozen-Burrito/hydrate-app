@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/db/sqlite_db.dart';
 
-import 'package:hydrate_app/src/models/goal.dart';
+import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 
 class WaterIntakeSliverList extends StatefulWidget {
@@ -13,8 +13,7 @@ class WaterIntakeSliverList extends StatefulWidget {
 
 class _WaterIntakeSliverListState extends State<WaterIntakeSliverList> {
 
-  //TODO: Crear modelo de registro de hidratacion y usarlo
-  List<Goal> intakeData = [];
+  List<HydrationRecord> intakeData = [];
   bool isLoading = false;
 
   @override
@@ -31,10 +30,9 @@ class _WaterIntakeSliverListState extends State<WaterIntakeSliverList> {
       });
     }
 
-    //TODO: obtener registros de hidratacion.
-    final goals = await SQLiteDB.instance.select<Goal>(
-      Goal.fromMap, 
-      'meta', 
+    final goals = await SQLiteDB.instance.select<HydrationRecord>(
+      HydrationRecord.fromMap, 
+      HydrationRecord.tableName, 
       queryManyToMany: true,
       limit: 20,
     );
@@ -73,7 +71,7 @@ class _WaterIntakeSliverListState extends State<WaterIntakeSliverList> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int i) {
-                    return _GoalCard(goal: intakeData[i],);
+                    return _GoalCard(hydrationRecord: intakeData[i],);
                   },
                   childCount: intakeData.length,
                 ),
@@ -88,12 +86,9 @@ class _WaterIntakeSliverListState extends State<WaterIntakeSliverList> {
 
 class _GoalCard extends StatelessWidget {
 
-  final Goal goal;
+  final HydrationRecord hydrationRecord;
 
-  //TODO: Agregar traducciones reales, centralizadas.
-  static const termLabels = <String>['Diario','Semanal','Mensual'];
-
-  const _GoalCard({ required this.goal, Key? key }) : super(key: key);
+  const _GoalCard({ required this.hydrationRecord, Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -101,45 +96,8 @@ class _GoalCard extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
-            title: Text(goal.notes ?? 'Meta'),
-            subtitle: Text(termLabels[goal.term.index]),
-            trailing: Column(
-              children: <Widget> [
-                Text('${goal.quantity.toString()}ml'),
-                Text(goal.reward.toString()),
-              ],
-            )
-          ),
-
-          Padding(
-            padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
-            child: Column(
-              children: [
-                goal.tags.isNotEmpty 
-                ? SizedBox(
-                  height: 48.0,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: goal.tags.length,
-                    itemBuilder: (BuildContext context, int i) {
-                      return Container(
-                        margin: const EdgeInsets.only( right: 8.0 ),
-                        child: Chip(
-                          key: Key(goal.tags[i].id.toString()),
-                          label: Text(goal.tags[i].value),
-                        ),
-                      );
-                    }
-                  ),
-                )
-                : Container(),
-                
-                Text(
-                  '${goal.startDate.toString()} hasta ${goal.endDate.toString()}', 
-                  textAlign: TextAlign.start
-                ),
-              ],
-            ),
+            title: Text(hydrationRecord.date.toString()),
+            subtitle: Text('${hydrationRecord.amount}ml'),
           ),
         ],
       ),
