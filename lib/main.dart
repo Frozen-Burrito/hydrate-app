@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 
 import 'package:provider/provider.dart';
 
@@ -29,8 +30,15 @@ class HydrateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => SettingsProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<SettingsProvider>(
+          create: (_) => SettingsProvider(),
+        ),
+        ChangeNotifierProvider<HydrationRecordProvider>(
+          create: (_) => HydrationRecordProvider(),
+        ),
+      ],
       child: Consumer<SettingsProvider>(
         builder: (_, settingsProvider, __) {
           return MaterialApp(

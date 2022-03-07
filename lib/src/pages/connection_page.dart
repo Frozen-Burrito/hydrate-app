@@ -11,31 +11,31 @@ class ConnectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: <Widget>[
-          CustomSliverAppBar(
-            title: 'Conecta Tu Botella',
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.pop(context),
-            ),
-            actions: <Widget> [
-              IconButton(
-                icon: const Icon(Icons.info),
-                onPressed: () {}, 
-              )
-            ],
-          ),
-        
-          StreamBuilder<BluetoothState>(
-            stream: FlutterBlue.instance.state,
-            initialData: BluetoothState.unknown,
-            builder: (context, AsyncSnapshot<BluetoothState> stateSnapshot) {
-              final state = stateSnapshot.data;
-              
-              return (state == BluetoothState.on) 
+    return StreamBuilder<BluetoothState>(
+      stream: FlutterBlue.instance.state,
+      initialData: BluetoothState.unknown,
+      builder: (context, AsyncSnapshot<BluetoothState> stateSnapshot) {
+        final state = stateSnapshot.data;
+
+        return  Scaffold(
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: <Widget>[
+              CustomSliverAppBar(
+                title: 'Conecta Tu Botella',
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                actions: <Widget> [
+                  IconButton(
+                    icon: const Icon(Icons.info),
+                    onPressed: () {}, 
+                  )
+                ],
+              ),
+
+              (state == BluetoothState.on) 
                 ? const SliverToBoxAdapter(
                   child: BleDeviceList()
                 ) 
@@ -43,30 +43,33 @@ class ConnectionPage extends StatelessWidget {
                   message: 'El adaptador de BlueTooth del celular no está disponible.\nIntenta activarlo u otorgar permisos de BlueTooth a la app.',
                   details: '(state is "${state != null ? state.toString().substring(15) : 'not available'}")',
                   icon: Icons.bluetooth_disabled
+              ),
+            ]
+          ),
+          floatingActionButton: StreamBuilder<bool>(
+            stream: FlutterBlue.instance.isScanning,
+            initialData: false,
+            builder: (context, snapshot) {
+              if (snapshot.data!) {
+                return FloatingActionButton(
+                  child: const Icon(Icons.stop),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  onPressed: () => FlutterBlue.instance.stopScan(),
                 );
+              } else {
+                return FloatingActionButton(
+                  
+                  child: const Icon(Icons.search),
+                  backgroundColor: (state == BluetoothState.on) ? Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
+                  onPressed: (state == BluetoothState.on) 
+                      ? () => FlutterBlue.instance.startScan(timeout: const Duration(seconds: 4))
+                      : null,
+                );
+              }
             }
           ),
-        ]
-      ),
-      floatingActionButton: StreamBuilder<bool>(
-        stream: FlutterBlue.instance.isScanning,
-        initialData: false,
-        builder: (context, snapshot) {
-          if (snapshot.data!) {
-            return FloatingActionButton(
-              child: const Icon(Icons.stop),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              onPressed: () => FlutterBlue.instance.stopScan(),
-            );
-          } else {
-            return FloatingActionButton(
-              child: const Icon(Icons.search),
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              onPressed: () => FlutterBlue.instance.startScan(timeout: const Duration(seconds: 4)),
-            );
-          }
-        }
-      ),
+        );
+      }
     );
   }
 }

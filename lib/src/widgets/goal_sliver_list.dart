@@ -91,6 +91,7 @@ class _GoalCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 goal.tags.isNotEmpty 
                 ? SizedBox(
@@ -112,8 +113,8 @@ class _GoalCard extends StatelessWidget {
                 : Container(),
                 
                 Text(
-                  '${goal.startDate.toString()} hasta ${goal.endDate.toString()}', 
-                  textAlign: TextAlign.start
+                  '${goal.startDate.toString().substring(0,10)} hasta ${goal.endDate.toString().substring(0,10)}', 
+                  textAlign: TextAlign.left
                 ),
               ],
             ),
