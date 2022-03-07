@@ -137,6 +137,8 @@ class SQLiteDB {
       final List<String>? whereArgs,
       final int? limit,
       final bool queryManyToMany = false,
+      final String? orderByColumn,
+      final bool? orderByAsc,
     }
   ) async {
 
@@ -146,6 +148,8 @@ class SQLiteDB {
       where: (whereColumn != null) ? '$whereColumn ${whereOperator ?? '='} ?' : null,
       whereArgs: whereArgs ?? [],
       limit: limit,  
+      orderBy: (orderByColumn != null && orderByAsc != null) 
+          ? '$orderByColumn ${orderByAsc ? 'ASC' : 'DESC'}' : null,
     );
 
     if (records.isEmpty) return [];
