@@ -22,7 +22,7 @@ class Profile extends SQLiteModel {
   String get table => tableName;
 
   static const String createTableQuery = '''
-    CREATE TABLE ${Profile.tableName} (
+    CREATE TABLE $tableName (
       id ${SQLiteModel.idType},
       nombre ${SQLiteModel.textType} ${SQLiteModel.notNullType},
       apellido ${SQLiteModel.textType} ${SQLiteModel.notNullType},
