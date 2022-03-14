@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/pages/auth_page.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
 
@@ -48,7 +49,9 @@ class HomeTab extends StatelessWidget {
                   MenuItem(
                     icon: Icons.account_circle_rounded, 
                     label: 'Iniciar Sesión',
-                    onSelected: () => print('Iniciando sesion...'),
+                    onSelected: () => Navigator.pushNamed(context, 'auth',
+                      arguments: AuthFormType.login
+                    ),
                   ),
                   MenuItem(
                     icon: Icons.settings, 

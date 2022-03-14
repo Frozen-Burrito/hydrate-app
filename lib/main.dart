@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/pages/auth_page.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 
 import 'package:provider/provider.dart';
@@ -66,6 +67,7 @@ class HydrateApp extends StatelessWidget {
                     formTitle: 'Chequeo Médico', 
                     formWidget: MedicalForm()
                   ),
+              'auth': (context) => const AuthPage(),
             },
           );
         }

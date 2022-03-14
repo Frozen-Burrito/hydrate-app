@@ -9,19 +9,41 @@ class WaveShape extends StatelessWidget {
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
       child: CustomPaint(
-        painter: _WaveShapePainter(),
+        painter: _WaveShapePainter(Theme.of(context).colorScheme.primary),
+      ),
+    );
+  }
+}
+
+class RoundedRectangle extends StatelessWidget {
+  const RoundedRectangle({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height * 0.45,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(50.0)
+        )
       ),
     );
   }
 }
 
 class _WaveShapePainter extends CustomPainter {
+
+  final Color primaryColor;
+
+  const _WaveShapePainter(this.primaryColor);
   
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint();
 
-    paint.color = Colors.blue;
+    paint.color = primaryColor;
     paint.style = PaintingStyle.fill;
     paint.strokeWidth = 1.0;
 
