@@ -17,6 +17,11 @@ class _SignupFormState extends State<SignupForm> {
   String password = '';
   String confirmPassword = '';
 
+  bool editedEmail = false;
+  bool editedUsername = false;
+  bool editedPassword = false;
+  bool editedConfirm = false;
+
   bool isLoading = false;
   bool hasError = false;
   AuthError authError = AuthError.none;
@@ -61,8 +66,9 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                   onChanged: (value) => setState(() {
                     email = value;
+                    editedEmail = true;
                   }),
-                  validator: (value) => emailValidator(value),
+                  validator: (value) => AuthValidators.emailValidator(value, editedEmail),
                 ),
 
                 const SizedBox( height: 8.0, ),
@@ -82,8 +88,9 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                   onChanged: (value) => setState(() {
                     username = value;
+                    editedUsername = true;
                   }),
-                  validator: (value) => userNameValidator(value),
+                  validator: (value) => AuthValidators.usernameValidator(value, editedUsername),
                 ),
 
                 const SizedBox( height: 8.0, ),
@@ -104,8 +111,9 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                   onChanged: (value) => setState(() {
                     password = value;
+                    editedPassword = true;
                   }),
-                  validator: (value) => passwordValidator(value),
+                  validator: (value) => AuthValidators.passwordValidator(value, editedPassword),
                 ),
 
                 const SizedBox( height: 8.0, ),
@@ -122,8 +130,9 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                   onChanged: (value) => setState(() {
                     confirmPassword = value;
+                    editedConfirm = true;
                   }),
-                  validator: (value) => confirmPasswordValidator(password, value),
+                  validator: (value) => AuthValidators.confirmPasswordValidator(password, value),
                 ),
 
                 const SizedBox( height: 8.0, ),

@@ -45,8 +45,12 @@ class AuthPage extends StatelessWidget {
 
                       const SizedBox( height: 72.0,),
 
-                      const Center(
-                        child: Icon(Icons.account_circle, size: 80.0,),
+                      Center(
+                        child: Icon(
+                          Icons.account_circle, 
+                          size: 80.0,
+                          color: Theme.of(context).colorScheme.onPrimary
+                        ),
                       ),
 
                       formType == AuthFormType.login 

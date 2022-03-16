@@ -51,15 +51,15 @@ class SQLiteDB {
   // Ejecuta los queries de creación de tabla para cada modelo.
   Future _createDatabase(Database db, int version) async {
 
-    SQLiteMigrator.migrations.keys.toList()
-      ..sort()
-      ..forEach((version) async { 
-        final List<String> queries = SQLiteMigrator.migrations[version] ?? [];
+    var dbVersions = SQLiteMigrator.migrations.keys.toList()..sort();
 
-        for (var query in queries) {
-          await db.execute(query);
-        }
-      });
+    for (var version in dbVersions) {
+      final List<String> queries = SQLiteMigrator.migrations[version] ?? [];
+
+      for (var query in queries) {
+        await db.execute(query);
+      }
+    }
   }
 
   Future<void> _upgradeDatabase(Database db, int oldVersion, int newVersion) async {
