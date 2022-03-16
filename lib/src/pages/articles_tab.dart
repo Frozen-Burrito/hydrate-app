@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
-
 import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';
 import 'package:hydrate_app/src/widgets/article_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
@@ -31,21 +30,8 @@ class ArticlesTab extends StatelessWidget {
                       Tab(child: Text('Marcados', style: Theme.of(context).textTheme.bodyText1, )),
                     ],
                   ),
-                  actions: <Widget>[
-                    OptionsPopupMenu(
-                      options: <MenuItem> [
-                        MenuItem(
-                          icon: Icons.account_circle_rounded, 
-                          label: 'Iniciar Sesión',
-                          onSelected: () => print('Iniciando sesion...'),
-                        ),
-                        MenuItem(
-                          icon: Icons.settings, 
-                          label: 'Ajustes',
-                          onSelected: () => Navigator.pushNamed(context, '/config'),
-                        ),
-                      ]
-                    ),
+                  actions: const <Widget>[
+                    AuthOptionsMenu(),
                   ],
                 ),
               ),

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/pages/auth_page.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
-
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 
 class HomeTab extends StatelessWidget {
@@ -29,44 +27,7 @@ class HomeTab extends StatelessWidget {
                 icon: const Icon(Icons.task_alt),
                 onPressed: () => Navigator.pushNamed(context, '/new-goal'), 
               ),
-              OptionsPopupMenu(
-                options: <MenuItem> [
-                  //TODO: Quitar los MenuItems temporales de navegacion a los formularios
-                  MenuItem(
-                    icon: Icons.checklist, 
-                    label: 'Formulario Inicial',
-                    onSelected: () => Navigator.pushNamed(context, '/form/initial'),
-                  ),
-                  MenuItem(
-                    icon: Icons.checklist, 
-                    label: 'Formulario Recurrente',
-                    onSelected: () => Navigator.pushNamed(context, '/form/periodic'),
-                  ),
-                  MenuItem(
-                    icon: Icons.checklist, 
-                    label: 'Formulario Médico',
-                    onSelected: () => Navigator.pushNamed(context, '/form/medical'),
-                  ),
-                  MenuItem(
-                    icon: Icons.account_circle_rounded, 
-                    label: 'Iniciar Sesión',
-                    onSelected: () async {
-                      final token = await Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login) ?? '';
-
-                      if (token is String) {
-                        print(token.isNotEmpty ? 'Token JWT: $token' : 'Sin token');
-
-                        print(isTokenExpired(token) ? 'Token expirado' : 'Token valido');
-                      }
-                    },
-                  ),
-                  MenuItem(
-                    icon: Icons.settings, 
-                    label: 'Ajustes',
-                    onSelected: () => Navigator.pushNamed(context, '/config'),
-                  ),
-                ]
-              ),
+              const AuthOptionsMenu(),
             ],
           ),
 

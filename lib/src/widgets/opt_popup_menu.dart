@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:hydrate_app/src/pages/auth_page.dart';
+import 'package:hydrate_app/src/provider/settings_provider.dart';
 
 /// Un [PopupMenuButton] que despliega una lista de [options].
 /// 
@@ -44,6 +48,65 @@ class OptionsPopupMenu extends StatelessWidget {
           )
         )
       ]
+    );
+  }
+}
+
+/// Un widget con opciones preconfiguradas para un [OptionsPopupMenu], según la
+/// autenticación del usuario.
+class AuthOptionsMenu extends StatelessWidget {
+
+  const AuthOptionsMenu({ Key? key }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    
+    return OptionsPopupMenu(
+      options: settingsProvider.authToken.isEmpty 
+        ? <MenuItem> [
+          MenuItem(
+            icon: Icons.account_circle_rounded, 
+            label: 'Iniciar Sesión',
+            onSelected: () async {
+              final token = await Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login) ?? '';
+
+              if (token is String) {
+                settingsProvider.authToken = token;
+              }
+            },
+          ),
+
+          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+
+          MenuItem(
+            icon: Icons.settings, 
+            label: 'Ajustes',
+            onSelected: () => Navigator.pushNamed(context, '/config'),
+          ),
+        ]
+        : <MenuItem> [
+          MenuItem(
+            icon: Icons.account_circle_rounded, 
+            label: 'Perfil',
+            onSelected: () => print("Navegando al perfil..."),
+          ),
+
+          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+
+          MenuItem(
+            icon: Icons.logout,
+            label: 'Cerrar Sesión',
+            onSelected: () => settingsProvider.logOut(),
+          ),
+
+          MenuItem(
+            icon: Icons.settings, 
+            label: 'Ajustes',
+            onSelected: () => Navigator.pushNamed(context, '/config'),
+          ),
+        ],
     );
   }
 }
