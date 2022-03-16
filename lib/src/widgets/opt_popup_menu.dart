@@ -30,16 +30,19 @@ class OptionsPopupMenu extends StatelessWidget {
       icon: Icon(icon ?? Icons.more_vert),
       onSelected: (MenuItem item) => item.onSelected!(),
       itemBuilder: (BuildContext context) => <PopupMenuEntry<MenuItem>>[
-        ...options.map((MenuItem item) => PopupMenuItem(
-          value: item,
-          child: Row(
-            children: <Widget> [
-              Icon(item.icon),
-              const SizedBox( width: 10.0, ),
-              Text(item.label),
-            ],
-          ),
-        ))
+        ...options.map((MenuItem item) => item.isDivider 
+          ? const PopupMenuDivider( height: 20.0, ) as PopupMenuEntry<MenuItem>
+          : PopupMenuItem(
+            value: item,
+            child: Row(
+              children: <Widget> [
+                Icon(item.icon),
+                const SizedBox( width: 10.0, ),
+                Text(item.label),
+              ],
+            ),
+          )
+        )
       ]
     );
   }
@@ -48,6 +51,7 @@ class OptionsPopupMenu extends StatelessWidget {
 /// Representa una posible opción de [OptionsPopupMenu].
 class MenuItem {
 
+  final bool isDivider;
   /// El texto asociado con la opción.
   final String label;
   /// Un [IconData] para el ícono de la opción en el menú.
@@ -60,6 +64,7 @@ class MenuItem {
   MenuItem({
     required this.label, 
     required this.icon,
+    this.isDivider = false,
     this.onSelected
   });
 }
