@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Describe las notificaciones enviadas por la app.
@@ -99,8 +100,29 @@ class SettingsProvider with ChangeNotifier {
   set deviceId (String newDeviceId) => _sharedPreferences?.setString('idDispositivo', newDeviceId);
 
   /// El JsonWebToken de autenticación del usuario. Es posible que ya haya expirado.
-  String get authToken => _sharedPreferences?.getString('jwt') ?? '';
+  String get authToken {
+    final String token = _sharedPreferences?.getString('jwt') ?? '';
+
+    print('Token obtenido de SP: $token');
+
+    if (token.isNotEmpty && isTokenExpired(token)) {
+      _sharedPreferences?.setString('jwt', '');
+      return '';
+    }
+
+    return token;
+  }
 
   /// Guarda un nuevo JWT de autenticación en Shared Preferences.
-  set authToken (String newJwt) => _sharedPreferences?.setString('jwt', authToken);
+  set authToken (String newJwt) {
+    if (newJwt.isNotEmpty && !isTokenExpired(newJwt)) {
+      _sharedPreferences?.setString('jwt', newJwt);
+      notifyListeners();
+    }
+  }
+
+  Future<void> logOut() async {
+    await _sharedPreferences?.setString('jwt', '');
+    notifyListeners();
+  }
 }

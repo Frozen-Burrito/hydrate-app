@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/pages/auth_page.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
 
@@ -49,9 +50,15 @@ class HomeTab extends StatelessWidget {
                   MenuItem(
                     icon: Icons.account_circle_rounded, 
                     label: 'Iniciar Sesión',
-                    onSelected: () => Navigator.pushNamed(context, 'auth',
-                      arguments: AuthFormType.login
-                    ),
+                    onSelected: () async {
+                      final token = await Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login) ?? '';
+
+                      if (token is String) {
+                        print(token.isNotEmpty ? 'Token JWT: $token' : 'Sin token');
+
+                        print(isTokenExpired(token) ? 'Token expirado' : 'Token valido');
+                      }
+                    },
                   ),
                   MenuItem(
                     icon: Icons.settings, 

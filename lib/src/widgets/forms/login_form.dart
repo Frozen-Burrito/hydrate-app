@@ -55,11 +55,12 @@ class _LoginFormState extends State<LoginForm> {
 
       if (res.statusCode == 200) {
         // La autenticacion fue exitosa, redirigir a una nueva pagina.
-        if (redirectRoute != null) {
-          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-        } else {
-          Navigator.of(context).pop();
-        }
+        Navigator.of(context).pop(resBody['token']);
+        // if (redirectRoute != null) {
+        //   Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+        // } else {
+        //   Navigator.of(context).pop();
+        // }
       } else if (res.statusCode >= 400) {
         // Existe un error en las credenciales del usuario.
         final error = AuthError.values[resBody['tipo'] ?? 1];
