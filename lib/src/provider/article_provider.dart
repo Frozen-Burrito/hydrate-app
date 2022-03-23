@@ -1,25 +1,24 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/article.dart';
 
 class ArticleProvider with ChangeNotifier {
 
   //TODO: Obtener recursos informativos reales por medio de la API web.
-  final List<Article> _allArticles = [ 
-    Article(id: 0, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 1, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 2, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 3, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 4, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 5, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 6, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 7, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 8, title: 'Agua y los elefantes', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-    Article(id: 9, title: 'Un articulo de prueba', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', url: 'http://url.com', publishDate: DateTime.now()),
-  ];
+  final List<Article> _allArticles = [];
   
   final List<Article> _bookmarkedArticles = [];
+
+  bool articlesLoading = true;
+  bool articlesError = false;
+
+  bool _shouldRefreshArticles = true;
 
   bool _bookmarksLoading = true;
   bool _bookmarksError = false;
@@ -31,6 +30,10 @@ class ArticleProvider with ChangeNotifier {
 
   /// La lista de artículos obtenidos desde la API.
   List<Article> get articles {
+
+    if (_shouldRefreshArticles) {
+      fetchArticles();
+    }
 
     return _allArticles.map((article) {
 
@@ -58,6 +61,60 @@ class ArticleProvider with ChangeNotifier {
     } 
 
     return _bookmarkedArticles;
+  }
+
+  /// Intenta obtener una [List<Article>] desde la API web.
+  /// 
+  /// ! NECESITA conexión a internet.
+  /// 
+  /// Hace una petición GET a la API web de recursos informativos.
+  /// Si logra obtener los recursos informativos, actualiza la lista local de
+  /// recursos nuevos. Si surge un error, cambia el estado de [articlesError]
+  /// a [true].
+  Future fetchArticles() async {
+
+    _allArticles.clear();
+
+    articlesLoading = true;
+    articlesError = false;
+
+    try {
+      _shouldRefreshArticles = false;
+
+      // Enviar petición GET a /recursos de la api.
+      final response = await API.get('/recursos');
+
+      if (response.statusCode == 200) {
+        // La petición fue exitosa. Obtener recursos informativos de su body.
+        final jsonCollection = json.decode(response.body);
+
+        final articles = ArticleCollection.fromJsonCollection(jsonCollection);
+
+        _allArticles.addAll(articles.items);
+
+        articlesError = false;
+      } else {
+        articlesError = true;
+        print('Hubo un error obteniendo los recursos informativos.');
+      }
+
+    } on IOException catch (e) {
+      // Es lanzada por http si el dispositivo no tiene internet. 
+      print('El dispositivo no cuenta con conexion a internet.');
+      articlesError = true;
+
+    } on FormatException catch (e) {
+      // Lanzada por http si no logra hacer el parse de la URL solicitada.
+      print('Error de formato en url: ${e.message}');
+      articlesError = true;
+      
+    } finally {
+      // Evitar que se vuelva a refrescar, indiacar que ya no se están cargando
+      // los artículos.
+      _shouldRefreshArticles = false;
+      articlesLoading = false;
+      notifyListeners();
+    }
   }
 
   /// Obtiene de la BD los [Article] marcados para leer más tarde.
@@ -114,10 +171,13 @@ class ArticleProvider with ChangeNotifier {
 
     try {
       resultId = await SQLiteDB.instance.delete('recurso_inf', id);
+
+      _allArticles.firstWhere((article) => article.id == id).isBookmarked = false;
       _bookmarkedArticles.removeWhere((article) => article.id == id);
+
       notifyListeners();
-    } catch (e) {
-      print('Unable to remove article');
+    } on Exception catch (e) {
+      print('Unable to remove article: ${e.toString()}');
     }
 
     return resultId;

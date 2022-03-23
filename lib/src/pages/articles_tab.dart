@@ -58,6 +58,9 @@ class ArticlesTab extends StatelessWidget {
                 children: <Widget> [
                   ArticleSliverList(
                     articles: articleProvider.articles,
+                    isBookmarks: false,
+                    isLoading:  articleProvider.articlesLoading,
+                    hasError: articleProvider.articlesError,
                   ),
                   ArticleSliverList(
                     articles: articleProvider.bookmarks, 

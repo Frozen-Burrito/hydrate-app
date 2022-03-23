@@ -43,7 +43,7 @@ class Article extends SQLiteModel {
     title: map['titulo'] ?? '',
     description: map['descripcion'],
     url: map['url'],
-    publishDate: DateTime.parse(map['fecha_pub'] ?? ''),
+    publishDate: DateTime.tryParse(map['fecha_pub'] ?? map['fechaPublicacion']),
     isBookmarked: false
   );
 
@@ -59,5 +59,18 @@ class Article extends SQLiteModel {
     if (id >= 0) map['id'] = id;
 
     return map;
+  }
+}
+
+class ArticleCollection {
+
+  List<Article> items = <Article>[];
+
+  ArticleCollection.fromJsonCollection(List<dynamic> json) {
+
+    for (var articleMap in json) {
+      final article = Article.fromMap(articleMap);
+      items.add(article);
+    }
   }
 }
