@@ -25,6 +25,8 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   Map<DateTime, List<HydrationRecord>> get dailyHidration => _dailyHydration;
 
+  List<int> get weekDailyTotals => _previousSevenDaysTotals();
+
   bool get isLoading => _isLoading;
 
   bool get hasError => _hasError;
@@ -89,6 +91,8 @@ class HydrationRecordProvider extends ChangeNotifier {
     }
   }
 
+  /// Crea un mapa en donde todos los valores de [_hydrationRecords] son agrupados
+  /// por día.
   void _joinDailyRecords() {
 
     _dailyHydration.clear();
@@ -102,5 +106,38 @@ class HydrationRecordProvider extends ChangeNotifier {
 
       _dailyHydration[day]?.add(hydrationRecord);
     }
+  }
+
+  /// Retorna una lista con la cantidad total en ml diaria de consumo de agua de los 
+  /// 7 días más recientes.
+  List<int> _previousSevenDaysTotals() {
+
+    final List<int> recentTotals = [];
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+
+    for (int i = 0; i < 7; i++) {
+
+      final DateTime previousDay = today.subtract(Duration( days: i));
+
+      if (_dailyHydration[previousDay] != null) {
+        // Existen registros de hidratación para el día.
+        int totalMililiters = 0;
+
+        for (var record in _dailyHydration[previousDay]!) {
+          totalMililiters += record.amount;
+        }
+        // _dailyHydration[previousDay].reduce((total, registro) => total + registro);
+
+        recentTotals.add(totalMililiters);
+      } else {
+        // No hubo consumo registrado, agregar 0 por default.
+        recentTotals.add(0);
+      }
+    }
+
+    assert(recentTotals.length == 7);
+
+    return recentTotals.reversed.toList();
   }
 }

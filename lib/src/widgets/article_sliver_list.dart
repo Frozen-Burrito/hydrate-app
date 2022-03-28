@@ -139,6 +139,7 @@ class _ArticleCard extends StatelessWidget {
               color: article.isBookmarked ? Colors.blue : Colors.grey,
               onPressed: () async {
                 final snackBar = await addOrRemoveBookmark(context, articleProvider);
+                ScaffoldMessenger.of(context).removeCurrentSnackBar();
                 ScaffoldMessenger.of(context).showSnackBar(snackBar);
               },
             ),
