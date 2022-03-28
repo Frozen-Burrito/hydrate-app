@@ -10,7 +10,6 @@ import 'package:hydrate_app/src/models/article.dart';
 
 class ArticleProvider with ChangeNotifier {
 
-  //TODO: Obtener recursos informativos reales por medio de la API web.
   final List<Article> _allArticles = [];
   
   final List<Article> _bookmarkedArticles = [];
@@ -100,7 +99,7 @@ class ArticleProvider with ChangeNotifier {
 
     } on IOException catch (e) {
       // Es lanzada por http si el dispositivo no tiene internet. 
-      print('El dispositivo no cuenta con conexion a internet.');
+      print('El dispositivo no cuenta con conexion a internet: $e');
       articlesError = true;
 
     } on FormatException catch (e) {
