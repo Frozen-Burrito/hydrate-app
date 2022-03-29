@@ -111,7 +111,7 @@ class Goal extends SQLiteModel {
       
       } else if (tagCount < newTagCount && strTags.last.isNotEmpty) {
         // Si hay un tag nuevo, agregarlo.
-        tags.add(Tag(0, strTags.last));
+        tags.add(Tag(strTags.last));
 
       } else if (strTags.last.isNotEmpty) {
         // Si hay un tag menos, quita el último.

@@ -9,7 +9,7 @@ class Profile extends SQLiteModel {
   String? userAccountID;
 
   Profile({
-    this.id = 0,
+    this.id = -1,
     this.firstName = '',
     this.lastName = '',
     this.birthDate,

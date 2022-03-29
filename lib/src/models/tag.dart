@@ -5,7 +5,7 @@ class Tag extends SQLiteModel {
   int id;
   String value;
 
-  Tag(this.id, this.value);
+  Tag(this.value, {this.id = -1});
 
   static const String tableName = 'etiqueta';
 
@@ -20,8 +20,8 @@ class Tag extends SQLiteModel {
   ''';
 
   static Tag fromMap(Map<String, dynamic> map) => Tag(
-    map['id'],
     map['valor'],
+    id: map['id']
   );
 
   @override
