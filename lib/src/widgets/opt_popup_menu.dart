@@ -73,6 +73,7 @@ class AuthOptionsMenu extends StatelessWidget {
               final token = await Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login) ?? '';
 
               if (token is String) {
+                print('Token: $token');
                 settingsProvider.authToken = token;
               }
             },

@@ -70,10 +70,9 @@ class AuthPage extends StatelessWidget {
                             fontSize: 18.0
                           )
                         ),
-                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                        onPressed: () => Navigator.pushNamed(
                           context, 
-                          'auth', 
-                          (route) => false,
+                          'auth',
                           arguments: formType == AuthFormType.login ? AuthFormType.signup : AuthFormType.login
                         )
                       ),

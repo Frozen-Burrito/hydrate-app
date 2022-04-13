@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/api.dart';
+
+import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 
 class SignupForm extends StatefulWidget {
@@ -12,6 +18,8 @@ class _SignupFormState extends State<SignupForm> {
 
   final _formKey = GlobalKey<FormState>();
 
+  final signupApiUrl = '/usuarios/registro';
+
   String email = '';
   String username = '';
   String password = '';
@@ -24,10 +32,57 @@ class _SignupFormState extends State<SignupForm> {
 
   bool isLoading = false;
   bool hasError = false;
+
   AuthError authError = AuthError.none;
 
   void _validateAndAuthenticate(BuildContext context, { String? redirectRoute }) async {
-  
+    
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() { isLoading = true; });
+
+    final userCredentials = UserCredentials(
+      email: email,
+      username: username,
+      password: password
+    );
+
+    try {
+      final res = await API.post(signupApiUrl, userCredentials.toMap());
+
+      final resBody = json.decode(res.body);
+
+      print('Respuesta (${res.statusCode}): $resBody');
+
+      if (res.statusCode == 200) {
+        // El registro y autenticación fueron exitosos, redirigir a una nueva pagina.
+        Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+
+      } else if (res.statusCode >= 400) {
+        // Existe un error en las credenciales del usuario.
+        final error = AuthError.values[resBody['tipo'] ?? 1];
+
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          authError = error;
+        });
+      } else if (res.statusCode >= 500) {
+        // Hubo un error en el servidor.
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          authError = AuthError.serviceUnavailable;
+        });
+      }
+
+    } on SocketException {
+      setState(() {
+        isLoading = false;
+        hasError = true;
+        authError = AuthError.serviceUnavailable;
+      });
+    }
   }
   
   @override
@@ -132,10 +187,31 @@ class _SignupFormState extends State<SignupForm> {
                     confirmPassword = value;
                     editedConfirm = true;
                   }),
-                  validator: (value) => AuthValidators.confirmPasswordValidator(password, value),
+                  validator: (value) => AuthValidators.confirmPasswordValidator(password, value, editedConfirm),
                 ),
 
-                const SizedBox( height: 8.0, ),
+                authError == AuthError.serviceUnavailable 
+                  ? Padding(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const <Widget>[
+                        Icon(Icons.cloud_off),
+
+                        SizedBox( width: 4.0, ),
+                        
+                        Expanded(
+                          child: Text(
+                            'Revisa tu conexión a internet e intenta de nuevo.', 
+                            textAlign: TextAlign.start,
+                            maxLines: 2,
+                            softWrap: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                  : const SizedBox( height: 8.0, ),
 
                 ElevatedButton(
                   child: isLoading 

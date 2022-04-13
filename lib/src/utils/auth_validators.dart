@@ -11,8 +11,6 @@ enum AuthError {
 class AuthValidators {
 
   static const _emailPattern = r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
-  // static const _emailPattern = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+';
-  // static const _emailPattern = r'^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$';
 
   static const _usernamePattern = r'^[a-z0-9_-]{4,20}$';
 
@@ -31,8 +29,6 @@ class AuthValidators {
 
     if (fieldEdited && emailInput != null) {
       if (emailInput.isEmpty) return 'El correo electrónico es obligatorio';
-
-      print(emailRegExp.hasMatch(emailInput));
       
       return isValidEmail(emailInput) ? null : 'El correo no tiene un formato válido.';
     }
@@ -64,9 +60,9 @@ class AuthValidators {
     }
   }
 
-  static String? confirmPasswordValidator(final String? password, final String? confirmInput) {
+  static String? confirmPasswordValidator(final String? password, final String? confirmInput, final bool fieldEdited) {
 
-    if (password != null) {
+    if (fieldEdited && password != null && password.isNotEmpty) {
 
       if (confirmInput == null || confirmInput.isEmpty) {
         return 'Escribe la confirmación de contraseña';

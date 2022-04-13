@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:hydrate_app/src/models/api.dart';
 
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
@@ -18,7 +18,7 @@ class _LoginFormState extends State<LoginForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final apiUrl = Uri.parse('https://servicio-web-hydrate.azurewebsites.net/api/v1/usuarios/login');
+  final loginApiUrl = '/usuarios/login';
 
   String emailOrUsername = '';
   String password = '';
@@ -30,7 +30,7 @@ class _LoginFormState extends State<LoginForm> {
   bool hasError = false;
   AuthError authError = AuthError.none;
 
-  void _validateAndAuthenticate(BuildContext context, { String? redirectRoute }) async {
+  void _validateAndAuthenticate(BuildContext context) async {
     
     if (!_formKey.currentState!.validate()) return;
 
@@ -42,12 +42,8 @@ class _LoginFormState extends State<LoginForm> {
       password: password
     );
 
-    final reqBody = json.encode(userCredentials.toMap());
-
-    print('Peticion: $reqBody');
-
     try {
-      final res = await http.post(apiUrl, headers: {"content-type": "application/json"}, body: reqBody);
+      final res = await API.post(loginApiUrl, userCredentials.toMap());
 
       final resBody = json.decode(res.body);
 
@@ -55,17 +51,11 @@ class _LoginFormState extends State<LoginForm> {
 
       if (res.statusCode == 200) {
         // La autenticacion fue exitosa, redirigir a una nueva pagina.
-        Navigator.of(context).pop(resBody['token']);
-        // if (redirectRoute != null) {
-        //   Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-        // } else {
-        //   Navigator.of(context).pop();
-        // }
+        Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+
       } else if (res.statusCode >= 400) {
         // Existe un error en las credenciales del usuario.
         final error = AuthError.values[resBody['tipo'] ?? 1];
-
-        final List<String> validationErrors = [];
 
         setState(() {
           isLoading = false;
@@ -194,7 +184,7 @@ class _LoginFormState extends State<LoginForm> {
                       padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
                       textStyle: Theme.of(context).textTheme.bodyText1,
                     ),
-                    onPressed: isLoading ? null : () => _validateAndAuthenticate(context, redirectRoute: '/'),
+                    onPressed: isLoading ? null : () => _validateAndAuthenticate(context),
                   ),
                 ),
               ],
