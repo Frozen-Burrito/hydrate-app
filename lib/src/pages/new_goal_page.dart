@@ -16,10 +16,12 @@ class NewGoalPage extends StatelessWidget {
 
           CustomSliverAppBar(
             title: 'Nueva Meta',
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back), 
-              onPressed: () => Navigator.pop(context)
-            ),
+            leading: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.arrow_back), 
+                onPressed: () => Navigator.pop(context)
+              ),
+            ],
             actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.help),

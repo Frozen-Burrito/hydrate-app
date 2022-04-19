@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/pages/auth_page.dart';
+import 'package:hydrate_app/src/pages/profile_page.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 
 import 'package:provider/provider.dart';
 
@@ -39,6 +41,9 @@ class HydrateApp extends StatelessWidget {
         ChangeNotifierProvider<HydrationRecordProvider>(
           create: (_) => HydrationRecordProvider(),
         ),
+        ChangeNotifierProvider<ProfileProvider>(
+          create: (_) => ProfileProvider(),
+        )
       ],
       child: Consumer<SettingsProvider>(
         builder: (_, settingsProvider, __) {
@@ -55,16 +60,20 @@ class HydrateApp extends StatelessWidget {
               '/config': (context) => const SettingsPage(),
               '/ble-pair': (context) => const ConnectionPage(),
               '/new-goal': (context) => const NewGoalPage(),
-              '/form/initial': (context) => const CommonFormPage(
+              '/profile': (context) => const ProfilePage(),
+              '/form/initial': (context) => CommonFormPage(
                     formTitle: 'Bienvenido', 
+                    formLabel: 'Escribe sobre tí para conocerte mejor:',
                     formWidget: InitialForm()
                   ),
               '/form/periodic': (context) => const CommonFormPage(
                     formTitle: 'Revisión Semanal', 
+                    formLabel: 'Escribe la cantidad de horas diarias promedio que dedicaste a cada una de las siguientes actividades durante esta semana.',
                     formWidget: WeeklyForm()
                   ),
               '/form/medical': (context) => const CommonFormPage(
                     formTitle: 'Chequeo Médico', 
+                    formLabel: 'Introduce los siguientes datos con apoyo de tu nefrólogo:',
                     formWidget: MedicalForm()
                   ),
               'auth': (context) => const AuthPage(),

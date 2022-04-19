@@ -22,10 +22,12 @@ class HistoryTab extends StatelessWidget {
       slivers: <Widget> [
         CustomSliverAppBar(
           title: 'Hidratación',
-          leading: IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => createTestRecords(),
-          ),
+          leading: <Widget> [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => createTestRecords(),
+            ),
+          ],
           actions: const <Widget>[
             AuthOptionsMenu()
           ]

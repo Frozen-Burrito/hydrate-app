@@ -27,13 +27,15 @@ class SettingsPage extends StatelessWidget {
           slivers: <Widget> [
             CustomSliverAppBar(
               title: 'Ajustes',
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back), 
-                onPressed: () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  Navigator.pop(context);
-                }
-              ),
+              leading: <Widget> [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back), 
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Navigator.pop(context);
+                  }
+                ),
+              ],
               actions: <Widget>[
                 IconButton(
                   icon: const Icon(Icons.phonelink_ring),

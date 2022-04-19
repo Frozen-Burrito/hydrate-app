@@ -91,7 +91,7 @@ class AuthOptionsMenu extends StatelessWidget {
           MenuItem(
             icon: Icons.account_circle_rounded, 
             label: 'Perfil',
-            onSelected: () => print("Navegando al perfil..."),
+            onSelected: () => Navigator.pushNamed(context, '/profile'),
           ),
 
           MenuItem(isDivider: true, label: '', icon: Icons.settings),

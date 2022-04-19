@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
@@ -22,6 +23,7 @@ class HomeTab extends StatelessWidget {
 
           CustomSliverAppBar(
             title: 'Inicio',
+            leading: const <Widget> [CoinDisplay()],
             actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.task_alt),

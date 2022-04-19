@@ -10,7 +10,7 @@ class CustomSliverAppBar extends StatelessWidget {
   final String title;
 
   /// Lista opcional de acciones alineadas al inicio (izquierda) de la pantalla.
-  final Widget? leading;
+  final List<Widget>? leading;
   /// Lista opcional de acciones alineadas al final (derecha) de la pantalla.
   final List<Widget>? actions;
   
@@ -35,7 +35,8 @@ class CustomSliverAppBar extends StatelessWidget {
       titleTextStyle: Theme.of(context).textTheme.headline4,
       centerTitle: true,
       floating: true,
-      leading: leading,
+      leadingWidth: MediaQuery.of(context).size.width * 0.4,
+      leading: Row(children: leading ?? <Widget>[],),
       actions: actions,
       bottom: bottom ?? const PreferredSize(
         preferredSize: Size(double.infinity, 5),
