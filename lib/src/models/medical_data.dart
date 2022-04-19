@@ -1,6 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
-enum MedicCondition {
+enum MedicalCondition {
   notSpecified,
   none,
   renalInsufficiency,
@@ -11,6 +11,7 @@ enum MedicCondition {
 class MedicalData extends SQLiteModel {
   
   int id;
+  int profileId;
   double hypervolemia;
   double postDialysisWeight;
   double extracellularWater;
@@ -21,6 +22,7 @@ class MedicalData extends SQLiteModel {
 
   MedicalData({
     this.id = -1,
+    this.profileId = -1,
     this.hypervolemia = 0.0,
     this.postDialysisWeight = 0.0,
     this.extracellularWater = 0.0,

@@ -4,6 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:hydrate_app/src/db/migrations.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/environment.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
 /// Proporciona acceso a una base de datos local de SQLite, a través de [instance].
@@ -27,7 +28,19 @@ class SQLiteDB {
   /// ```
   Map<String, Map<String, String>> manyToManyTables = {
     Goal.tableName: { Tag.tableName: '${Tag.tableName}s_${Goal.tableName}' },
+    UserProfile.tableName: { Environment.tableName: '${Environment.tableName}s_${UserProfile.tableName}' },
   };
+
+  List<String> allTables = [
+    Article.tableName,
+    Country.tableName,
+    Goal.tableName,
+    Habits.tableName,
+    HydrationRecord.tableName,
+    MedicalData.tableName,
+    Tag.tableName,
+    UserProfile.tableName,
+  ];
 
   /// Abre la base de datos. Si no existe previamente, es creada.
   Future<Database> init(String filePath) async {
@@ -99,19 +112,47 @@ class SQLiteDB {
       if (value is List<SQLiteModel>) {
         for (var nestedEntity in value) { 
 
-          int secondaryId = await db.insert(nestedEntity.table, nestedEntity.toMap()); 
+          final nestedEntityMap = nestedEntity.toMap();
+          final foreignKeyId = (nestedEntityMap['id'] is int ? nestedEntityMap['id'] as int : -1);
 
-          if (secondaryId >= 0) {
+          if (foreignKeyId < 0) {
+            // La otra entidad no existe, es necesario insertarla primero.
+            int secondaryId = await db.insert(nestedEntity.table, nestedEntity.toMap()); 
 
-            if (secondaryInsertions[nestedEntity.table] != null) {
-              secondaryInsertions[nestedEntity.table]?.add(secondaryId); 
-            } else {
-              secondaryInsertions[nestedEntity.table] = <int>[secondaryId];
+            if (secondaryId >= 0) {
+              // Incluir el id de la nueva entidad en la fk.
+              if (secondaryInsertions[nestedEntity.table] != null) {
+                secondaryInsertions[nestedEntity.table]?.add(secondaryId); 
+              } else {
+                secondaryInsertions[nestedEntity.table] = <int>[secondaryId];
+              }
             }
+          } else {
+            if (secondaryInsertions[nestedEntity.table] != null) {
+                secondaryInsertions[nestedEntity.table]?.add(foreignKeyId); 
+              } else {
+                secondaryInsertions[nestedEntity.table] = <int>[foreignKeyId];
+              }
           }
         }
       } else if (value is SQLiteModel) {
-        //TODO: Manejar relaciones uno a muchos.
+        
+        final otherEntity = value.toMap();
+        final foreignKeyId = (otherEntity['id'] is int ? otherEntity['id'] as int : -1); 
+
+        if (foreignKeyId < 0) {
+          // La otra entidad no existe, es necesario insertarla primero.
+          int secondaryId = await db.insert(value.table, value.toMap());
+
+          if (secondaryId >= 0) {
+            // Incluir el id de la nueva entidad en la fk.
+            simpleEntityColumns['id_${value.table}'] = secondaryId;
+          }
+        } else {
+          // La otra entidad ya existe, incluir su id.
+          simpleEntityColumns['id_${value.table}'] = foreignKeyId;
+        }
+
       } else {
         simpleEntityColumns[column.key] = value;
       }
@@ -132,11 +173,11 @@ class SQLiteDB {
     T Function(Map<String, Object?>) mapper, 
     final String table, 
     { 
-      final String? whereColumn,
-      final String? whereOperator,
-      final List<String>? whereArgs,
+      final List<WhereClause>? where,
+      final List<String>? whereUnions,
       final int? limit,
       final bool queryManyToMany = false,
+      final bool includeOneToMany = false,
       final String? orderByColumn,
       final bool? orderByAsc,
     }
@@ -144,9 +185,29 @@ class SQLiteDB {
 
     final db = await database;
 
+    String whereQuery = '';
+    List<String> whereArgs = [];
+
+    if (where != null && whereUnions != null) {
+      assert((where.length -1) == whereUnions.length);
+
+      for (int i = 0; i < where.length; ++i) {
+        WhereClause clause = where[i];
+
+        whereQuery += clause.where;
+        whereArgs.add(clause.arg);
+
+        if (i < whereUnions.length) {
+          whereQuery += ' ${whereUnions[i]} ';
+        }
+      }
+    }
+
+    print('WHERE query: $whereQuery, ARGS: $whereArgs');
+
     final records = await db.query(table, 
-      where: (whereColumn != null) ? '$whereColumn ${whereOperator ?? '='} ?' : null,
-      whereArgs: whereArgs ?? [],
+      where: (where != null) ? whereQuery : null,
+      whereArgs: whereArgs,
       limit: limit,  
       orderBy: (orderByColumn != null && orderByAsc != null) 
           ? '$orderByColumn ${orderByAsc ? 'ASC' : 'DESC'}' : null,
@@ -157,6 +218,36 @@ class SQLiteDB {
     List<Map<String, Object?>> fullRecords = records.map((record) => Map<String, Object?>.from(record)).toList();
 
     print('Query result example: ${records[0]}');
+
+    if (includeOneToMany) {
+      final foreignTables = foreignKeyTables(fullRecords.first);
+
+      final Map<String, List<Map<String, Object?>>> foreignEntities = {};
+
+      for (String tableName in foreignTables)
+      {
+        final otmResults = await db.query(
+          tableName,
+          // where: 'id_$table IN (${resultIds.join(',')})'
+        );
+
+        foreignEntities[tableName] = otmResults;
+      }
+
+      for (var row in fullRecords) {
+
+        for (String otherTable in foreignTables) {
+          
+          String fk = 'id_$otherTable';
+          int relId = (row[fk] is int ? row[fk] as int : -1);
+
+          if (relId < 0) continue;
+
+          row[otherTable] = foreignEntities[otherTable]
+            ?.firstWhere((entity) => entity['id'] as int == relId);
+        }
+      }
+    }
 
     if (queryManyToMany && manyToManyTables[table] != null) {
       // Existe al menos 1 tabla muchos a muchos que usa la entidad solicitada.
@@ -282,7 +373,34 @@ class SQLiteDB {
     return resultIds;
   }
 
+  Iterable<String> foreignKeyTables(Map<String, dynamic> row) {
+    List<String> tables = [];
+
+    for (String key in row.keys) {
+      bool keyStartsWithId = key.length > 3 && key.substring(0, 3) == 'id_';
+
+      if (keyStartsWithId && !tables.contains(key)) {
+        tables.add(key.substring(3));
+      }
+    }
+
+    return tables;
+  }
+
   Iterable<int> reduceIds(List<Map<String, dynamic>> rows, String idColumn) {
     return rows.map((row) => int.tryParse(row[idColumn].toString()) ?? -1);
   }
+}
+
+class WhereClause {
+
+  final String column;
+  final String? whereOperator;
+  final String argument;
+
+  WhereClause(this.column, this.argument, { this.whereOperator });
+
+  String get where => '$column ${whereOperator ?? '='} ?';
+
+  String get arg => argument;
 }

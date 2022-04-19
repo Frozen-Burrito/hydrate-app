@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 
 enum GoalTerm {
   daily,
@@ -10,6 +11,7 @@ enum GoalTerm {
 class Goal extends SQLiteModel {
 
   int id;
+  int profileId;
   GoalTerm term;
   DateTime? startDate;
   DateTime? endDate;
@@ -20,6 +22,7 @@ class Goal extends SQLiteModel {
 
   Goal({
     this.id = -1,
+    this.profileId = -1,
     required this.term,
     this.startDate,
     required this.endDate,
@@ -42,7 +45,11 @@ class Goal extends SQLiteModel {
       fecha_final ${SQLiteModel.textType} ${SQLiteModel.notNullType},
       recompensa ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
       cantidad ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      notas ${SQLiteModel.textType}
+      notas ${SQLiteModel.textType},
+      id_perfil ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+
+      ${SQLiteModel.fk} (id_perfil) ${SQLiteModel.references} ${UserProfile.tableName} (id)
+          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction}
     )
   ''';
 

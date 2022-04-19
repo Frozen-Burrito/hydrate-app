@@ -1,4 +1,5 @@
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 
 class Habits extends SQLiteModel {
 
@@ -8,6 +9,7 @@ class Habits extends SQLiteModel {
   int hoursOfOccupation;
   int maxTemperature;
   DateTime? date;
+  int profileId;
 
   Habits({
     this.id = -1,
@@ -16,6 +18,7 @@ class Habits extends SQLiteModel {
     this.hoursOfOccupation = 0,
     this.maxTemperature = 0,
     this.date,
+    this.profileId = -1
   });
 
   static const String tableName = 'reporte_habitos';
@@ -30,7 +33,11 @@ class Habits extends SQLiteModel {
       horas_act_fisica ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
       horas_ocupacion ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
       temperatura_max ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      fecha ${SQLiteModel.textType} ${SQLiteModel.notNullType}
+      fecha ${SQLiteModel.textType} ${SQLiteModel.notNullType},
+      id_perfil ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+
+      ${SQLiteModel.fk} (id_perfil) ${SQLiteModel.references} ${UserProfile.tableName} (id)
+          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction}
     )
   ''';
 
@@ -43,6 +50,7 @@ class Habits extends SQLiteModel {
       hoursOfOccupation: map['horas_ocupacion'],
       maxTemperature: map['temperatura_max'],
       date: DateTime.parse(map['fecha'] ?? DateTime.now()),
+      profileId: map['id_perfil'],
     );
   }
 
@@ -54,6 +62,7 @@ class Habits extends SQLiteModel {
       'horas_ocupacion': hoursOfOccupation,
       'temperatura_max': maxTemperature,
       'fecha': date?.toIso8601String(),
+      'id_perfil': profileId
     };
 
     if (id >= 0) map['id'] = id;
