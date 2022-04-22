@@ -38,18 +38,18 @@ class Article extends SQLiteModel {
     )
   ''';
 
-  static Article fromMap(Map<String, dynamic> map) => Article(
-    id: map['id'],
-    title: map['titulo'] ?? '',
-    description: map['descripcion'],
-    url: map['url'],
-    publishDate: DateTime.tryParse(map['fecha_pub'] ?? map['fechaPublicacion']),
+  static Article fromMap(Map<String, Object?> map) => Article(
+    id: (map['id'] is int ? map['id'] as int : -1),
+    title: map['titulo'].toString(),
+    description: map['descripcion'].toString(),
+    url: map['url'].toString(),
+    publishDate: DateTime.tryParse(map['fecha_pub'] is String ? map['fechaPublicacion'].toString(): ''),
     isBookmarked: false
   );
 
   @override
   Map<String, Object?> toMap() {
-    final Map<String, dynamic> map = {
+    final Map<String, Object?> map = {
       'titulo': title,
       'descripcion': description,
       'url': url,

@@ -4,10 +4,10 @@ import 'package:hydrate_app/src/models/user_profile.dart';
 class Habits extends SQLiteModel {
 
   int id;
-  int hoursOfSleep;
-  int hoursOfActivity;
-  int hoursOfOccupation;
-  int maxTemperature;
+  double hoursOfSleep;
+  double hoursOfActivity;
+  double hoursOfOccupation;
+  double maxTemperature;
   DateTime? date;
   int profileId;
 
@@ -41,22 +41,22 @@ class Habits extends SQLiteModel {
     )
   ''';
 
-  static Habits fromMap(Map<String, dynamic> map) {
+  static Habits fromMap(Map<String, Object?> map) {
 
     return Habits(
-      id: map['id'],
-      hoursOfSleep: map['horas_sueno'],
-      hoursOfActivity: map['horas_act_fisica'],
-      hoursOfOccupation: map['horas_ocupacion'],
-      maxTemperature: map['temperatura_max'],
-      date: DateTime.parse(map['fecha'] ?? DateTime.now()),
-      profileId: map['id_perfil'],
+      id: (map['id'] is int ? map['id'] as int : -1),
+      hoursOfSleep: double.tryParse(map['horas_sueno'].toString()) ?? 0.0,
+      hoursOfActivity: double.tryParse(map['horas_act_fisica'].toString()) ?? 0.0,
+      hoursOfOccupation: double.tryParse(map['horas_ocupacion'].toString()) ?? 0.0,
+      maxTemperature: double.tryParse(map['temperatura_max'].toString()) ?? 0.0,
+      date: DateTime.tryParse(map['fecha'].toString()),
+      profileId: int.tryParse(map['id_perfil'].toString()) ?? -1
     );
   }
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'horas_sueno': hoursOfSleep,
       'horas_act_fisica': hoursOfActivity,
       'horas_ocupacion': hoursOfOccupation,
@@ -71,9 +71,9 @@ class Habits extends SQLiteModel {
   }
 
   /// Verifica que la suma total de horas en [dailyHourAvgs] esté entre 0 y 24.
-  static String? validateHourTotal(List<int> dailyHourAvgs) { 
+  static String? validateHourTotal(List<double> dailyHourAvgs) { 
     
-    int sum = dailyHourAvgs.reduce((total, element) => total + element);
+    double sum = dailyHourAvgs.reduce((total, element) => total + element);
 
     return (sum < 0 || sum > 24) 
         ? 'El total de horas diarias debe estar entre 0 y 24 horas.'

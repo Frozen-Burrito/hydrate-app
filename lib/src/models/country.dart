@@ -21,15 +21,15 @@ class Country extends SQLiteModel {
     )
   ''';
 
-  static Country fromMap(Map<String, dynamic> map) => Country(
-    id: map['id'],
-    code: map['codigo'],
+  static Country fromMap(Map<String, Object?> map) => Country(
+    id: (map['id'] is int ? map['id'] as int : -1),
+    code: map['codigo'].toString().substring(0, 2),
   );
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, Object?> toMap() {
 
-    final Map<String, dynamic> map = {
+    final Map<String, Object?> map = {
       'codigo': code,
     };
     

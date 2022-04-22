@@ -38,20 +38,20 @@ class HydrationRecord extends SQLiteModel {
     )
   ''';
 
-  static HydrationRecord fromMap(Map<String, dynamic> map) {
+  static HydrationRecord fromMap(Map<String, Object?> map) {
     return HydrationRecord(
-      id: map['id'],
-      amount: map['cantidad'],
-      batteryPercentage: map['porcentaje_bateria'],
-      temperature: map['temperatura'],
-      date: DateTime.tryParse(map['fecha']) ?? DateTime.now(),
-      profileId: map['id_perfil'],
+      id: int.tryParse(map['id'].toString()) ?? -1,
+      amount: int.tryParse(map['cantidad'].toString()) ?? 0,
+      batteryPercentage: int.tryParse(map['porcentaje_bateria'].toString()) ?? 0,
+      temperature: double.tryParse(map['temperatura'].toString()) ?? 21.0,
+      date: DateTime.tryParse(map['fecha'].toString()) ?? DateTime.now(),
+      profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
     );
   } 
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'cantidad': amount, 
       'porcentaje_bateria': batteryPercentage,
       'temperatura': temperature,

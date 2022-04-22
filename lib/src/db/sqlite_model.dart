@@ -1,10 +1,7 @@
-
 /// Representa una entidad en una base de datos de SQLite.
 /// 
 /// Utilizada como clase base de las entidades.
 abstract class SQLiteModel {
-
-  const SQLiteModel();
 
   static const textType = 'TEXT';
   static const boolType = 'BOOLEAN';
@@ -31,5 +28,5 @@ abstract class SQLiteModel {
   String get table => 'default';
 
   /// Convierte la entidad a un mapa.
-  Map<String, Object?> toMap() => {};
+  Map<String, Object?> toMap();
 }

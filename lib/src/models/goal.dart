@@ -53,23 +53,25 @@ class Goal extends SQLiteModel {
     )
   ''';
 
-  static Goal fromMap(Map<String, dynamic> map) {
+  static Goal fromMap(Map<String, Object?> map) {
 
     var tags = map['etiquetas'];
     List<Tag> tagList = <Tag>[];
 
-    if (tags is List<Map<String, dynamic>> && tags.isNotEmpty) {
+    if (tags is List<Map<String, Object?>> && tags.isNotEmpty) {
       tagList = tags.map((tagMap) => Tag.fromMap(tagMap)).toList();
     }
 
+    int indexPlazo = (map['plazo'] is int ? map['plazo'] as int : 0);
+
     final goal = Goal(
-      id: map['id'],
-      term: GoalTerm.values[map['plazo']],
-      startDate: DateTime.parse(map['fecha_inicio']),
-      endDate: DateTime.parse(map['fecha_final']),
-      reward: map['recompensa'],
-      quantity: map['cantidad'],
-      notes: map['notas'],
+      id: (map['id'] is int ? map['id'] as int : -1),
+      term: GoalTerm.values[indexPlazo],
+      startDate: DateTime.parse(map['fecha_inicio'].toString()),
+      endDate: DateTime.parse(map['fecha_final'].toString()),
+      reward: (map['recompensa'] is int ? map['recompensa'] as int : -1),
+      quantity: (map['cantidad'] is int ? map['cantidad'] as int : -1),
+      notes: map['notas'].toString(),
       tags: tagList,
     );
 
@@ -77,8 +79,8 @@ class Goal extends SQLiteModel {
   } 
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'plazo': term.index,
       'fecha_inicio': startDate?.toIso8601String(), 
       'fecha_final': endDate?.toIso8601String(),

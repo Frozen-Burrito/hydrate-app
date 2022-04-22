@@ -25,18 +25,18 @@ class Environment extends SQLiteModel {
     )
   ''';
 
-  static Environment fromMap(Map<String, dynamic> map) {
+  static Environment fromMap(Map<String, Object?> map) {
     
     return Environment(
-      id: map['id'],
-      imagePath: map['archivo_img'],
-      price: map['precio'],
+      id: (map['id'] is int ? map['id'] as int : -1),
+      imagePath: map['archivo_img'].toString(),
+      price: (map['precio'] is int ? map['precio'] as int : -1),
     );
   }
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'archivo_img': imagePath,
       'precio': price
     };

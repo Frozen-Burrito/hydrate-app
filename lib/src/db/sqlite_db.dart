@@ -96,7 +96,7 @@ class SQLiteDB {
     final db = await database;
 
     // Todas las columnas con tipos primarios, que no son entidades anidadas.
-    Map<String, dynamic> simpleEntityColumns = {};
+    Map<String, Object?> simpleEntityColumns = {};
 
     // Mapa con todas los resultados de inserciones colaterales. 
     // La llave de cada entrada es el nombre de la tabla, y su valor es una lista
@@ -106,7 +106,7 @@ class SQLiteDB {
     // Revisar el tipo de cada columna, para ver si es anidado.
     for (var column in entity.toMap().entries) {
 
-      dynamic value = column.value;
+      Object? value = column.value;
 
       // Revisar si el valor es un modelo anidado.
       if (value is List<SQLiteModel>) {
@@ -373,7 +373,7 @@ class SQLiteDB {
     return resultIds;
   }
 
-  Iterable<String> foreignKeyTables(Map<String, dynamic> row) {
+  Iterable<String> foreignKeyTables(Map<String, Object?> row) {
     List<String> tables = [];
 
     for (String key in row.keys) {
@@ -387,7 +387,7 @@ class SQLiteDB {
     return tables;
   }
 
-  Iterable<int> reduceIds(List<Map<String, dynamic>> rows, String idColumn) {
+  Iterable<int> reduceIds(List<Map<String, Object?>> rows, String idColumn) {
     return rows.map((row) => int.tryParse(row[idColumn].toString()) ?? -1);
   }
 }

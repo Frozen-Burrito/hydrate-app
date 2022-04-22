@@ -19,14 +19,14 @@ class Tag extends SQLiteModel {
     )
   ''';
 
-  static Tag fromMap(Map<String, dynamic> map) => Tag(
-    map['valor'],
-    id: map['id']
+  static Tag fromMap(Map<String, Object?> map) => Tag(
+    map['valor'].toString(),
+    id: int.tryParse(map['id'].toString()) ?? -1,
   );
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'valor': value,
     };
 

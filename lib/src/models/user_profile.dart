@@ -89,9 +89,13 @@ class UserProfile extends SQLiteModel {
     );
   }
 
-  static UserProfile fromMap(Map<String, dynamic> map) {
+  static UserProfile fromMap(Map<String, Object?> map) {
     
-    final country = Country.fromMap(map['pais']);
+    final country = Country.fromMap(
+      (map['pais'] is Map<String, Object?>) 
+        ? map['pais'] as Map<String, Object?> 
+        : {}
+    );
 
     final idxUserSex = max(map['sexo'] as int, UserSex.values.length -1);
     final idxOccupation = max(map['ocupacion'] as int, Occupation.values.length);
@@ -100,32 +104,32 @@ class UserProfile extends SQLiteModel {
     var environments = map['entornos'];
     List<Environment> envList = <Environment>[];
 
-    if (environments is List<Map<String, dynamic>> && environments.isNotEmpty) {
+    if (environments is List<Map<String, Object?>> && environments.isNotEmpty) {
       envList = environments.map((environment) => Environment.fromMap(environment)).toList();
     }
 
     return UserProfile(
-      id: map['id'],
-      firstName: map['nombre'],
-      lastName: map['apellido'],
-      birthDate: DateTime.parse(map['fecha_nacimiento']),
+      id: int.tryParse(map['id'].toString()) ?? -1,
+      firstName: map['nombre'].toString(),
+      lastName: map['apellido'].toString(),
+      birthDate: DateTime.tryParse(map['fecha_nacimiento'].toString()),
       sex: UserSex.values[idxUserSex],
-      height: map['estatura'],
-      weight: map['peso'],
-      medicalCondition: MedicalCondition.values[idxMedicalCondition],
+      height: double.tryParse(map['estatura'].toString()) ?? 0.0,
+      weight: double.tryParse(map['peso'].toString()) ?? 0.0,
+      medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
       occupation: Occupation.values[idxOccupation],
-      userAccountID: map['id_usuario'],
-      selectedEnvId: map['entorno_sel'],
-      coins: map['monedas'],
-      modificationCount: map['num_modificaciones'],
+      userAccountID: map['id_usuario'].toString(),
+      selectedEnvId: int.tryParse(map['entorno_sel'].toString()) ?? 0,
+      coins: int.tryParse(map['monedas'].toString()) ?? 0,
+      modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
       country: country,
       unlockedEnvironments: envList
     );
   } 
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'nombre': firstName,
       'apellido': lastName,
       'fecha_nacimiento': birthDate?.toIso8601String() ?? '',
@@ -138,7 +142,7 @@ class UserProfile extends SQLiteModel {
       'entorno_sel': selectedEnvId,
       'monedas': coins,
       'num_modificaciones': modificationCount,
-      'pais': country?.toMap() ?? <String, dynamic>{},
+      'pais': country?.toMap() ?? <String, Object?>{},
       'entornos': unlockedEnvironments
     };
 
