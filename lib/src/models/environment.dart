@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 class Environment extends SQLiteModel {
@@ -19,9 +20,9 @@ class Environment extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      archivo_img ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      precio ${SQLiteModel.integerType} ${SQLiteModel.notNullType}
+      id ${SQLiteKeywords.idType},
+      archivo_img ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      precio ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType}
     )
   ''';
 

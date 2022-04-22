@@ -1,5 +1,4 @@
-
-
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 class Country extends SQLiteModel {
@@ -16,8 +15,8 @@ class Country extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      codigo ${SQLiteModel.textType} ${SQLiteModel.notNullType}
+      id ${SQLiteKeywords.idType},
+      codigo ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType}
     )
   ''';
 

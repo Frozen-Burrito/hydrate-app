@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 enum MedicalCondition {
@@ -39,14 +40,14 @@ class MedicalData extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      hipervolemia ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      peso_post_dial ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      agua_extracel ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      normovolemia ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      ganancia_rec ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      ganancia_real ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      fecha_prox_cita ${SQLiteModel.textType} ${SQLiteModel.notNullType}
+      id ${SQLiteKeywords.idType},
+      hipervolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      peso_post_dial ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      agua_extracel ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      normovolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      ganancia_rec ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      ganancia_real ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      fecha_prox_cita ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType}
     )
   ''';
 

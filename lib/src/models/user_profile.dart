@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/environment.dart';
 
@@ -49,23 +50,23 @@ class UserProfile extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      nombre ${SQLiteModel.textType},
-      apellido ${SQLiteModel.textType},
-      fecha_nacimiento ${SQLiteModel.textType},
-      sexo ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      estatura ${SQLiteModel.realType},
-      peso ${SQLiteModel.realType}, 
-      padecimientos ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      ocupacion ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      entorno_sel ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      monedas ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      num_modificaciones ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      id_usuario ${SQLiteModel.textType},
-      id_pais ${SQLiteModel.integerType},
+      id ${SQLiteKeywords.idType},
+      nombre ${SQLiteKeywords.textType},
+      apellido ${SQLiteKeywords.textType},
+      fecha_nacimiento ${SQLiteKeywords.textType},
+      sexo ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      estatura ${SQLiteKeywords.realType},
+      peso ${SQLiteKeywords.realType}, 
+      padecimientos ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      ocupacion ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      entorno_sel ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      monedas ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      num_modificaciones ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      id_usuario ${SQLiteKeywords.textType},
+      id_pais ${SQLiteKeywords.integerType},
 
-      ${SQLiteModel.fk} (id_pais) ${SQLiteModel.references} pais (id)
-        ${SQLiteModel.onDelete} ${SQLiteModel.setNullAction}
+      ${SQLiteKeywords.fk} (id_pais) ${SQLiteKeywords.references} pais (id)
+        ${SQLiteKeywords.onDelete} ${SQLiteKeywords.setNullAction}
     )
   ''';
 

@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
@@ -39,17 +40,17 @@ class Goal extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      plazo ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      fecha_inicio ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      fecha_final ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      recompensa ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      cantidad ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      notas ${SQLiteModel.textType},
-      id_perfil ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+      id ${SQLiteKeywords.idType},
+      plazo ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      fecha_inicio ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      fecha_final ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      recompensa ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      notas ${SQLiteKeywords.textType},
+      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteModel.fk} (id_perfil) ${SQLiteModel.references} ${UserProfile.tableName} (id)
-          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction}
+      ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+          ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';
 

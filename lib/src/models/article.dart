@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 /// Un modelo que representa un Recurso Informativo.
@@ -30,11 +31,11 @@ class Article extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      titulo ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      descripcion ${SQLiteModel.textType},
-      url ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      fecha_pub ${SQLiteModel.textType}
+      id ${SQLiteKeywords.idType},
+      titulo ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      descripcion ${SQLiteKeywords.textType},
+      url ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      fecha_pub ${SQLiteKeywords.textType}
     )
   ''';
 
