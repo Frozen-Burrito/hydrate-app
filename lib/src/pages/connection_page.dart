@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:hydrate_app/src/models/api.dart';
+import 'package:hydrate_app/src/utils/launch_url.dart';
 
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
@@ -29,8 +31,8 @@ class ConnectionPage extends StatelessWidget {
                 ),
                 actions: <Widget> [
                   IconButton(
-                    icon: const Icon(Icons.info),
-                    onPressed: () {}, 
+                    icon: const Icon(Icons.help),
+                    onPressed: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias-conexion')), 
                   )
                 ],
               ),
@@ -40,7 +42,7 @@ class ConnectionPage extends StatelessWidget {
                   child: BleDeviceList()
                 ) 
                 : SliverDataPlaceholder(
-                  message: 'El adaptador de BlueTooth del celular no está disponible.\nIntenta activarlo u otorgar permisos de BlueTooth a la app.',
+                  message: 'El adaptador de BlueTooth del celular no está disponible.\nIntenta activarlo u otorgar permisos de BlueTooth y Ubicación a la app.',
                   details: '(state is "${state != null ? state.toString().substring(15) : 'not available'}")',
                   icon: Icons.bluetooth_disabled
               ),
