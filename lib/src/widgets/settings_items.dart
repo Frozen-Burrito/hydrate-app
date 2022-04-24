@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/utils/launch_url.dart';
 
 class SettingsItems extends StatefulWidget {
 
@@ -238,9 +241,7 @@ class _SettingsItemsState extends State<SettingsItems> {
               Icons.arrow_forward,
               size: 24.0,
             ),
-            onTap: () {
-              print('Enviando comentarios...');
-            },
+            onTap: () => UrlLauncher.launchUrlInBrowser(API.uriFor('comentarios')),
           ),
     
           const Divider( height: 1.0, ),
@@ -255,9 +256,7 @@ class _SettingsItemsState extends State<SettingsItems> {
               Icons.arrow_forward,
               size: 24.0,
             ),
-            onTap: () {
-              print('Redireccionando a guias de usuario...');
-            },
+            onTap: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias')),
           ),
     
           const Padding(

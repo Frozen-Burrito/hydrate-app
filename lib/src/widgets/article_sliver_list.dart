@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/api.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';
+import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:provider/provider.dart';
 
@@ -126,9 +128,14 @@ class _ArticleCard extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
-            title: Text(
-              article.title, 
-              style: Theme.of(context).textTheme.headline6,
+            title: GestureDetector(
+              onTap: article.url.startsWith('https')
+                ? () => UrlLauncher.launchUrlInBrowser(Uri.parse(article.url))
+                : null,
+              child: Text(
+                article.title, 
+                style: Theme.of(context).textTheme.headline6,
+              ),
             ),
             subtitle: Text(
               'Publicación: ${article.publishDate.toString().substring(0,10)}',

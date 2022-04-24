@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/api.dart';
+import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/forms/card_form_container.dart';
 
@@ -34,7 +36,7 @@ class CommonFormPage extends StatelessWidget {
             actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.help),
-                onPressed: (){}, 
+                onPressed: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias-formularios')), 
               ),
             ],
           ),
