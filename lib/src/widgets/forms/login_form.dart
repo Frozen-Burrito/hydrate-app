@@ -2,10 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/api.dart';
+import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({ Key? key }) : super(key: key);
@@ -36,6 +40,9 @@ class _LoginFormState extends State<LoginForm> {
 
     setState(() { isLoading = true; });
 
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+
     final userCredentials = UserCredentials(
       email: AuthValidators.isValidEmail(emailOrUsername) ? emailOrUsername : '',
       username: AuthValidators.isValidEmail(emailOrUsername) ? '' : emailOrUsername,
@@ -49,10 +56,42 @@ class _LoginFormState extends State<LoginForm> {
 
       print('Respuesta (${res.statusCode}): $resBody');
 
-      if (res.statusCode == 200) {
-        // La autenticacion fue exitosa, redirigir a una nueva pagina.
-        Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+      if (res.statusCode == 200 && resBody['token'] is String) {
 
+        // La autenticación fue exitosa.
+        String jwt = resBody['token'];
+
+        // Guardar el token JWT.
+        settingsProvider.authToken = jwt;
+
+        final tokenClaims = parseJWT(jwt);
+
+        print('Claims: $tokenClaims');
+
+        String accountId = tokenClaims['id'];
+
+        if (profileProvider.profile.userAccountID != null) {
+          int profileLinkedToAccount = await profileProvider.findAndSetProfileLinkedToAccount(accountId);
+
+          if (profileLinkedToAccount < 0) {
+            // Aun no existe un perfil asociado con la cuenta. Crear uno nuevo.
+            profileProvider.newDefaultProfile(accountID: accountId);
+
+            Navigator.of(context).popAndPushNamed('/form/initial', result: resBody['token']);
+          } else {
+            // Ya existe un perfil para esta cuenta.
+            profileProvider.loadUserProfile(profileId: profileLinkedToAccount, accountId: accountId);
+
+            Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+          }
+        } else {
+          // Asociar el perfil actual con la cuenta autenticada.
+          profileProvider.profileChanges.userAccountID ??= accountId;
+
+          profileProvider.saveProfileChanges(restrictModifications: false);
+
+          Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+        }     
       } else if (res.statusCode >= 400) {
         // Existe un error en las credenciales del usuario.
         final error = AuthError.values[resBody['tipo'] ?? 1];

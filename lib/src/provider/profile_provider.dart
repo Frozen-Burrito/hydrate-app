@@ -34,12 +34,15 @@ class ProfileProvider extends ChangeNotifier
 
   bool get isProfileLoading => _profileLoading;
   bool get hasError => _profileError;
-  bool get isProfileModified => _isProfileModified;
 
   UserProfile get profile => _profile;
   UserProfile get profileChanges => _profileChanges;
 
-  Future retrieveUserProfile({ int profileId = -1, String? accountId }) async {
+  ProfileProvider() {
+    loadUserProfile();
+  }
+
+  Future<void> loadUserProfile({ int profileId = -1, String? accountId }) async {
     _profileLoading = true;
     _profileError = false;
 
@@ -83,16 +86,42 @@ class ProfileProvider extends ChangeNotifier
     }
   }
 
-  Future<void> saveProfileChanges() async {
+  /// Crea un nuevo perfil de usuario, con datos por defecto.
+  Future<void> newDefaultProfile({ String? accountID }) async {
+    _profileLoading = true;
+    _profileError = false;
+    notifyListeners();
+
+    try {
+      final defaultProfile = UserProfile(unlockedEnvironments: []);
+      defaultProfile.userAccountID = accountID;
+
+      int result = await SQLiteDB.instance.insert(defaultProfile);
+
+      if (result < 0) throw Exception('El perfil de usuario no fue modificado.');
+    
+    } on Exception catch (e) {
+      _profileError = true;
+      print('Error creando un perfil default.');
+
+    } finally {
+      _profileLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> saveProfileChanges({bool restrictModifications = true}) async {
     _profileLoading = true;
     _profileError = false;
 
     try {
-      if (profileChanges.modificationCount >= 3) {
-        throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
-      }
+      if (restrictModifications) {
+        if (profileChanges.modificationCount >= 3) {
+          throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
+        }
 
-      profileChanges.modificationCount++;
+        profileChanges.modificationCount++;
+      }
 
       int result = await SQLiteDB.instance.update(profileChanges);
 
@@ -105,6 +134,37 @@ class ProfileProvider extends ChangeNotifier
     } finally {
       _profileLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Busca un perfil local con id_usuario == accountId.
+  /// Si lo encuentra, retorna el id del perfil de usuario.
+  /// Si no, retorna -1.
+  Future<int> findAndSetProfileLinkedToAccount(String accountId) async {
+    try {
+      final whereQuery = [ WhereClause('id_usuario', accountId), ];
+
+      final queryResults = await SQLiteDB.instance.select<UserProfile>(
+        UserProfile.fromMap,
+        UserProfile.tableName,
+        where: whereQuery,
+        limit: 1
+      );
+
+      //TODO: Buscar si el servicio web tiene un perfil de usuario para la cuenta.
+
+      if (queryResults.isNotEmpty) {
+        final UserProfile profileFound = queryResults.first;
+
+        _profile = profileFound;
+        _profileChanges = UserProfile.from(profileFound);
+
+        return profileFound.id;
+      } else {
+        return -1;
+      }
+    } on Exception catch (_) {
+      return -1;
     }
   }
 

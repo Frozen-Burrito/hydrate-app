@@ -23,6 +23,8 @@ class ArticleProvider with ChangeNotifier {
 
   bool _shouldRefreshBookmarks = true;
 
+  bool _mounted = true;
+
   bool get areBookmarksLoading => _bookmarksLoading;
   bool get bookmarksError => _bookmarksError;
 
@@ -111,7 +113,10 @@ class ArticleProvider with ChangeNotifier {
       // los artículos.
       _shouldRefreshArticles = false;
       articlesLoading = false;
-      notifyListeners();
+
+      if (_mounted) {
+        notifyListeners();
+      }
     }
   }
 
@@ -128,15 +133,17 @@ class ArticleProvider with ChangeNotifier {
       }));
 
       _shouldRefreshBookmarks = false;
-      _bookmarksLoading = false;
       _bookmarksError = false;
-      notifyListeners();
 
     } on Exception catch (e) {
-      _bookmarksLoading = false;
+      
       _bookmarksError = true;
-      notifyListeners();
-    }    
+    } finally {
+      if (_mounted) {
+        _bookmarksLoading = false;
+        notifyListeners();
+      }
+    }   
   }
 
   /// Guarda localmente un [Article] para leer más tarde.
@@ -179,5 +186,11 @@ class ArticleProvider with ChangeNotifier {
     }
 
     return resultId;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _mounted = false;
   }
 }

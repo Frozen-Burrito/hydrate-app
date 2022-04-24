@@ -2,10 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/api.dart';
+import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 class SignupForm extends StatefulWidget {
   const SignupForm({ Key? key }) : super(key: key);
@@ -41,6 +45,9 @@ class _SignupFormState extends State<SignupForm> {
 
     setState(() { isLoading = true; });
 
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+
     final userCredentials = UserCredentials(
       email: email,
       username: username,
@@ -54,9 +61,38 @@ class _SignupFormState extends State<SignupForm> {
 
       print('Respuesta (${res.statusCode}): $resBody');
 
-      if (res.statusCode == 200) {
-        // El registro y autenticación fueron exitosos, redirigir a una nueva pagina.
-        Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+      if (res.statusCode == 200 && resBody['token'] is String) {
+        // El registro y la autenticación fueron exitosos.
+        String jwt = resBody['token'];
+
+        // Guardar el token JWT.
+        settingsProvider.authToken = jwt;
+
+        final tokenClaims = parseJWT(jwt);
+
+        print('Claims: $tokenClaims');
+
+        String newAccountID = tokenClaims['id'];
+
+        if (profileProvider.profile.userAccountID != null) {
+          // Si el perfil actual ya tiene asociada una cuenta de usuario,
+          // crear un nuevo perfil con el ID de la nueva cuenta.
+          profileProvider.newDefaultProfile(accountID: newAccountID);
+
+          // Se registró la nueva cuenta, asociada con un nuevo perfil. Redirigir
+          // al formulario inicial para que el usuario pueda configurar su nuevo
+          // perfil.
+          Navigator.of(context).popAndPushNamed('/form/initial', result: resBody['token']);
+        } else {
+          // Si el perfil de usuario no esta asociado con una cuenta de usuario, 
+          // asociar el perfil con la cuenta creada.
+          profileProvider.profileChanges.userAccountID ??= newAccountID;
+
+          profileProvider.saveProfileChanges(restrictModifications: false);
+
+          // Se registró la nueva cuenta y se asoció por defecto al perfil local.
+          Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+        }
 
       } else if (res.statusCode >= 400) {
         // Existe un error en las credenciales del usuario.

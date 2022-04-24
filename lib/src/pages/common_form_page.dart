@@ -28,7 +28,7 @@ class CommonFormPage extends StatelessWidget {
             leading: <Widget>[
               IconButton(
                 icon: const Icon(Icons.arrow_back), 
-                onPressed: () => Navigator.pop(context)
+                onPressed: () => Navigator.pop(context),
               ),
             ],
             actions: <Widget>[
@@ -47,6 +47,8 @@ class CommonFormPage extends StatelessWidget {
                     formWidget,
                     formLabel: formLabel,
                   ),
+
+                  const SizedBox( height: 48.0, ),
                 ]
               ),
             ),

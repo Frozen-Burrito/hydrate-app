@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
+import 'package:provider/provider.dart';
 
 class HomeTab extends StatelessWidget {
   const HomeTab({ Key? key }) : super(key: key);
@@ -33,9 +35,13 @@ class HomeTab extends StatelessWidget {
             ],
           ),
 
-          const SliverToBoxAdapter(
-            child: Image( 
-              image: AssetImage('assets/img/placeholder.png'),
+          SliverToBoxAdapter(
+            child: Consumer<ProfileProvider>(
+              builder: (_, provider, __) {
+                return Image( 
+                  image: AssetImage(provider.profile.selectedEnvironment.imagePath),
+                );
+              }
             )
           ),
 

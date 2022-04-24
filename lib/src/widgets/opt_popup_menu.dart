@@ -69,14 +69,7 @@ class AuthOptionsMenu extends StatelessWidget {
           MenuItem(
             icon: Icons.account_circle_rounded, 
             label: 'Iniciar Sesión',
-            onSelected: () async {
-              final token = await Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login) ?? '';
-
-              if (token is String) {
-                print('Token: $token');
-                settingsProvider.authToken = token;
-              }
-            },
+            onSelected: () => Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login),
           ),
 
           MenuItem(isDivider: true, label: '', icon: Icons.settings),

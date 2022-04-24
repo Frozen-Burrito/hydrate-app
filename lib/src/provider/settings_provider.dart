@@ -125,4 +125,8 @@ class SettingsProvider with ChangeNotifier {
     await _sharedPreferences?.setString('jwt', '');
     notifyListeners();
   }
+
+  int get currentProfileId => _sharedPreferences?.getInt('perfil_actual') ?? -1;
+
+  set currentProfileId(int profileId) => _sharedPreferences?.setInt('perfil_actual', profileId);
 }

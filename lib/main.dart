@@ -49,12 +49,14 @@ class HydrateApp extends StatelessWidget {
         builder: (_, settingsProvider, __) {
           return MaterialApp(
             title: 'Hydrate App',
-            initialRoute: '/',
-            // App theme settings.
+            initialRoute: settingsProvider.currentProfileId < 0
+              ? '/form/initial'
+              : '/',
+            // Configuracion del tema de color.
             theme: AppThemes.appLightTheme,
             darkTheme: AppThemes.appDarkTheme,
             themeMode: settingsProvider.appThemeMode,
-            // App routes
+            // Rutas de la app
             routes: {
               '/': (context) => const MainPage(),
               '/config': (context) => const SettingsPage(),
