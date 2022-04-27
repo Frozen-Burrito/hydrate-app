@@ -70,7 +70,7 @@ class UserProfile extends SQLiteModel {
     )
   ''';
 
-  static UserProfile from(UserProfile originalProfile) {
+  static UserProfile copyOf(UserProfile originalProfile) {
     return UserProfile(
       id: originalProfile.id,
       firstName: originalProfile.firstName,
@@ -143,7 +143,7 @@ class UserProfile extends SQLiteModel {
       'entorno_sel': selectedEnvId,
       'monedas': coins,
       'num_modificaciones': modificationCount,
-      'pais': country?.toMap() ?? <String, Object?>{},
+      'pais': country,
       'entornos': unlockedEnvironments
     };
 

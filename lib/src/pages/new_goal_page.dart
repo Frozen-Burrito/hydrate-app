@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 
 import 'package:hydrate_app/src/widgets/forms/create_goal_form.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
+import 'package:provider/provider.dart';
 
 class NewGoalPage extends StatelessWidget {
   const NewGoalPage({ Key? key }) : super(key: key);
@@ -32,11 +34,15 @@ class NewGoalPage extends StatelessWidget {
         
           SliverToBoxAdapter(
             child: Stack(
-              children: const <Widget> [
-                WaveShape(),
+              children: <Widget> [
+                const WaveShape(),
 
                 Center(
-                  child: CreateGoalForm()
+                  child: Consumer<ProfileProvider>(
+                    builder: (_, provider, __) {
+                      return CreateGoalForm(provider.profile.id);
+                    },
+                  ),
                 ),
               ],
             ),

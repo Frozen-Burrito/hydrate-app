@@ -19,7 +19,7 @@ class Goal extends SQLiteModel {
   int reward;
   int quantity;
   String? notes;
-  List<Tag> tags;
+  final List<Tag> tags;
 
   Goal({
     this.id = -1,
@@ -104,7 +104,7 @@ class Goal extends SQLiteModel {
   /// ```dart
   /// parseTags('uno,naranja,arbol') // Resulta en ['uno', 'naranja', 'arbol']
   /// ```
-  int parseTags(String? inputValue) {
+  int parseTags(String? inputValue, List<Tag> existingTags) {
 
     if (inputValue == null) return 0;
 
@@ -120,8 +120,16 @@ class Goal extends SQLiteModel {
         tags.last.value = strTags.last;
       
       } else if (tagCount < newTagCount && strTags.last.isNotEmpty) {
-        // Si hay un tag nuevo, agregarlo.
-        tags.add(Tag(strTags.last));
+        // Revisar si la etiqueta introducida ya fue creado por el usuario.
+        final tagsFound = existingTags.where((t) => t.value == strTags.last);
+
+        if (tagsFound.isNotEmpty) {
+          // Ya existe una etiqueta con el valor, hacer referencia a ella.
+          tags.add(tagsFound.first);
+        } else {
+          // Crear una nueva etiqueta para el usuario.
+          tags.add(Tag(strTags.last));
+        }
 
       } else if (strTags.last.isNotEmpty) {
         // Si hay un tag menos, quita el último.
