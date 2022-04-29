@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/country.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
@@ -18,12 +19,12 @@ class ProfileProvider extends ChangeNotifier
     weight: 60.0,
     medicalCondition: MedicalCondition.none,
     occupation: Occupation.student,
-    userAccountID: null,
+    userAccountID: '',
     coins: 1327,
     unlockedEnvironments: [],
   );
 
-  UserProfile _profileChanges = UserProfile(unlockedEnvironments: []);
+  UserProfile _profileChanges = UserProfile(country: Country(), unlockedEnvironments: []);
 
   final List<Country> countries = [];
 
@@ -65,7 +66,7 @@ class ProfileProvider extends ChangeNotifier
       if (queryResults.isNotEmpty)
       {
         _profile = queryResults.first;
-        _profileChanges = UserProfile.from(_profile);
+        _profileChanges = UserProfile.copyOf(_profile);
 
         assert(_profile.id == profileId);
 
@@ -89,18 +90,18 @@ class ProfileProvider extends ChangeNotifier
 
     try {
       if (profileChanges.modificationCount >= 3) {
-        throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
+        throw UnsupportedError('El perfil ya llego al limite de modificaciones anuales.');
       }
 
       profileChanges.modificationCount++;
 
       int result = await SQLiteDB.instance.update(profileChanges);
 
-      if (result < 0) throw Exception('El perfil de usuario no fue modificado.');
+      if (result < 1) throw Exception('El perfil de usuario no fue modificado.');
     
     } on Exception catch (e) {
       _profileError = true;
-      print('Error actualizando el perfil de usuario.');
+      print('Error actualizando el perfil de usuario: $e');
 
     } finally {
       _profileLoading = false;
@@ -108,10 +109,7 @@ class ProfileProvider extends ChangeNotifier
     }
   }
 
-  int indexOfCountry(Country? country) {
-
-    if (country == null) return 0;
-
+  int indexOfCountry(Country country) {
     return countries.indexWhere((c) => c.id == country.id && c.code == country.code);
   }
 

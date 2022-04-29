@@ -18,8 +18,8 @@ class UserProfile extends SQLiteModel {
   double weight;
   MedicalCondition medicalCondition;
   Occupation occupation;
-  Country? country;
-  String? userAccountID;
+  Country country;
+  String userAccountID;
   int coins;
   int modificationCount;
   int selectedEnvId;
@@ -35,11 +35,11 @@ class UserProfile extends SQLiteModel {
     this.weight = 0.0,
     this.medicalCondition = MedicalCondition.notSpecified,
     this.occupation = Occupation.notSpecified,
-    this.country,
-    this.userAccountID,
+    this.userAccountID = '',
     this.selectedEnvId = 0,
     this.coins = 0,
     this.modificationCount = 0,
+    required this.country,
     required this.unlockedEnvironments,
   });
 
@@ -62,8 +62,8 @@ class UserProfile extends SQLiteModel {
       entorno_sel ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       monedas ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       num_modificaciones ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      id_usuario ${SQLiteKeywords.textType},
-      id_pais ${SQLiteKeywords.integerType},
+      id_usuario ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      id_pais ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       ${SQLiteKeywords.fk} (id_pais) ${SQLiteKeywords.references} pais (id)
         ${SQLiteKeywords.onDelete} ${SQLiteKeywords.setNullAction}
@@ -85,7 +85,10 @@ class UserProfile extends SQLiteModel {
       selectedEnvId: originalProfile.selectedEnvId,
       coins: originalProfile.coins,
       modificationCount: originalProfile.modificationCount,
-      country: Country(id: originalProfile.country?.id ?? -1, code: originalProfile.country?.code ?? '--'),
+      country: Country(
+        id: originalProfile.country.id, 
+        code: originalProfile.country.code
+      ),
       unlockedEnvironments: List.from(originalProfile.unlockedEnvironments)
     );
   }
