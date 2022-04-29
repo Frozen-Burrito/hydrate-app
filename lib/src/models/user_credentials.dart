@@ -1,5 +1,4 @@
 
-
 class UserCredentials {
 
   final String username;
@@ -12,22 +11,21 @@ class UserCredentials {
     this.password = ''
   }); 
 
-  static UserCredentials fromMap(Map<String, dynamic> map) {
+  static UserCredentials fromMap(Map<String, String> map) {
     
     return UserCredentials(
-      username: map['nombreUsuario'],
-      email: map['email'],
+      username: map['nombreUsuario'] ?? '',
+      email: map['email'] ?? '',
     );
   }
 
-  @override
-  Map<String, dynamic> toMap() {
+  Map<String, String> toMap() {
     
     if (username.isEmpty && email.isEmpty) {
       throw ArgumentError.value('', 'username o email', 'Debe haber exactamente una credencial');
     }
 
-    final Map<String, dynamic> map = {
+    final Map<String, String> map = {
       'password': password,
     };
 

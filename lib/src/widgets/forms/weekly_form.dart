@@ -15,7 +15,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
 
   final Habits _userHabits = Habits( date: DateTime.now() );
 
-  final List<int> _hourTotals = <int>[0,0,0];
+  final List<double> _hourTotals = <double>[0.0,0.0,0.0];
   
   /// Verifica cada campo del formulario. Si no hay errores, registra la nueva
   /// información del usuario en la DB y redirige a [redirectRoute]. 
@@ -53,7 +53,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
               suffixIcon: Icon(Icons.bedtime)
             ),
             onChanged: (value) {
-              _userHabits.hoursOfSleep = int.tryParse(value) ?? 0;
+              _userHabits.hoursOfSleep = double.tryParse(value) ?? 0.0;
 
               setState(() {
                 _hourTotals[0] = _userHabits.hoursOfSleep;
@@ -75,7 +75,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
               suffixIcon: Icon(Icons.directions_run)
             ),
             onChanged: (value) {
-              _userHabits.hoursOfActivity = int.tryParse(value) ?? 0;
+              _userHabits.hoursOfActivity = double.tryParse(value) ?? 0.0;
 
               setState(() {
                 _hourTotals[2] = _userHabits.hoursOfActivity;
@@ -97,7 +97,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
               suffixIcon: Icon(Icons.work)
             ),
             onChanged: (value) {
-              _userHabits.hoursOfOccupation = int.tryParse(value) ?? 0;
+              _userHabits.hoursOfOccupation = double.tryParse(value) ?? 0.0;
 
               setState(() {
                 _hourTotals[0] = _userHabits.hoursOfOccupation;
@@ -125,7 +125,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
               helperText: ' ',
               suffixIcon: Icon(Icons.thermostat)
             ),
-            onChanged: (value) => _userHabits.maxTemperature = int.tryParse(value) ?? 0,
+            onChanged: (value) => _userHabits.maxTemperature = double.tryParse(value) ?? 0.0,
             validator: (value) => Habits.validateTemperature(value),
           ),
           

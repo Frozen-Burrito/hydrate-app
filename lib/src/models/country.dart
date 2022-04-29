@@ -1,5 +1,4 @@
-
-
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 class Country extends SQLiteModel {
@@ -16,20 +15,20 @@ class Country extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      codigo ${SQLiteModel.textType} ${SQLiteModel.notNullType}
+      id ${SQLiteKeywords.idType},
+      codigo ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType}
     )
   ''';
 
-  static Country fromMap(Map<String, dynamic> map) => Country(
-    id: map['id'],
-    code: map['codigo'],
+  static Country fromMap(Map<String, Object?> map) => Country(
+    id: (map['id'] is int ? map['id'] as int : -1),
+    code: map['codigo'].toString().substring(0, 2),
   );
 
   @override
-  Map<String, dynamic> toMap() {
+  Map<String, Object?> toMap() {
 
-    final Map<String, dynamic> map = {
+    final Map<String, Object?> map = {
       'codigo': code,
     };
     

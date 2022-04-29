@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 class Environment extends SQLiteModel {
@@ -19,24 +20,24 @@ class Environment extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      archivo_img ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      precio ${SQLiteModel.integerType} ${SQLiteModel.notNullType}
+      id ${SQLiteKeywords.idType},
+      archivo_img ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      precio ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType}
     )
   ''';
 
-  static Environment fromMap(Map<String, dynamic> map) {
+  static Environment fromMap(Map<String, Object?> map) {
     
     return Environment(
-      id: map['id'],
-      imagePath: map['archivo_img'],
-      price: map['precio'],
+      id: (map['id'] is int ? map['id'] as int : -1),
+      imagePath: map['archivo_img'].toString(),
+      price: (map['precio'] is int ? map['precio'] as int : -1),
     );
   }
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'archivo_img': imagePath,
       'precio': price
     };

@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 
@@ -26,32 +27,32 @@ class HydrationRecord extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE ${HydrationRecord.tableName} (
-      id ${SQLiteModel.idType},
-      cantidad ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      porcentaje_bateria ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      fecha ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      temperatura ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      id_perfil ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+      id ${SQLiteKeywords.idType},
+      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      porcentaje_bateria ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      fecha ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      temperatura ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteModel.fk} (id_perfil) ${SQLiteModel.references} ${UserProfile.tableName} (id)
-          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction}
+      ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+          ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';
 
-  static HydrationRecord fromMap(Map<String, dynamic> map) {
+  static HydrationRecord fromMap(Map<String, Object?> map) {
     return HydrationRecord(
-      id: map['id'],
-      amount: map['cantidad'],
-      batteryPercentage: map['porcentaje_bateria'],
-      temperature: map['temperatura'],
-      date: DateTime.tryParse(map['fecha']) ?? DateTime.now(),
-      profileId: map['id_perfil'],
+      id: int.tryParse(map['id'].toString()) ?? -1,
+      amount: int.tryParse(map['cantidad'].toString()) ?? 0,
+      batteryPercentage: int.tryParse(map['porcentaje_bateria'].toString()) ?? 0,
+      temperature: double.tryParse(map['temperatura'].toString()) ?? 21.0,
+      date: DateTime.tryParse(map['fecha'].toString()) ?? DateTime.now(),
+      profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
     );
   } 
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'cantidad': amount, 
       'porcentaje_bateria': batteryPercentage,
       'temperatura': temperature,

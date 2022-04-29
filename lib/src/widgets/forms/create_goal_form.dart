@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 
 class CreateGoalForm extends StatefulWidget {
 
-  const CreateGoalForm({ Key? key, }) : super(key: key);
+  const CreateGoalForm(this.currentProfileId, { Key? key, }) : super(key: key);
+
+  final int currentProfileId;
 
   @override
   State<CreateGoalForm> createState() => _CreateGoalFormState();
@@ -20,10 +23,12 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     term: GoalTerm.daily, 
     startDate: DateTime.now(), 
     endDate: DateTime.now(),
-    tags: <Tag>[]
+    tags: <Tag>[],
   );
 
   bool isLoading = false;
+
+  final List<Tag> existingTags = [];
 
   int tagsLength = 0;
   int notesLength = 0;
@@ -32,6 +37,12 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
   final startDateController = TextEditingController();
   final endDateController = TextEditingController();
+  
+  @override
+  void initState() {
+    super.initState();
+    _getExistingTags();
+  }
 
   @override
   void dispose() {
@@ -55,6 +66,14 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   /// meta en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
     if (_formKey.currentState!.validate()) {
+      // Asociar el perfil del usuario actual con la nueva meta.
+      newGoal.profileId = widget.currentProfileId;
+
+      // Asociar el perfil del usuario actual con las etiquetas de la meta.
+      for (var tag in newGoal.tags) {
+        tag.profileId = widget.currentProfileId;
+      }
+
       int resultado = await SQLiteDB.instance.insert(newGoal);
 
       if (resultado >= 0) {
@@ -65,6 +84,19 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
         }
       }
     }
+  }
+
+  /// Obtiene las [Tag] creadas por el usuario anteriormente. 
+  Future<void> _getExistingTags() async {
+    existingTags.clear();
+
+    final tagResults = await SQLiteDB.instance.select<Tag>(
+      Tag.fromMap, 
+      Tag.tableName,
+      where: [ WhereClause('id_perfil', widget.currentProfileId.toString())]
+    );
+
+    existingTags.addAll(tagResults);
   }
 
   @override
@@ -220,7 +252,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                     counterText: '${tagsLength.toString()}/3'
                   ),
                   onChanged: (value) => setState(() {
-                    tagsLength = newGoal.parseTags(value);
+                    tagsLength = newGoal.parseTags(value, existingTags);
                   }),
                   validator: (value) => Goal.validateTags(value),
                 ),

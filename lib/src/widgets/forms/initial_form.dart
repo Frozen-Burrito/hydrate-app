@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -159,7 +161,7 @@ class InitialForm extends StatelessWidget {
                   value: profileProvider.indexOfCountry(profileChanges.country),
                   onChanged: (isFormModifiable)
                     ? (int? newValue) {
-                        profileChanges.country = profileProvider.countries[newValue ?? 0];
+                        profileChanges.country = profileProvider.countries[min(newValue ?? 0, profileProvider.countries.length)];
                       }
                     : null,
                 ),

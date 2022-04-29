@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
@@ -18,7 +19,7 @@ class Goal extends SQLiteModel {
   int reward;
   int quantity;
   String? notes;
-  List<Tag> tags;
+  final List<Tag> tags;
 
   Goal({
     this.id = -1,
@@ -39,37 +40,39 @@ class Goal extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      plazo ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      fecha_inicio ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      fecha_final ${SQLiteModel.textType} ${SQLiteModel.notNullType},
-      recompensa ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      cantidad ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
-      notas ${SQLiteModel.textType},
-      id_perfil ${SQLiteModel.integerType} ${SQLiteModel.notNullType},
+      id ${SQLiteKeywords.idType},
+      plazo ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      fecha_inicio ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      fecha_final ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      recompensa ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      notas ${SQLiteKeywords.textType},
+      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteModel.fk} (id_perfil) ${SQLiteModel.references} ${UserProfile.tableName} (id)
-          ${SQLiteModel.onDelete} ${SQLiteModel.cascadeAction}
+      ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+          ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';
 
-  static Goal fromMap(Map<String, dynamic> map) {
+  static Goal fromMap(Map<String, Object?> map) {
 
     var tags = map['etiquetas'];
     List<Tag> tagList = <Tag>[];
 
-    if (tags is List<Map<String, dynamic>> && tags.isNotEmpty) {
+    if (tags is List<Map<String, Object?>> && tags.isNotEmpty) {
       tagList = tags.map((tagMap) => Tag.fromMap(tagMap)).toList();
     }
 
+    int indexPlazo = (map['plazo'] is int ? map['plazo'] as int : 0);
+
     final goal = Goal(
-      id: map['id'],
-      term: GoalTerm.values[map['plazo']],
-      startDate: DateTime.parse(map['fecha_inicio']),
-      endDate: DateTime.parse(map['fecha_final']),
-      reward: map['recompensa'],
-      quantity: map['cantidad'],
-      notes: map['notas'],
+      id: (map['id'] is int ? map['id'] as int : -1),
+      term: GoalTerm.values[indexPlazo],
+      startDate: DateTime.parse(map['fecha_inicio'].toString()),
+      endDate: DateTime.parse(map['fecha_final'].toString()),
+      reward: (map['recompensa'] is int ? map['recompensa'] as int : -1),
+      quantity: (map['cantidad'] is int ? map['cantidad'] as int : -1),
+      notes: map['notas'].toString(),
       tags: tagList,
     );
 
@@ -77,8 +80,8 @@ class Goal extends SQLiteModel {
   } 
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'plazo': term.index,
       'fecha_inicio': startDate?.toIso8601String(), 
       'fecha_final': endDate?.toIso8601String(),
@@ -101,7 +104,7 @@ class Goal extends SQLiteModel {
   /// ```dart
   /// parseTags('uno,naranja,arbol') // Resulta en ['uno', 'naranja', 'arbol']
   /// ```
-  int parseTags(String? inputValue) {
+  int parseTags(String? inputValue, List<Tag> existingTags) {
 
     if (inputValue == null) return 0;
 
@@ -117,8 +120,16 @@ class Goal extends SQLiteModel {
         tags.last.value = strTags.last;
       
       } else if (tagCount < newTagCount && strTags.last.isNotEmpty) {
-        // Si hay un tag nuevo, agregarlo.
-        tags.add(Tag(strTags.last));
+        // Revisar si la etiqueta introducida ya fue creado por el usuario.
+        final tagsFound = existingTags.where((t) => t.value == strTags.last);
+
+        if (tagsFound.isNotEmpty) {
+          // Ya existe una etiqueta con el valor, hacer referencia a ella.
+          tags.add(tagsFound.first);
+        } else {
+          // Crear una nueva etiqueta para el usuario.
+          tags.add(Tag(strTags.last));
+        }
 
       } else if (strTags.last.isNotEmpty) {
         // Si hay un tag menos, quita el último.

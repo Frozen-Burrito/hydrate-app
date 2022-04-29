@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 enum MedicalCondition {
@@ -39,31 +40,31 @@ class MedicalData extends SQLiteModel {
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteModel.idType},
-      hipervolemia ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      peso_post_dial ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      agua_extracel ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      normovolemia ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      ganancia_rec ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      ganancia_real ${SQLiteModel.realType} ${SQLiteModel.notNullType},
-      fecha_prox_cita ${SQLiteModel.textType} ${SQLiteModel.notNullType}
+      id ${SQLiteKeywords.idType},
+      hipervolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      peso_post_dial ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      agua_extracel ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      normovolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      ganancia_rec ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      ganancia_real ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      fecha_prox_cita ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType}
     )
   ''';
 
-  static MedicalData fromMap(Map<String, dynamic> map) => MedicalData(
-    id: map['id'],
-    hypervolemia: map['hipervolemia'],
-    postDialysisWeight: map['peso_post_dial'],
-    extracellularWater: map['agua_extracel'],
-    normovolemia: map['normovolemia'],
-    recommendedGain: map['ganancia_rec'],
-    actualGain: map['ganancia_real'],
-    nextAppointment: DateTime.parse(map['fecha_prox_cita']),
+  static MedicalData fromMap(Map<String, Object?> map) => MedicalData(
+    id: int.tryParse(map['id'].toString()) ?? -1,
+    hypervolemia: double.tryParse(map['hipervolemia'].toString()) ?? 0.0,
+    postDialysisWeight: double.tryParse(map['peso_post_dial'].toString()) ?? 0.0,
+    extracellularWater: double.tryParse(map['agua_extracel'].toString()) ?? 0.0,
+    normovolemia: double.tryParse(map['normovolemia'].toString()) ?? 0.0,
+    recommendedGain: double.tryParse(map['ganancia_rec'].toString()) ?? 0.0,
+    actualGain: double.tryParse(map['ganancia_real'].toString()) ?? 0.0,
+    nextAppointment: DateTime.tryParse(map['fecha_prox_cita'].toString()),
   );
 
   @override
-  Map<String, dynamic> toMap() {
-    final Map<String, dynamic> map = {
+  Map<String, Object?> toMap() {
+    final Map<String, Object?> map = {
       'hipervolemia': hypervolemia,
       'peso_post_dial': postDialysisWeight,
       'agua_extracel': extracellularWater,

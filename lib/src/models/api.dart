@@ -39,7 +39,7 @@ class API {
     return http.get(parsedUrl, headers: defaultHeaders);
   }
 
-  static Future<http.Response> post(String url, Map<String, dynamic> body) {
+  static Future<http.Response> post(String url, Map<String, Object?> body) {
 
     final parsedUrl = Uri.parse(apiUrl + url);
 
@@ -48,7 +48,7 @@ class API {
     return http.post(parsedUrl, body: jsonBody, headers: defaultHeaders);
   }
 
-  static Future<http.Response> put(String url, Map<String, dynamic> body) {
+  static Future<http.Response> put(String url, Map<String, Object?> body) {
 
     final parsedUrl = Uri.parse(apiUrl + url);
 
