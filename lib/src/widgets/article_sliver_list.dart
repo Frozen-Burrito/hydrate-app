@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
@@ -122,6 +124,12 @@ class _ArticleCard extends StatelessWidget {
 
     final articleProvider = Provider.of<ArticleProvider>(context);
 
+    final rawPublishDateStr = article.publishDate.toString();
+
+    final articleDateStr = (article.publishDate != null)
+      ? rawPublishDateStr.substring(0, min(article.publishDate.toString().length, 10))
+      : 'Sin fecha';
+
     return Card(
       child: Column(
         children: [
@@ -131,7 +139,7 @@ class _ArticleCard extends StatelessWidget {
               style: Theme.of(context).textTheme.headline6,
             ),
             subtitle: Text(
-              'Publicación: ${article.publishDate.toString().substring(0,10)}',
+              'Publicación: $articleDateStr',
               style: Theme.of(context).textTheme.bodyText1
             ),
             trailing: IconButton(
