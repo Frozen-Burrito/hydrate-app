@@ -8,6 +8,7 @@ import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
@@ -77,12 +78,12 @@ class _LoginFormState extends State<LoginForm> {
             // Aun no existe un perfil asociado con la cuenta. Crear uno nuevo.
             profileProvider.newDefaultProfile(accountID: accountId);
 
-            Navigator.of(context).popAndPushNamed('/form/initial', result: resBody['token']);
+            Navigator.of(context).popAndPushNamed(RouteNames.authentication, result: resBody['token']);
           } else {
             // Ya existe un perfil para esta cuenta.
             profileProvider.loadUserProfile(profileId: profileLinkedToAccount, accountId: accountId);
 
-            Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+            Navigator.of(context).popAndPushNamed(RouteNames.home, result: resBody['token']);
           }
         } else {
           // Asociar el perfil actual con la cuenta autenticada.

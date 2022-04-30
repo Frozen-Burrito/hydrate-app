@@ -4,6 +4,7 @@ import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 
 class CreateGoalForm extends StatefulWidget {
 
@@ -299,7 +300,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                         style: ElevatedButton.styleFrom(
                           primary: Colors.blue,
                         ),
-                        onPressed: () => _validateAndSave(context, redirectRoute: '/'),
+                        onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
                       ),
                     ),
                   ]

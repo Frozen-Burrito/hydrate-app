@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
@@ -287,7 +288,7 @@ class _InitialFormState extends State<InitialForm> {
                       int newProfileId = await profileProvider.newDefaultProfile();
                       settingsProvider.currentProfileId = newProfileId;
 
-                      Navigator.pushReplacementNamed(context, '/');
+                      Navigator.pushReplacementNamed(context, RouteNames.home);
                     },
                   ),
                 ),

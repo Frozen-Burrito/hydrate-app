@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 
 class MedicalForm extends StatefulWidget {
 
@@ -184,7 +185,7 @@ class _MedicalFormState extends State<MedicalForm> {
                 style: ElevatedButton.styleFrom(
                   primary: Colors.blue,
                 ),
-                onPressed: () => _validateAndSave(context),
+                onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
               ),
             ),
           ),

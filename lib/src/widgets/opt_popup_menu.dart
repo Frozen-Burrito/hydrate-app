@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/pages/auth_page.dart';
@@ -69,7 +70,7 @@ class AuthOptionsMenu extends StatelessWidget {
           MenuItem(
             icon: Icons.settings, 
             label: 'Ajustes',
-            onSelected: () => Navigator.pushNamed(context, '/config'),
+            onSelected: () => Navigator.pushNamed(context, RouteNames.config),
           ),
           
           MenuItem(isDivider: true, label: '', icon: Icons.settings),
@@ -77,7 +78,11 @@ class AuthOptionsMenu extends StatelessWidget {
           MenuItem(
             icon: Icons.account_circle_rounded, 
             label: 'Iniciar Sesión',
-            onSelected: () => Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login),
+            onSelected: () => Navigator.pushNamed(
+              context, 
+              RouteNames.authentication, 
+              arguments: AuthFormType.login
+            ),
           ),
         ]
         : <MenuItem> [
@@ -85,7 +90,7 @@ class AuthOptionsMenu extends StatelessWidget {
           MenuItem(
             icon: Icons.settings, 
             label: 'Ajustes',
-            onSelected: () => Navigator.pushNamed(context, '/config'),
+            onSelected: () => Navigator.pushNamed(context, RouteNames.config),
           ),
 
           MenuItem(isDivider: true, label: '', icon: Icons.settings),

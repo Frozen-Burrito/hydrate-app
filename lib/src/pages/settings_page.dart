@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -39,7 +40,7 @@ class SettingsPage extends StatelessWidget {
               actions: <Widget>[
                 IconButton(
                   icon: const Icon(Icons.phonelink_ring),
-                  onPressed: () => Navigator.pushNamed(context, '/ble-pair'),
+                  onPressed: () => Navigator.pushNamed(context, RouteNames.bleConnection),
                 )
               ],
             ),

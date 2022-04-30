@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 
 import 'package:hydrate_app/src/widgets/forms/login_form.dart';
 import 'package:hydrate_app/src/widgets/forms/signup_form.dart';
@@ -36,7 +37,8 @@ class AuthPage extends StatelessWidget {
                     right: 32.0,
                     child: IconButton(
                       icon: const Icon(Icons.close, size: 36.0,),
-                      onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false), 
+                      onPressed: () => Navigator.of(context)
+                          .pushNamedAndRemoveUntil(RouteNames.home, (route) => false), 
                     ),
                   ),
 
@@ -72,7 +74,7 @@ class AuthPage extends StatelessWidget {
                         ),
                         onPressed: () => Navigator.pushNamed(
                           context, 
-                          'auth',
+                          RouteNames.authentication,
                           arguments: formType == AuthFormType.login ? AuthFormType.signup : AuthFormType.login
                         )
                       ),
