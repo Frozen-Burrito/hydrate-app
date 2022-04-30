@@ -552,13 +552,18 @@ class SQLiteDB {
   }
 
   Iterable<String> foreignKeyTables(Map<String, Object?> row) {
-    List<String> tables = [];
+
+    final tables = <String>[];
 
     for (String key in row.keys) {
-      bool keyStartsWithId = key.length > 3 && key.substring(0, 3) == 'id_';
 
-      if (keyStartsWithId && !tables.contains(key)) {
-        tables.add(key.substring(3));
+      if (key.length > 3) {
+        bool keyStartsWithId = key.substring(0, 3) == 'id_';
+        bool keyRefersToTable = tableNames.contains(key.substring(3));
+
+        if (keyStartsWithId && keyRefersToTable) {
+          tables.add(key.substring(3));
+        }
       }
     }
 
