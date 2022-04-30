@@ -67,24 +67,25 @@ class AuthOptionsMenu extends StatelessWidget {
       options: settingsProvider.authToken.isEmpty 
         ? <MenuItem> [
           MenuItem(
+            icon: Icons.settings, 
+            label: 'Ajustes',
+            onSelected: () => Navigator.pushNamed(context, '/config'),
+          ),
+          
+          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+
+          MenuItem(
             icon: Icons.account_circle_rounded, 
             label: 'Iniciar Sesión',
             onSelected: () => Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login),
           ),
-
-          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+        ]
+        : <MenuItem> [
 
           MenuItem(
             icon: Icons.settings, 
             label: 'Ajustes',
             onSelected: () => Navigator.pushNamed(context, '/config'),
-          ),
-        ]
-        : <MenuItem> [
-          MenuItem(
-            icon: Icons.account_circle_rounded, 
-            label: 'Perfil',
-            onSelected: () => Navigator.pushNamed(context, '/profile'),
           ),
 
           MenuItem(isDivider: true, label: '', icon: Icons.settings),
@@ -93,12 +94,6 @@ class AuthOptionsMenu extends StatelessWidget {
             icon: Icons.logout,
             label: 'Cerrar Sesión',
             onSelected: () => settingsProvider.logOut(),
-          ),
-
-          MenuItem(
-            icon: Icons.settings, 
-            label: 'Ajustes',
-            onSelected: () => Navigator.pushNamed(context, '/config'),
           ),
         ],
     );

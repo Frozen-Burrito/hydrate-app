@@ -11,23 +11,115 @@ class BottomNavBar extends StatelessWidget {
 
     final navProvider = Provider.of<NavigationProvider>(context);
 
-    return BottomNavigationBar(
-      currentIndex: navProvider.activePage,  
-      onTap: (i) => navProvider.activePage = i,
-      items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(Icons.auto_stories_rounded),
-          label: 'Artículos'
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 6.0,
+      child: SizedBox(
+        height: 64.0,
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            BottomAppBarItem(
+              icon: Icons.auto_stories_rounded,
+              label: 'Artículos',
+              onTap: (i) => navProvider.activePage = i,
+              pageIndex: 0,
+            ),
+            BottomAppBarItem(
+              icon: Icons.opacity,
+              label: 'Inicio',
+              onTap: (i) => navProvider.activePage = i,
+              pageIndex: 1,
+            ),
+            BottomAppBarItem(
+              icon: Icons.timeline_rounded,
+              label: 'Historial',
+              onTap: (i) => navProvider.activePage = i,
+              pageIndex: 2,
+            ),
+            BottomAppBarItem(
+              icon: Icons.account_circle,
+              label: 'Perfil',
+              onTap: (i) => navProvider.activePage = i,
+              pageIndex: 3,
+            ),
+            const BottomAppBarItem.spacer()
+          ],
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home),
-          label: 'Inicio'
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.timeline_rounded),
-          label: 'Historial'
-        ),
-      ],
+      ),
+    );
+  }
+}
+
+class BottomAppBarItem extends StatelessWidget {
+
+  final String label;
+  final IconData icon;
+  final int pageIndex;
+  final ValueChanged<int>? onTap;
+  
+  const BottomAppBarItem({ 
+    required this.label, 
+    required this.icon,
+    required this.pageIndex,
+    required this.onTap,
+    Key? key,  
+  }) : super(key: key);
+
+  const BottomAppBarItem.spacer({
+    this.label = '', 
+    this.icon = Icons.space_bar, 
+    this.pageIndex = -1, 
+    this.onTap
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    final navProvider = Provider.of<NavigationProvider>(context);
+
+    final isSelected =  navProvider.activePage == pageIndex;
+
+    Color itemColor = isSelected
+      ? Theme.of(context).colorScheme.primary
+      : Theme.of(context).colorScheme.onSurface;
+
+    if (pageIndex < 0) itemColor = Colors.transparent;
+
+    return Expanded(
+      child: SizedBox(
+        height: 48.0,
+        child: InkResponse(
+          focusColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          radius: 28.0,
+          onTap: (onTap != null) 
+            ? () => navProvider.activePage = pageIndex
+            : null,
+          child: Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget> [
+                Icon(icon, color: itemColor),
+
+                (isSelected) 
+                ? Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                      color: itemColor,
+                      fontSize: 12.0,
+                    ),
+                  )
+                : const SizedBox( height: 0.0),
+              ],
+            ),
+          ),
+        )
+      ),
     );
   }
 }

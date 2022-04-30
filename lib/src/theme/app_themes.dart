@@ -28,9 +28,11 @@ class AppThemes {
     ),
 
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      elevation: 5.0,
+      elevation: 2.0,
       showUnselectedLabels: false,
       backgroundColor: Color(0xFFF8F8F8),
+      selectedItemColor: Color(0xFF29B6F6),
+      unselectedItemColor: Color(0x77D6C3C3), 
     ),
     
     textTheme: const TextTheme(
@@ -98,6 +100,9 @@ class AppThemes {
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       elevation: 2.0,
       backgroundColor: Color(0xFF29292D),
+      selectedItemColor: Color(0xFF29B6F6),
+      showSelectedLabels: false,
+      unselectedItemColor: Color(0x77D6C3C3), 
     ),
   );
 }

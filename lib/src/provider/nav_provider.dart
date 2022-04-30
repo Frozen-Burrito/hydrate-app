@@ -27,7 +27,7 @@ class NavigationProvider with ChangeNotifier {
 
     if (isAnimatingPageChange) return;
 
-    assert(newPage >= 0 && newPage < 3);
+    assert(newPage >= 0 && newPage < 4);
 
     _activePage = newPage;
 
