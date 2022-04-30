@@ -41,7 +41,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   @override
   void initState() {
     super.initState();
-    _getExistingTags();
+    _getExistingTags(profileId: widget.currentProfileId);
   }
 
   @override
@@ -87,13 +87,13 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   }
 
   /// Obtiene las [Tag] creadas por el usuario anteriormente. 
-  Future<void> _getExistingTags() async {
+  Future<void> _getExistingTags({int profileId = 0}) async {
     existingTags.clear();
 
     final tagResults = await SQLiteDB.instance.select<Tag>(
       Tag.fromMap, 
       Tag.tableName,
-      where: [ WhereClause('id_perfil', widget.currentProfileId.toString())]
+      where: [ WhereClause('id_perfil', profileId.toString())]
     );
 
     existingTags.addAll(tagResults);

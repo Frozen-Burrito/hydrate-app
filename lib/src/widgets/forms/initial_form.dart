@@ -273,7 +273,7 @@ class _InitialFormState extends State<InitialForm> {
           ),
         
           (widget.isFormEditing) 
-            ? const SizedBox( height: 120.0 )
+            ? const SizedBox( height: 48.0 )
             : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
