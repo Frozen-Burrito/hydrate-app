@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/models/api.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/forms/card_form_container.dart';
-import 'package:provider/provider.dart';
 
 class CommonFormPage extends StatelessWidget {
   
@@ -64,7 +62,10 @@ class CommonFormPage extends StatelessWidget {
                 : const SizedBox(width: 0.0,),
 
                 Center(
-                  child: formWidget
+                  child: CardFormContainer(
+                    formWidget,
+                    formLabel: formLabel,
+                  )
                 ),
               ],
             ),

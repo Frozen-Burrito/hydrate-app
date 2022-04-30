@@ -28,6 +28,9 @@ class HydrateApp extends StatelessWidget {
       create: (_) => SettingsProvider(),
       child: Consumer<SettingsProvider>(
         builder: (_, settingsProvider, __) {
+          // Configurar las rutas para el perfil actual.
+          Routes.currentProfileId = settingsProvider.currentProfileId;
+
           return MultiProvider(
             providers: [
               ChangeNotifierProvider<HydrationRecordProvider>(

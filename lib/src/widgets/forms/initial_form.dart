@@ -12,7 +12,7 @@ import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
 class InitialForm extends StatefulWidget {
 
-  InitialForm({ 
+  const InitialForm({ 
     this.isFormEditing = false, 
     this.isFormModifiable = true, 
     Key? key 

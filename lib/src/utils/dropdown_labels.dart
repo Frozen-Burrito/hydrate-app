@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
+class IconLabel {
+
+  final String label;
+  final IconData icon;
+
+  IconLabel(this.label, this.icon);
+}
+
 class DropdownLabels {
 
   static final _sexDropdownItems = UserSex.values
@@ -26,6 +34,40 @@ class DropdownLabels {
       return DropdownMenuItem(
         value: country.id,
         child: Text(labels[country.code] ?? 'No especificado', overflow: TextOverflow.ellipsis,),
+      );
+    }).toList();
+  }
+
+  static List<DropdownMenuItem<int>> activityTypes(List<ActivityType> activityTypes) {
+
+    final items = <IconLabel> [
+      IconLabel('Caminar', Icons.directions_walk),
+      IconLabel('Correr', Icons.directions_walk),
+      IconLabel('Andar en bicicleta', Icons.directions_bike),
+      IconLabel('Nadar', Icons.pool),
+      IconLabel('Fútbol', Icons.sports_soccer),
+      IconLabel('Básquetbol', Icons.sports_basketball),
+      IconLabel('Volleybol', Icons.sports_volleyball),
+      IconLabel('Danza', Icons.emoji_people),
+      IconLabel('Yoga', Icons.self_improvement),
+    ];
+
+    return activityTypes.map((activityType) {
+      return DropdownMenuItem(
+        value: activityType.activityTypeValue.index,
+        child: Row(
+          children: [
+            
+            Icon(items[activityType.activityTypeValue.index].icon),
+
+            const SizedBox( width: 4.0,),
+
+            Text(
+              items[activityType.activityTypeValue.index].label, 
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       );
     }).toList();
   }
