@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/pages/auth_page.dart';
-import 'package:hydrate_app/src/pages/profile_page.dart';
-import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/pages/common_form_page.dart';
-import 'package:hydrate_app/src/pages/settings_page.dart';
-import 'package:hydrate_app/src/pages/connection_page.dart';
-import 'package:hydrate_app/src/pages/main_page.dart';
-import 'package:hydrate_app/src/pages/new_goal_page.dart';
+import 'package:hydrate_app/src/pages/pages.dart';
+import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/theme/app_themes.dart';
 import 'package:hydrate_app/src/widgets/forms/initial_form.dart';
@@ -64,7 +58,6 @@ class HydrateApp extends StatelessWidget {
                 '/config': (context) => const SettingsPage(),
                 '/ble-pair': (context) => const ConnectionPage(),
                 '/new-goal': (context) => const NewGoalPage(),
-                '/profile': (context) => const ProfilePage(),
                 '/form/initial': (context) => CommonFormPage(
                       formTitle: 'Bienvenido', 
                       formLabel: 'Escribe sobre tí para conocerte mejor:',
