@@ -7,3 +7,5 @@ export 'package:hydrate_app/src/models/medical_data.dart';
 export 'package:hydrate_app/src/models/user_profile.dart';
 export 'package:hydrate_app/src/models/tag.dart';
 export 'package:hydrate_app/src/models/environment.dart';
+export 'package:hydrate_app/src/models/activity_record.dart';
+export 'package:hydrate_app/src/models/activity_type.dart';

@@ -1,11 +1,10 @@
 import 'dart:math';
-import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:hydrate_app/src/db/migrations.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
-import 'package:hydrate_app/src/models/environment.dart';
+import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
 /// Proporciona acceso a una base de datos local de SQLite, a través de [instance].
@@ -42,6 +41,8 @@ class SQLiteDB {
     HydrationRecord.tableName,
     UserProfile.tableName,
     Environment.tableName,
+    ActivityRecord.tableName,
+    ActivityType.tableName
   ];
 
   /// Abre la base de datos. Si no existe previamente, es creada.
