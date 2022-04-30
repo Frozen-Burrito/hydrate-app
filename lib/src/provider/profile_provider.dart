@@ -14,7 +14,10 @@ class ProfileProvider extends ChangeNotifier
     unlockedEnvironments: []
   );
 
-  late UserProfile _profileChanges;
+  UserProfile _profileChanges = UserProfile(
+    country: Country(id: 0),
+    unlockedEnvironments: []
+  );
 
   final List<Country> countries = [];
 
@@ -81,7 +84,7 @@ class ProfileProvider extends ChangeNotifier
       {
         _profile = queryResults.first;
         _profileChanges = UserProfile.copyOf(_profile);
-
+        
         assert(_profile.id == profileId);
 
       } else {
