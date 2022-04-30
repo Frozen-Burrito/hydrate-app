@@ -33,53 +33,57 @@ class HydrateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<SettingsProvider>(
-          create: (_) => SettingsProvider(),
-        ),
-        ChangeNotifierProvider<HydrationRecordProvider>(
-          create: (_) => HydrationRecordProvider(),
-        ),
-        ChangeNotifierProvider<ProfileProvider>(
-          create: (_) => ProfileProvider(),
-        )
-      ],
+    return ChangeNotifierProvider<SettingsProvider>(
+      create: (_) => SettingsProvider(),
       child: Consumer<SettingsProvider>(
         builder: (_, settingsProvider, __) {
-          return MaterialApp(
-            title: 'Hydrate App',
-            initialRoute: settingsProvider.currentProfileId < 0
-              ? '/form/initial'
-              : '/',
-            // Configuracion del tema de color.
-            theme: AppThemes.appLightTheme,
-            darkTheme: AppThemes.appDarkTheme,
-            themeMode: settingsProvider.appThemeMode,
-            // Rutas de la app
-            routes: {
-              '/': (context) => const MainPage(),
-              '/config': (context) => const SettingsPage(),
-              '/ble-pair': (context) => const ConnectionPage(),
-              '/new-goal': (context) => const NewGoalPage(),
-              '/profile': (context) => const ProfilePage(),
-              '/form/initial': (context) => CommonFormPage(
-                    formTitle: 'Bienvenido', 
-                    formLabel: 'Escribe sobre tí para conocerte mejor:',
-                    formWidget: InitialForm()
-                  ),
-              '/form/periodic': (context) => const CommonFormPage(
-                    formTitle: 'Revisión Semanal', 
-                    formLabel: 'Escribe la cantidad de horas diarias promedio que dedicaste a cada una de las siguientes actividades durante esta semana.',
-                    formWidget: WeeklyForm()
-                  ),
-              '/form/medical': (context) => const CommonFormPage(
-                    formTitle: 'Chequeo Médico', 
-                    formLabel: 'Introduce los siguientes datos con apoyo de tu nefrólogo:',
-                    formWidget: MedicalForm()
-                  ),
-              'auth': (context) => const AuthPage(),
-            },
+          return MultiProvider(
+            providers: [
+              ChangeNotifierProvider<HydrationRecordProvider>(
+                create: (_) => HydrationRecordProvider(),
+              ),
+              ChangeNotifierProvider<ProfileProvider>(
+                create: (_) => ProfileProvider(
+                  profileId: settingsProvider.currentProfileId,
+                  authToken: settingsProvider.authToken
+                ),
+              )
+            ],
+            child: MaterialApp(
+              title: 'Hydrate App',
+              initialRoute: settingsProvider.currentProfileId < 0
+                ? '/form/initial'
+                : '/',
+              // Configuracion del tema de color.
+              theme: AppThemes.appLightTheme,
+              darkTheme: AppThemes.appDarkTheme,
+              themeMode: settingsProvider.appThemeMode,
+              // Rutas de la app
+              routes: {
+                '/': (context) => const MainPage(),
+                '/config': (context) => const SettingsPage(),
+                '/ble-pair': (context) => const ConnectionPage(),
+                '/new-goal': (context) => const NewGoalPage(),
+                '/profile': (context) => const ProfilePage(),
+                '/form/initial': (context) => CommonFormPage(
+                      formTitle: 'Bienvenido', 
+                      formLabel: 'Escribe sobre tí para conocerte mejor:',
+                      formWidget: InitialForm(),
+                      displayBackAction: false,
+                    ),
+                '/form/periodic': (context) => const CommonFormPage(
+                      formTitle: 'Revisión Semanal', 
+                      formLabel: 'Escribe la cantidad de horas diarias promedio que dedicaste a cada una de las siguientes actividades durante esta semana.',
+                      formWidget: WeeklyForm()
+                    ),
+                '/form/medical': (context) => const CommonFormPage(
+                      formTitle: 'Chequeo Médico', 
+                      formLabel: 'Introduce los siguientes datos con apoyo de tu nefrólogo:',
+                      formWidget: MedicalForm()
+                    ),
+                'auth': (context) => const AuthPage(),
+              },
+            )
           );
         }
       ),

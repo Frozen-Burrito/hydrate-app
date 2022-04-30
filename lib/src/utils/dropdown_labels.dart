@@ -13,19 +13,23 @@ class DropdownLabels {
         child: Text(labels[e.index]),
       );
     }).toList();
+    
+  static List<DropdownMenuItem<int>> getCountryDropdownItems(List<Country> countries) {
 
-  //TODO: Hacer esto en base a codigos de pais reales
-  static final _countryDropdownItems = UserSex.values
-    .map((e) {
+    final labels = <String, String>{
+      'MX': 'México',
+      'EU': 'E.U.',
+      'OT': 'Otro'
+    };
 
-      final labels = <String>['México','E.U.','Otro'];
-
+    return countries.map((country) {
       return DropdownMenuItem(
-        value: e.index,
-        child: Text(labels[e.index]),
+        value: country.id,
+        child: Text(labels[country.code] ?? 'No especificado', overflow: TextOverflow.ellipsis,),
       );
     }).toList();
-
+  }
+   
   static final _occupationDropdownItems = Occupation.values
     .map((e) {
 
@@ -57,7 +61,6 @@ class DropdownLabels {
     }).toList();
 
   static get sexDropdownItems => _sexDropdownItems;
-  static get countryDropdownItems => _countryDropdownItems;
   static get occupationDropdownItems => _occupationDropdownItems;
   static get conditionDropdownItems => _conditionDropdownItems;
 

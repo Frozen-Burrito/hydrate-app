@@ -11,10 +11,13 @@ class CommonFormPage extends StatelessWidget {
 
   final Widget formWidget;
 
+  final bool displayBackAction;
+
   const CommonFormPage({ 
     required this.formTitle, 
     required this.formLabel, 
-    required this.formWidget, 
+    required this.formWidget,
+    this.displayBackAction = true,
     Key? key 
   }) : super(key: key);
 
@@ -28,10 +31,12 @@ class CommonFormPage extends StatelessWidget {
           CustomSliverAppBar(
             title: formTitle,
             leading: <Widget>[
-              IconButton(
+              (displayBackAction) 
+              ? IconButton(
                 icon: const Icon(Icons.arrow_back), 
                 onPressed: () => Navigator.pop(context),
-              ),
+              )
+              : const SizedBox(width: 0.0,),
             ],
             actions: <Widget>[
               IconButton(

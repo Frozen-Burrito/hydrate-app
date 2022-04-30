@@ -86,7 +86,7 @@ class _LoginFormState extends State<LoginForm> {
           }
         } else {
           // Asociar el perfil actual con la cuenta autenticada.
-          profileProvider.profileChanges.userAccountID ??= accountId;
+          profileProvider.profileChanges.userAccountID = accountId;
 
           profileProvider.saveProfileChanges(restrictModifications: false);
 

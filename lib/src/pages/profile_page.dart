@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
@@ -25,7 +27,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
 
-    final provider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileProvider>(context);
 
     return Scaffold(
       body: CustomScrollView(
@@ -55,13 +57,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   width: MediaQuery.of(context).size.width,
                   height: MediaQuery.of(context).size.height * 0.3,
                   child: GestureDetector(
+                    //TODO: Dialog para editar el entorno.
                     onTap: isEditModeActive ? () => print('Editando entorno') : null,
                       child: ClipPath(
                       clipper: WaveImageClipper(),
                       child: FittedBox(
                         fit: BoxFit.cover,
                         child: Image( 
-                          image: AssetImage(provider.profile.selectedEnvironment.imagePath),
+                          image: AssetImage(profileProvider.profile.selectedEnvironment.imagePath),
                         ),
                       ),
                     ), 
@@ -75,7 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     backgroundColor: Theme.of(context).colorScheme.secondary,
                     radius: 64.0,
                     child: Text(
-                      provider.profile.initials,
+                      profileProvider.profile.initials,
                       style: Theme.of(context).textTheme.headline3!.copyWith(
                         fontSize: 48.0,
                         color: Theme.of(context).colorScheme.onSecondary
@@ -94,7 +97,7 @@ class _ProfilePageState extends State<ProfilePage> {
     
                 const SizedBox( height: 32.0 ,),
     
-                ActivityTimeBrief(provider.profile.id),
+                ActivityTimeBrief(profileProvider.profile.id),
     
                 const SizedBox( height: 32.0 ,),
     
@@ -121,7 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ? FloatingActionButton(
           child: const Icon(Icons.save),
           onPressed: () {
-            provider.saveProfileChanges();
+            profileProvider.saveProfileChanges();
 
             setState(() {
               isEditModeActive = false;

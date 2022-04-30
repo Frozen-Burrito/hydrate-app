@@ -5,45 +5,54 @@ import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/country.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 class ProfileProvider extends ChangeNotifier
 {
   UserProfile _profile = UserProfile(
-    id: 1,
-    firstName: 'Juan',
-    lastName: 'Perez',
-    birthDate: DateTime(2000, 1, 1),
-    sex: UserSex.man,
-    country: Country(id: 0, code: 'MX'),
-    height: 1.75,
-    weight: 60.0,
-    medicalCondition: MedicalCondition.none,
-    occupation: Occupation.student,
-    userAccountID: '',
-    coins: 1327,
-    unlockedEnvironments: [],
+    country: Country(id: 0),
+    unlockedEnvironments: []
   );
 
-  UserProfile _profileChanges = UserProfile(country: Country(), unlockedEnvironments: []);
+  late UserProfile _profileChanges;
 
   final List<Country> countries = [];
 
   bool _profileLoading = true;
   bool _profileError = false;
 
+  bool _countriesLoading = true;
+
   bool _isProfileModified = false;
 
   bool get isProfileLoading => _profileLoading;
   bool get hasError => _profileError;
 
+  bool get areCountriesLoading => _countriesLoading;
+
   UserProfile get profile => _profile;
   UserProfile get profileChanges => _profileChanges;
 
-  ProfileProvider() {
-    loadUserProfile();
+  ProfileProvider({ int profileId = 0, String authToken = '' }) {
+
+    String? accountId;
+
+    if (authToken.isNotEmpty) {
+      final tokenClaims = parseJWT(authToken);
+
+      print('Claims: $tokenClaims');
+
+      accountId = tokenClaims['id'];
+    }
+
+    loadCountries();
+    loadUserProfile(
+      profileId: profileId,
+      accountId: accountId
+    );
   }
 
-  Future<void> loadUserProfile({ int profileId = -1, String? accountId }) async {
+  Future<void> loadUserProfile({ int profileId = 0, String? accountId }) async {
     _profileLoading = true;
     _profileError = false;
 
@@ -55,7 +64,7 @@ class ProfileProvider extends ChangeNotifier
         // Si hay un usuario autenticado, obtener el perfil que tenga el id
         // de perfil Y el id de la cuenta de usuario.
         whereQuery.add(WhereClause('id_usuario', accountId));
-        unions.add('AND');
+        unions.add('OR');
       }
 
       final queryResults = await SQLiteDB.instance.select<UserProfile>(
@@ -63,6 +72,8 @@ class ProfileProvider extends ChangeNotifier
         UserProfile.tableName,
         where: whereQuery,
         whereUnions: unions,
+        includeOneToMany: true,
+        queryManyToMany: true,
         limit: 1
       );
 
@@ -79,7 +90,7 @@ class ProfileProvider extends ChangeNotifier
     
     } on Exception catch (_) {
       _profileError = true;
-      print('Imposible obtener perfil desde BD.');
+      print('No fue posible obtener perfil desde la BD.');
     }
     finally {
       _profileLoading = false;
@@ -87,28 +98,55 @@ class ProfileProvider extends ChangeNotifier
     }
   }
 
+  Future<void> loadCountries() async {
+
+    _countriesLoading = true;
+    countries.clear();
+    notifyListeners();
+
+    try {
+      final results = await SQLiteDB.instance.select<Country>(
+        Country.fromMap, 
+        Country.tableName
+      );
+
+      countries.addAll(results);
+
+    } on Exception catch (_) {
+      _profileError = true;
+      print('No fue posible obtener los paises desde la BD.');
+    } finally {
+      _countriesLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Crea un nuevo perfil de usuario, con datos por defecto.
-  Future<void> newDefaultProfile({ String? accountID }) async {
+  Future<int> newDefaultProfile({ String? accountID }) async {
     _profileLoading = true;
     _profileError = false;
     notifyListeners();
+
+    int result = -1;
 
     try {
       final defaultProfile = UserProfile(country: Country(), unlockedEnvironments: []);
       defaultProfile.userAccountID = accountID ?? '';
 
-      int result = await SQLiteDB.instance.insert(defaultProfile);
+      result = await SQLiteDB.instance.insert(defaultProfile);
 
-      if (result < 0) throw Exception('El perfil de usuario no fue modificado.');
+      if (result < 0) throw Exception('El perfil de usuario por default no fue creado.');
     
     } on Exception catch (e) {
       _profileError = true;
-      print('Error creando un perfil default.');
+      print(e);
 
     } finally {
       _profileLoading = false;
       notifyListeners();
     }
+
+    return result;
   }
 
   Future<void> saveProfileChanges({bool restrictModifications = true}) async {
@@ -127,6 +165,8 @@ class ProfileProvider extends ChangeNotifier
       int result = await SQLiteDB.instance.update(profileChanges);
 
       if (result < 1) throw Exception('El perfil de usuario no fue modificado.');
+
+      _profile = _profileChanges;
     
     } on Exception catch (e) {
       _profileError = true;
@@ -169,9 +209,9 @@ class ProfileProvider extends ChangeNotifier
     }
   }
 
-  int indexOfCountry(Country? country) {
+  int indexOfCountry(Country country) {
 
-    if (country == null) return 0;
+    if (countries.isEmpty) return 0;
 
     return countries.indexWhere((c) => c.id == country.id && c.code == country.code);
   }

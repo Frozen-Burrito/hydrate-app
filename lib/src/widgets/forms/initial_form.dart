@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
@@ -8,7 +9,7 @@ import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
-class InitialForm extends StatelessWidget {
+class InitialForm extends StatefulWidget {
 
   InitialForm({ 
     this.isFormEditing = false, 
@@ -19,6 +20,11 @@ class InitialForm extends StatelessWidget {
   final bool isFormEditing;
   final bool isFormModifiable;
 
+  @override
+  State<InitialForm> createState() => _InitialFormState();
+}
+
+class _InitialFormState extends State<InitialForm> {
   final _formKey = GlobalKey<FormState>();
 
   final birthDateController = TextEditingController();
@@ -27,13 +33,17 @@ class InitialForm extends StatelessWidget {
   /// información del usuario en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, UserProfile changes, {String? redirectRoute}) async {
     if (_formKey.currentState!.validate()) {
+      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
       // Actualizar el perfil si el formulario es de edición, de lo contrario
       // crear un nuevo perfil.
-      int resultado = isFormEditing 
+      int resultado = widget.isFormEditing 
         ? await SQLiteDB.instance.update(changes)
         : await SQLiteDB.instance.insert(changes);
 
       if (resultado >= 0) {
+
+        if (!widget.isFormEditing) settingsProvider.currentProfileId = resultado;
+
         if (redirectRoute != null) {
           Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
         } else {
@@ -47,6 +57,7 @@ class InitialForm extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final profileProvider = Provider.of<ProfileProvider>(context);
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
 
     final profileChanges = profileProvider.profileChanges;
 
@@ -56,17 +67,24 @@ class InitialForm extends StatelessWidget {
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: Column(
+      child: (profileProvider.isProfileLoading || profileProvider.areCountriesLoading) 
+      ? const SizedBox(
+        height: 248.0,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      )
+      : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           
-          (isFormEditing)
+          (widget.isFormEditing)
           ? const SizedBox( height: 0.0 )
           : TextFormField(
               keyboardType: TextInputType.text,
               maxLength: 50,
-              enabled: isFormModifiable,
-              readOnly: !isFormModifiable,
+              enabled: widget.isFormModifiable,
+              readOnly: !widget.isFormModifiable,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
                 labelText: 'Nombre(s)',
@@ -77,15 +95,15 @@ class InitialForm extends StatelessWidget {
               validator: (value) => UserProfile.validateFirstName(value),
             ),
           
-          SizedBox( height: (isFormEditing ? 0.0 : 16.0 )),
+          SizedBox( height: (widget.isFormEditing ? 0.0 : 16.0 )),
 
-          (isFormEditing)
+          (widget.isFormEditing)
           ? const SizedBox( height: 0.0 )
           : TextFormField(
               keyboardType: TextInputType.text,
               maxLength: 50,
-              enabled: isFormModifiable,
-              readOnly: !isFormModifiable,
+              enabled: widget.isFormModifiable,
+              readOnly: !widget.isFormModifiable,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
                 labelText: 'Appellido(s)',
@@ -96,12 +114,12 @@ class InitialForm extends StatelessWidget {
               validator: (value) => UserProfile.validateLastName(value),
             ),
           
-          SizedBox( height: (isFormEditing ? 0.0 : 16.0 )),
+          SizedBox( height: (widget.isFormEditing ? 0.0 : 16.0 )),
 
           TextFormField(
             readOnly: true,
             controller: birthDateController,
-            enabled: isFormModifiable,
+            enabled: widget.isFormModifiable,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               labelText: 'Fecha de Nacimiento',
@@ -139,7 +157,7 @@ class InitialForm extends StatelessWidget {
                   ),
                   items: DropdownLabels.sexDropdownItems,
                   value: profileChanges.sex.index,
-                  onChanged: (isFormModifiable) 
+                  onChanged: (widget.isFormModifiable) 
                     ? (int? newValue) {
                         profileProvider.userSex = UserSex.values[newValue ?? 0];
                       }
@@ -157,9 +175,11 @@ class InitialForm extends StatelessWidget {
                     helperText: ' ',
                     hintText: 'Selecciona' 
                   ),
-                  items: DropdownLabels.countryDropdownItems,
+                  isExpanded: true,
+                  items: DropdownLabels
+                            .getCountryDropdownItems(profileProvider.countries),
                   value: profileProvider.indexOfCountry(profileChanges.country),
-                  onChanged: (isFormModifiable)
+                  onChanged: (widget.isFormModifiable)
                     ? (int? newValue) {
                         profileChanges.country = profileProvider.countries[min(newValue ?? 0, profileProvider.countries.length)];
                       }
@@ -176,10 +196,9 @@ class InitialForm extends StatelessWidget {
             children:  <Widget>[
               Expanded(
                 child: TextFormField(
-                  autocorrect: false,
+                  // autocorrect: false,
                   keyboardType: TextInputType.number,
-                  enabled: isFormModifiable,
-                  readOnly: !isFormModifiable,
+                  enabled: widget.isFormModifiable,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Estatura (m)',
@@ -187,7 +206,7 @@ class InitialForm extends StatelessWidget {
                     helperText: ' ',
                     suffixIcon: Icon(Icons.height),
                   ),
-                  initialValue: profileChanges.height.toString(),
+                  initialValue: profileChanges.height.toStringAsFixed(2),
                   onChanged: (value) => profileProvider.height = double.tryParse(value) ?? 0,
                   validator: (value) => UserProfile.validateHeight(value),
                 ),
@@ -199,8 +218,7 @@ class InitialForm extends StatelessWidget {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  enabled: isFormModifiable,
-                  readOnly: !isFormModifiable,
+                  enabled: widget.isFormModifiable,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Peso (kg)',
@@ -218,7 +236,7 @@ class InitialForm extends StatelessWidget {
         
           const SizedBox( height: 16.0, ),
 
-          (isFormEditing)
+          (widget.isFormEditing)
           ? const SizedBox( height: 0.0, )
           : DropdownButtonFormField(
               decoration: const InputDecoration(
@@ -229,7 +247,7 @@ class InitialForm extends StatelessWidget {
               ),
               items: DropdownLabels.occupationDropdownItems,
               value: profileChanges.occupation.index,
-              onChanged: (isFormModifiable) 
+              onChanged: (widget.isFormModifiable) 
                 ? (int? newValue) {
                     profileProvider.occupation = Occupation.values[newValue ?? 0];
                   }
@@ -247,14 +265,14 @@ class InitialForm extends StatelessWidget {
             ),
             items: DropdownLabels.conditionDropdownItems,
             value: profileChanges.medicalCondition.index,
-            onChanged: (isFormModifiable) 
+            onChanged: (widget.isFormModifiable) 
               ? (int? newValue) {
                   profileProvider.medicalCondition = MedicalCondition.values[newValue ?? 0];
                 }
               : null,
           ),
         
-          (isFormEditing) 
+          (widget.isFormEditing) 
             ? const SizedBox( height: 120.0 )
             : Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -265,12 +283,17 @@ class InitialForm extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       primary: Colors.grey.shade700,
                     ),
-                    onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                    onPressed: () async {
+                      int newProfileId = await profileProvider.newDefaultProfile();
+                      settingsProvider.currentProfileId = newProfileId;
+
+                      Navigator.pushReplacementNamed(context, '/');
+                    },
                   ),
                 ),
-
+          
                 const SizedBox( width: 16.0, ),
-
+          
                 Expanded(
                   child: ElevatedButton(
                     child: const Text('Continuar'),

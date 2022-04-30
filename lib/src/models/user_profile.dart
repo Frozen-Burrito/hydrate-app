@@ -101,9 +101,9 @@ class UserProfile extends SQLiteModel {
         : {}
     );
 
-    final idxUserSex = max(map['sexo'] as int, UserSex.values.length -1);
-    final idxOccupation = max(map['ocupacion'] as int, Occupation.values.length);
-    final idxMedicalCondition = map['padecimientos'] ?? 0;
+    final idxUserSex = min(map['sexo'] as int, UserSex.values.length -1);
+    final idxOccupation = min(map['ocupacion'] as int, Occupation.values.length -1);
+    final idxMedicalCondition = min(map['padecimientos'] as int, MedicalCondition.values.length -1);
 
     var environments = map['entornos'];
     List<Environment> envList = <Environment>[];

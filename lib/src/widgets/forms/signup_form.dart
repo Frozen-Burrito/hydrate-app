@@ -86,7 +86,7 @@ class _SignupFormState extends State<SignupForm> {
         } else {
           // Si el perfil de usuario no esta asociado con una cuenta de usuario, 
           // asociar el perfil con la cuenta creada.
-          profileProvider.profileChanges.userAccountID ??= newAccountID;
+          profileProvider.profileChanges.userAccountID = newAccountID;
 
           profileProvider.saveProfileChanges(restrictModifications: false);
 
