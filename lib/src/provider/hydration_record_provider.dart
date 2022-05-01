@@ -36,7 +36,7 @@ class HydrationRecordProvider extends ChangeNotifier {
     final rand = Random();
 
     final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
-        HydrationRecord.fromMap, HydrationRecord.tableName
+        HydrationRecord.fromMap
     );
 
     final existingRecords = List<HydrationRecord>.from(queryResults);
@@ -70,7 +70,6 @@ class HydrationRecordProvider extends ChangeNotifier {
 
       final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
         HydrationRecord.fromMap, 
-        HydrationRecord.tableName, 
         orderByColumn: 'fecha',
         orderByAsc: false
       );

@@ -92,7 +92,6 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
     final tagResults = await SQLiteDB.instance.select<Tag>(
       Tag.fromMap, 
-      Tag.tableName,
       where: [ WhereClause('id_perfil', widget.currentProfileId.toString())]
     );
 

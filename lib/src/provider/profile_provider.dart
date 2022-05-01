@@ -69,7 +69,6 @@ class ProfileProvider extends ChangeNotifier
 
       final queryResults = await SQLiteDB.instance.select<UserProfile>(
         UserProfile.fromMap,
-        UserProfile.tableName,
         where: whereQuery,
         whereUnions: unions,
         includeOneToMany: true,
@@ -105,10 +104,7 @@ class ProfileProvider extends ChangeNotifier
     notifyListeners();
 
     try {
-      final results = await SQLiteDB.instance.select<Country>(
-        Country.fromMap, 
-        Country.tableName
-      );
+      final results = await SQLiteDB.instance.select<Country>(Country.fromMap);
 
       countries.addAll(results);
 
@@ -187,7 +183,6 @@ class ProfileProvider extends ChangeNotifier
 
       final queryResults = await SQLiteDB.instance.select<UserProfile>(
         UserProfile.fromMap,
-        UserProfile.tableName,
         where: whereQuery,
         limit: 1
       );

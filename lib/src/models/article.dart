@@ -16,10 +16,10 @@ class Article extends SQLiteModel {
   bool isBookmarked;
 
   Article({
-    required this.id,
-    required this.title,
+    this.id = -1,
+    this.title = '',
     this.description,
-    required this.url,
+    this.url = '',
     this.publishDate,
     this.isBookmarked = false,
   });
