@@ -141,6 +141,14 @@ class ActivityRecord extends SQLiteModel {
 
   String get formattedKcal => '${kiloCaloriesBurned.toString()} kCal';
 
+  //TODO: Localizar el formato de la fecha.
+  String get formattedDate {
+    String dateStr = '${date.day} de ${date.month} de ${date.year}, ';
+    String hour = 'a la${date.hour > 1 ? 's' : ''} ${date.hour}:${date.minute}';
+
+    return '$dateStr, $hour';
+  }
+
   String get hourAndMinuteDuration { 
     int hours = duration ~/ 60;
     int minutes = duration % 60;

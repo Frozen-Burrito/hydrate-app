@@ -23,9 +23,11 @@ class _ButtonTabBarState extends State<ButtonTabBar> {
   TabController? tabController;
 
   void _updateCurrentIndex() {
-    setState(() {
-      currentIndex = tabController?.index ?? 1;
-    });
+    if (mounted) {
+      setState(() {
+        currentIndex = tabController?.index ?? 1;
+      });
+    }
   }
 
   @override

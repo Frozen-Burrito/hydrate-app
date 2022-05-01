@@ -1,15 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
-class IconLabel {
-
-  final String label;
-  final IconData icon;
-
-  IconLabel(this.label, this.icon);
-}
-
 class DropdownLabels {
+
+  static final activityLabels = <IconLabel> [
+    IconLabel('Caminar', Icons.directions_walk),
+    IconLabel('Correr', Icons.directions_walk),
+    IconLabel('Andar en bicicleta', Icons.directions_bike),
+    IconLabel('Nadar', Icons.pool),
+    IconLabel('Fútbol', Icons.sports_soccer),
+    IconLabel('Básquetbol', Icons.sports_basketball),
+    IconLabel('Volleybol', Icons.sports_volleyball),
+    IconLabel('Danza', Icons.emoji_people),
+    IconLabel('Yoga', Icons.self_improvement),
+  ];
+
+  static get sexDropdownItems => _sexDropdownItems;
+  static get occupationDropdownItems => _occupationDropdownItems;
+  static get conditionDropdownItems => _conditionDropdownItems;
+
+  static get occupationLabels => <String>[
+    'Prefiero no especificar',
+    'Estudiante',
+    'Oficinista',
+    'Trabajador Físico',
+    'Padre o Madre',
+    'Atleta',
+    'Otro'
+  ];
 
   static final _sexDropdownItems = UserSex.values
     .map((e) {
@@ -40,30 +58,18 @@ class DropdownLabels {
 
   static List<DropdownMenuItem<int>> activityTypes(List<ActivityType> activityTypes) {
 
-    final items = <IconLabel> [
-      IconLabel('Caminar', Icons.directions_walk),
-      IconLabel('Correr', Icons.directions_walk),
-      IconLabel('Andar en bicicleta', Icons.directions_bike),
-      IconLabel('Nadar', Icons.pool),
-      IconLabel('Fútbol', Icons.sports_soccer),
-      IconLabel('Básquetbol', Icons.sports_basketball),
-      IconLabel('Volleybol', Icons.sports_volleyball),
-      IconLabel('Danza', Icons.emoji_people),
-      IconLabel('Yoga', Icons.self_improvement),
-    ];
-
     return activityTypes.map((activityType) {
       return DropdownMenuItem(
         value: activityType.activityTypeValue.index,
         child: Row(
           children: [
             
-            Icon(items[activityType.activityTypeValue.index].icon),
+            Icon(activityLabels[activityType.activityTypeValue.index].icon),
 
             const SizedBox( width: 4.0,),
 
             Text(
-              items[activityType.activityTypeValue.index].label, 
+              activityLabels[activityType.activityTypeValue.index].label, 
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -101,18 +107,12 @@ class DropdownLabels {
         child: Text(labels[e.index]),
       );
     }).toList();
+}
 
-  static get sexDropdownItems => _sexDropdownItems;
-  static get occupationDropdownItems => _occupationDropdownItems;
-  static get conditionDropdownItems => _conditionDropdownItems;
+class IconLabel {
 
-  static get occupationLabels => <String>[
-    'Prefiero no especificar',
-    'Estudiante',
-    'Oficinista',
-    'Trabajador Físico',
-    'Padre o Madre',
-    'Atleta',
-    'Otro'
-  ];
+  final String label;
+  final IconData icon;
+
+  IconLabel(this.label, this.icon);
 }
