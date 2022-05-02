@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
@@ -124,6 +125,9 @@ class _SignupFormState extends State<SignupForm> {
   
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -137,7 +141,7 @@ class _SignupFormState extends State<SignupForm> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Crea una cuenta', 
+                  localizations.createAccount, 
                   style: Theme.of(context).textTheme.headline4,
                 ),
 
@@ -149,11 +153,11 @@ class _SignupFormState extends State<SignupForm> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.mail),
-                    labelText: 'Correo Electrónico',
+                    labelText: localizations.email,
                     helperText: ' ',
                     errorText: hasError 
                       && (authError == AuthError.userExists || authError == AuthError.credentialsError)
-                      ? 'Ya existe un usuario registrado con este correo'
+                      ? localizations.errUserExistsEmail
                       : null
                   ),
                   onChanged: (value) => setState(() {
@@ -171,11 +175,11 @@ class _SignupFormState extends State<SignupForm> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.person),
-                    labelText: 'Nombre de usuario',
+                    labelText: localizations.username,
                     helperText: ' ',
                     errorText: hasError 
                       && (authError == AuthError.userExists || authError == AuthError.credentialsError)
-                      ? 'Ya existe un usuario registrado con este nombre'
+                      ? localizations.errUserExistsName
                       : null
                   ),
                   onChanged: (value) => setState(() {
@@ -194,12 +198,8 @@ class _SignupFormState extends State<SignupForm> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
-                    labelText: 'Contraseña',
+                    labelText: localizations.password,
                     helperText: ' ',
-                    errorText: hasError 
-                      && (authError == AuthError.incorrectPassword || authError == AuthError.credentialsError)
-                      ? 'La contraseña es incorrecta'
-                      : null
                   ),
                   onChanged: (value) => setState(() {
                     password = value;
@@ -214,10 +214,10 @@ class _SignupFormState extends State<SignupForm> {
                   autocorrect: false,
                   obscureText: true,
                   keyboardType: TextInputType.visiblePassword,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.vpn_key),
-                    labelText: 'Confirma la contraseña',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.vpn_key),
+                    labelText: localizations.passwordConfirm,
                     helperText: ' ',
                   ),
                   onChanged: (value) => setState(() {
@@ -232,14 +232,14 @@ class _SignupFormState extends State<SignupForm> {
                     padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const <Widget>[
-                        Icon(Icons.cloud_off),
+                      children: <Widget>[
+                        const Icon(Icons.cloud_off),
 
-                        SizedBox( width: 4.0, ),
+                        const SizedBox( width: 4.0, ),
                         
                         Expanded(
                           child: Text(
-                            'Revisa tu conexión a internet e intenta de nuevo.', 
+                            localizations.errCheckInternetConn, 
                             textAlign: TextAlign.start,
                             maxLines: 2,
                             softWrap: true,
@@ -257,7 +257,7 @@ class _SignupFormState extends State<SignupForm> {
                         width: 24.0,
                         child: CircularProgressIndicator()
                       )
-                    : const Text('Continuar'),
+                    : Text(localizations.continueAction),
                   style: ElevatedButton.styleFrom(
                     primary: Theme.of(context).colorScheme.primary,
                     padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),

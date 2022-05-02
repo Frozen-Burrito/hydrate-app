@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
@@ -32,24 +33,6 @@ class _SettingsItemsState extends State<SettingsItems> {
 
   bool _isSnackbarActive = false;
 
-  static final _themeLabels = <String>['Sistema','Claro','Oscuro'];
-
-  static final _notifLabels = <String>['Ninguna','Metas','Batería','Todas'];
-
-  final _themeDropdownItems = ThemeMode.values
-      .map((option) => DropdownMenuItem(
-          value: option.index,
-          child: Text(_themeLabels[option.index]),
-        ),
-      ).toList();
-
-  final _notifDropdownItems = NotificationSettings.values
-      .map((option) => DropdownMenuItem(
-          value: option.index,
-          child: Text(_notifLabels[option.index]),
-        ),
-      ).toList();
-
   @override
   void initState() {
     super.initState();
@@ -79,10 +62,10 @@ class _SettingsItemsState extends State<SettingsItems> {
     if (!_isSnackbarActive && settingsChanged) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Tienes ajustes modificados sin guardar'),
+          content: Text(AppLocalizations.of(context)!.unsavedChanges),
           duration: const Duration(minutes: 30),
           action: SnackBarAction(
-            label: 'Guardar', 
+            label: AppLocalizations.of(context)!.save, 
             onPressed: () {
               saveChanges();
               _isSnackbarActive = false;
@@ -129,6 +112,43 @@ class _SettingsItemsState extends State<SettingsItems> {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
+    final themeLabels = [
+      localizations.themeOptSys,
+      localizations.themeOptLight,
+      localizations.themeOptDark,
+    ];
+
+    final notifLabels = [
+      localizations.notifOptNone,
+      localizations.notifOptGoals,
+      localizations.notifOptBattery,
+      localizations.notifOptActivity,
+      localizations.notifOptAll,
+    ];
+
+    final _themeDropdownItems = ThemeMode.values
+      .map((option) => DropdownMenuItem(
+          value: option.index,
+          child: Text(
+            themeLabels[option.index],
+            overflow: TextOverflow.ellipsis
+          ),
+        ),
+      ).toList();
+
+    final _notifDropdownItems = NotificationSettings.values
+      .map((option) => DropdownMenuItem(
+          value: option.index,
+          child: Text(
+            notifLabels[option.index],
+            overflow: TextOverflow.ellipsis
+          ),
+        ),
+      ).toList();
+
     return ListTileTheme(
       iconColor: Theme.of(context).colorScheme.onBackground,
       textColor: Theme.of(context).colorScheme.onBackground,
@@ -146,13 +166,14 @@ class _SettingsItemsState extends State<SettingsItems> {
                 Icons.colorize, 
                 size: 24.0, 
               ),
-              title: const Text('Tema de color'),
+              title: Text(localizations.theme),
               trailing: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.35,
+                width: MediaQuery.of(context).size.width * 0.4,
                 child: DropdownButtonFormField(
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                   ),
+                  isExpanded: true,
                   value: _selectedThemeMode.index,
                   items: _themeDropdownItems,
                   onChanged: (int? newValue) {
@@ -172,7 +193,7 @@ class _SettingsItemsState extends State<SettingsItems> {
                 Icons.bar_chart, 
                 size: 24.0, 
               ),
-              title: const Text('Contribuir a datos abiertos'),
+              title: Text(localizations.contributeData),
               value: _contributeData,
               onChanged: (bool value) {
                 setState(() {
@@ -191,15 +212,16 @@ class _SettingsItemsState extends State<SettingsItems> {
                 Icons.notifications, 
                 size: 24.0,
               ),
-              title: const Text('Notificaciones'),
+              title: Text(localizations.notifications),
               trailing: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.35,
+                width: MediaQuery.of(context).size.width * 0.4,
                 child: DropdownButtonFormField(
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                   ),
                   value: _selectedNotifications.index,
                   items: _notifDropdownItems,
+                  isExpanded: true,
                   onChanged: (int? newValue) {
                     _selectedNotifications = NotificationSettings.values[newValue ?? 0];
                     compareChanges(context);
@@ -217,7 +239,7 @@ class _SettingsItemsState extends State<SettingsItems> {
                 Icons.event_note, 
                 size: 24.0, 
               ),
-              title: const Text('Formularios semanales'),
+              title: Text(localizations.weeklyForms),
               value: _weeklyForms,
               onChanged: (bool value) {
                 setState(() {
@@ -235,7 +257,7 @@ class _SettingsItemsState extends State<SettingsItems> {
               Icons.question_answer, 
               size: 24.0, 
             ),
-            title: const Text('Enviar comentarios'),
+            title: Text(localizations.sendComments),
             trailing: const Icon(
               Icons.arrow_forward,
               size: 24.0,
@@ -250,7 +272,7 @@ class _SettingsItemsState extends State<SettingsItems> {
               Icons.lightbulb,
               size: 24.0, 
             ),
-            title: const Text('Guías de usuario'),
+            title: Text(localizations.userGuides),
             trailing: const Icon(
               Icons.arrow_forward,
               size: 24.0,
@@ -258,11 +280,11 @@ class _SettingsItemsState extends State<SettingsItems> {
             onTap: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias')),
           ),
     
-          const Padding(
-            padding: EdgeInsets.symmetric( horizontal: 24.0, vertical: 8.0,),
+          Padding(
+            padding: const EdgeInsets.symmetric( horizontal: 24.0, vertical: 8.0,),
             child: Text(
-              'Versión: 0.0.4+3',
-              style: TextStyle(color: Colors.grey),
+              '${localizations.version}: 0.2.1+0',
+              style: const TextStyle(color: Colors.grey),
             ),
           )
         ],

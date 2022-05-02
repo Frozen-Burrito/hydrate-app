@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/nav_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
+import 'package:hydrate_app/src/provider/nav_provider.dart';
 
 /// Una [BottomNavigationBar] con las tres principales opciones de navegación.
 class BottomNavBar extends StatelessWidget {
@@ -10,6 +12,8 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final navProvider = Provider.of<NavigationProvider>(context);
+
+    final localizations = AppLocalizations.of(context)!;
 
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
@@ -22,25 +26,25 @@ class BottomNavBar extends StatelessWidget {
           children: [
             BottomAppBarItem(
               icon: Icons.auto_stories_rounded,
-              label: 'Artículos',
+              label: localizations.resources,
               onTap: (i) => navProvider.activePage = i,
               pageIndex: 0,
             ),
             BottomAppBarItem(
               icon: Icons.opacity,
-              label: 'Inicio',
+              label: localizations.home,
               onTap: (i) => navProvider.activePage = i,
               pageIndex: 1,
             ),
             BottomAppBarItem(
               icon: Icons.timeline_rounded,
-              label: 'Historial',
+              label: localizations.history,
               onTap: (i) => navProvider.activePage = i,
               pageIndex: 2,
             ),
             BottomAppBarItem(
               icon: Icons.account_circle,
-              label: 'Perfil',
+              label: localizations.profile,
               onTap: (i) => navProvider.activePage = i,
               pageIndex: 3,
             ),

@@ -15,6 +15,9 @@ enum NotificationSettings {
   /// La app enviará notificaciones con el nivel de batería de la botella.
   battery,
 
+  /// La app enviará notificaciones con recordatorios de actividad y rutinas.
+  activity,
+
   /// La app enviará notificaciones de metas y de nivel de batería.
   all
 }

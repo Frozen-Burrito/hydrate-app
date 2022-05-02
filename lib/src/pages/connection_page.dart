@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
-
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/device_list.dart';
@@ -13,6 +14,9 @@ class ConnectionPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return StreamBuilder<BluetoothState>(
       stream: FlutterBlue.instance.state,
       initialData: BluetoothState.unknown,
@@ -24,7 +28,7 @@ class ConnectionPage extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             slivers: <Widget>[
               CustomSliverAppBar(
-                title: 'Conecta Tu Botella',
+                title: localizations.pairDevice,
                 leading: <Widget>[
                   IconButton(
                     icon: const Icon(Icons.arrow_back), 
@@ -44,7 +48,8 @@ class ConnectionPage extends StatelessWidget {
                   child: BleDeviceList()
                 ) 
                 : SliverDataPlaceholder(
-                  message: 'El adaptador de BlueTooth del celular no está disponible.\nIntenta activarlo u otorgar permisos de BlueTooth y Ubicación a la app.',
+                  message: localizations.bleNotAvailable + '\n' + localizations.tryLocAndBt,
+                  //TODO: Eliminar los detalles.
                   details: '(state is "${state != null ? state.toString().substring(15) : 'not available'}")',
                   icon: Icons.bluetooth_disabled
               ),
@@ -62,7 +67,7 @@ class ConnectionPage extends StatelessWidget {
                 );
               } else {
                 return FloatingActionButton(
-                  
+                  tooltip: localizations.scan,
                   child: const Icon(Icons.search),
                   backgroundColor: (state == BluetoothState.on) ? Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
                   onPressed: (state == BluetoothState.on) 

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
@@ -122,6 +123,9 @@ class _LoginFormState extends State<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -135,7 +139,7 @@ class _LoginFormState extends State<LoginForm> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Inicia Sesión', 
+                  localizations.signIn, 
                   style: Theme.of(context).textTheme.headline4,
                 ),
 
@@ -147,11 +151,11 @@ class _LoginFormState extends State<LoginForm> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.person),
-                    labelText: 'Correo electrónico o usuario',
+                    labelText: localizations.emailOrUsername,
                     helperText: ' ',
                     errorText: hasError 
                       && (authError == AuthError.userDoesNotExist || authError == AuthError.credentialsError)
-                      ? 'No hay un usuario registrado con ese identificador'
+                      ? localizations.errNoUser
                       : null
                   ),
                   onChanged: (value) => setState(() {
@@ -172,11 +176,11 @@ class _LoginFormState extends State<LoginForm> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
-                    labelText: 'Contraseña',
+                    labelText: localizations.password,
                     helperText: ' ',
                     errorText: hasError 
                       && (authError == AuthError.incorrectPassword)
-                      ? 'La contraseña es incorrecta'
+                      ? localizations.errIncorrectPassword
                       : null
                   ),
                   onChanged: (value) => setState(() {
@@ -191,14 +195,14 @@ class _LoginFormState extends State<LoginForm> {
                     padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const <Widget>[
-                        Icon(Icons.cloud_off),
+                      children: <Widget>[
+                        const Icon(Icons.cloud_off),
 
-                        SizedBox( width: 8.0, ),
+                        const SizedBox( width: 8.0, ),
                         
                         Expanded(
                           child: Text(
-                            'Revisa tu conexión a internet e intenta de nuevo.', 
+                            localizations.errCheckInternetConn, 
                             textAlign: TextAlign.start,
                             maxLines: 2,
                             softWrap: true,
@@ -218,7 +222,7 @@ class _LoginFormState extends State<LoginForm> {
                           width: 24.0,
                           child: CircularProgressIndicator()
                         )
-                      : const Text('Inicia Sesión'),
+                      : Text(localizations.signIn),
                     style: ElevatedButton.styleFrom(
                       primary: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),

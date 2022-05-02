@@ -91,7 +91,7 @@ class _ActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final int activityTypeIdx = activityRecord.activityType.activityTypeValue.index;
-    final activityTypeLabel = DropdownLabels.activityLabels[activityTypeIdx];
+    final activityTypeLabel = DropdownLabels.activityLabels(context)[activityTypeIdx];
 
     return Card(
       color: Theme.of(context).colorScheme.surface,

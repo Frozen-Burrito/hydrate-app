@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/activity_provider.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
@@ -86,6 +87,8 @@ class _NewActivityFormState extends State<NewActivityForm> {
 
     final userWeight = Provider.of<ProfileProvider>(context).profile.weight;
 
+    final localizations = AppLocalizations.of(context)!;
+
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -97,8 +100,8 @@ class _NewActivityFormState extends State<NewActivityForm> {
               child: CircularProgressIndicator(),
             );
           } else if (provider.activityTypes.isEmpty) {
-            return const Center(
-              child: Text('No se encontraron tipos de actividad.'),
+            return Center(
+              child: Text(localizations.noActTypes),
             );
           }
 
@@ -107,13 +110,13 @@ class _NewActivityFormState extends State<NewActivityForm> {
             children: <Widget>[
 
               DropdownButtonFormField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: '¿Qué tipo de actividad hiciste?',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: localizations.whatType,
                   helperText: ' ',
-                  hintText: 'Selecciona' 
+                  hintText: localizations.select
                 ),
-                items: DropdownLabels.activityTypes(provider.activityTypes),
+                items: DropdownLabels.activityTypes(context, provider.activityTypes),
                 value: newActivityRecord.activityType.activityTypeValue.index,
                 validator: (int? value) => ActivityType.validateType(value),
                 onChanged: (int? newValue) {
@@ -139,8 +142,8 @@ class _NewActivityFormState extends State<NewActivityForm> {
                 maxLines: 1,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
-                  labelText: 'Título de la actividad',
-                  hintText: 'Ir a la escuela en la mañana',
+                  labelText: localizations.activityTitle,
+                  hintText: localizations.activityTitleHint,
                   helperText: ' ',
                   suffixIcon: const Icon(Icons.text_fields),
                   counterText: '${titleLength.toString()}/40'
@@ -157,11 +160,11 @@ class _NewActivityFormState extends State<NewActivityForm> {
               TextFormField(
                 readOnly: true,
                 controller: dateController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'Fecha',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: localizations.date,
                   helperText: ' ', // Para evitar cambios en la altura del widget
-                  suffixIcon: Icon(Icons.event_rounded)
+                  suffixIcon: const Icon(Icons.event_rounded)
                 ),
                 onTap: () async {
         
@@ -204,12 +207,12 @@ class _NewActivityFormState extends State<NewActivityForm> {
                     child: TextFormField(
                       autocorrect: false,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Duración (minutos)',
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: '${localizations.duration} (minutos)',
                         hintText: '20 min.',
                         helperText: ' ',
-                        suffixIcon: Icon(Icons.timer_rounded)
+                        suffixIcon: const Icon(Icons.timer_rounded)
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -233,9 +236,9 @@ class _NewActivityFormState extends State<NewActivityForm> {
                       autocorrect: false,
                       controller: distanceController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Distancia',
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.distance,
                         hintText: '1 km',
                         helperText: ' ',
                       ),
@@ -265,12 +268,12 @@ class _NewActivityFormState extends State<NewActivityForm> {
                       autocorrect: false,
                       keyboardType: TextInputType.number,
                       controller: kCalController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Kilocalorías quemadas',
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.kcalBurned,
                         hintText: '1700 kCal',
                         helperText: ' ',
-                        suffixIcon: Icon(Icons.bolt),
+                        suffixIcon: const Icon(Icons.bolt),
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -289,7 +292,7 @@ class _NewActivityFormState extends State<NewActivityForm> {
         
                   Expanded(
                     child: CheckboxListTile(
-                      title: const Text('Al aire libre'),
+                      title: Text(localizations.outdoor),
                       dense: true,
                       value: newActivityRecord.doneOutdoors, 
                       onChanged: (bool? value) {
@@ -309,7 +312,7 @@ class _NewActivityFormState extends State<NewActivityForm> {
                 children: <Widget>[
                   Expanded(
                     child: ElevatedButton(
-                      child: const Text('Cancelar'),
+                      child: Text(localizations.cancel),
                       style: ElevatedButton.styleFrom(
                         primary: Colors.grey.shade700,
                       ),
@@ -321,7 +324,7 @@ class _NewActivityFormState extends State<NewActivityForm> {
         
                   Expanded(
                     child: ElevatedButton(
-                      child: const Text('Registrar'),
+                      child: Text(localizations.create),
                       style: ElevatedButton.styleFrom(
                         primary: Colors.blue,
                       ),

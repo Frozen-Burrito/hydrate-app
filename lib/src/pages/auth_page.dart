@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/widgets/forms/login_form.dart';
 import 'package:hydrate_app/src/widgets/forms/signup_form.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
 enum AuthFormType {
@@ -17,6 +18,8 @@ class AuthPage extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final formType = ModalRoute.of(context)!.settings.arguments as AuthFormType;
+
+    final localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: SafeArea(
@@ -61,11 +64,17 @@ class AuthPage extends StatelessWidget {
 
                       const SizedBox( height: 32.0,),
 
-                      Text('¿${formType == AuthFormType.login ? 'No' : 'Ya'} tienes una cuenta?'),
+                      Text(
+                        ((formType == AuthFormType.login) 
+                          ? localizations.dont
+                          : localizations.already) + localizations.haveAccount
+                      ),
 
                       TextButton(
                         child: Text(
-                          formType == AuthFormType.login ? 'Regístrate' : 'Inicia sesión',
+                          formType == AuthFormType.login 
+                            ? localizations.signUp 
+                            : localizations.signIn,
                           style: Theme.of(context).textTheme.bodyText1?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.w600,

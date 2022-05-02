@@ -1,0 +1,465 @@
+{
+  "home": "Home",
+  "@home": {
+    "description": "El nombre de la pestaña de inicio."
+  },
+
+  "resources": "Resources",
+  "@resources": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "discover": "Discover",
+  "@discover": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "bookmarks": "Bookmarks",
+  "@bookmarks": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "published": "Published",
+  "@published": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "resourcesErr": "An error occurred while retrieving the resources.",
+  "@resourcesErr": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "resourcesUnavailable": "There are no informative resources available. Try again later.",
+  "@resourcesUnavailable": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "noBookmarks": "You have not bookmarked articles yet",
+  "@noBookmarks": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+
+  "resourceRemoved": "Resource removed",
+  "@resourceRemoved": {
+    "description": "Resource removed"
+  },
+  "resourceAdded": "Resource bookmarked",
+  "@resourceAdded": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "resourceNotRemoved": "Couldn't remove the resource",
+  "@resourceNotRemoved": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+  "resourceNotAdded": "Couldn't bookmark the resource",
+  "@resourceNotAdded": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+
+  "noDate": "No date",
+  "@noDate": {
+    "description": "El nombre de la pestaña de recursos informativos."
+  },
+
+  "history": "History",
+  "@history": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "hydration": "Hydration",
+  "@hydration": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "activity": "Activity",
+  "@activity": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeWalk": "Walk",
+  "@actType": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeRun": "Run",
+  "@actTypeRun": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeCycle": "Bicycle",
+  "@actTypeCycle": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeSwim": "Swim",
+  "@actTypeSwim": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeSoccer": "Soccer",
+  "@actTypeSoccer": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeBasketball": "Basketball",
+  "@actTypeBasketball": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeVolleyball": "Volleyball",
+  "@actTypeVolleyball": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeDance": "Dance",
+  "@actTypeDance": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "actTypeYoga": "Yoga",
+  "@actTypeYoga": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "noActTypes": "No activity types found",
+  "@noActTypes": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "continueAction": "Continue",
+  "@continueAction": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "create": "Create",
+  "@create": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "select": "Select",
+  "@select": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "save": "Save",
+  "@save": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "skip": "Skip",
+  "@skip": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "settings": "Settings",
+  "@settings": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "batteryHeading": "Device Battery Level",
+  "@batteryHeading": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "lastUpdate": "Last updated on",
+  "@lastUpdate": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "theme": "Color theme",
+  "@theme": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "themeOptSys": "System",
+  "@themeOptSys": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "themeOptLight": "Light",
+  "@themeOptLight": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "themeOptDark": "Dark",
+  "@themeOptDark": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "contributeData": "Contribute to open data",
+  "@contributeData": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "notifOptNone": "None",
+  "@notifOptNone": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "notifOptGoals": "Goals",
+  "@notifOptGoals": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "notifOptBattery": "Battery",
+  "@notifOptBattery": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "notifOptActivity": "Activity & Routines",
+  "@notifOptActivity": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "notifOptAll": "All notifications",
+  "@notifOptAll": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "weeklyForms": "Weekly forms",
+  "@weeklyForms": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "sendComments": "Send comments",
+  "@sendComments": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "userGuides": "User guides",
+  "@userGuides": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "version": "Version",
+  "@version": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "unsavedChanges": "There are unsaved settings modifications",
+  "@unsavedChanges": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "pairDevice": "Pair a Device",
+  "@pairDevice": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "bleNotAvailable": "The device's BlueTooth adapter is not available",
+  "@bleNotAvailable": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "tryLocAndBt": "Try to enable it or give location and BlueTooth permissions to the app",
+  "@tryLocAndBt": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "connectedDevice": "Connected device",
+  "@connectedDevice": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "availableDevices": "Available devices",
+  "@availableDevices": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "scan": "Scan for devices",
+  "@scan": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "signOut": "Sign Out",
+  "@signOut": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "dont": "Don't",
+  "@dont": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "already": "Already",
+  "@already": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "haveAccount": "have an account?",
+  "@noAccount": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "signUp": "Sign Up",
+  "@signUp": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "createAccount": "Create Account",
+  "@createAccount": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  
+  "profile": "Perfil",
+  "@profile": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "preferNotToSay": "Prefer not to say",
+  "@preferNotToSay": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "other": "Other",
+  "@other": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "email": "Email",
+  "@email": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "username": "Username",
+  "@username": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "emailOrUsername": "Email or username",
+  "@emailOrUsername": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "password": "Password",
+  "@password": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "passwordConfirm": "Confirm password",
+  "@passwordConfirm": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "dateOfBirth": "Date of birth",
+  "@dateOfBirth": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "gender": "Gender",
+  "@gender": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "genderMan": "Man",
+  "@genderMan": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "genderWoman": "Woman",
+  "@genderWoman": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "country": "Country",
+  "@country": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "countryMx": "Mexico",
+  "@country": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "countryUs": "United States",
+  "@country": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "height": "Height",
+  "@height": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "weight": "Weight",
+  "@weight": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "medicalCondition": "Medical conditions",
+  "@medicalCondition": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "condNone": "None",
+  "@condNone": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "condRenalInsuf": "Renal Insufficiency",
+  "@condRenalInsuf": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "condNephriticSynd": "Nephritic Syndrome",
+  "@condNephriticSynd": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "idealHydration": "Ideal hydration",
+  "@idealHydration": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "firstName": "First name",
+  "@firstName": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "lastName": "Last name",
+  "@lastName": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "hoursOfActivity": "Hours per activity",
+  "@hoursOfActivity": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "occupation": "Occupation",
+  "@occupation": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "student": "Student",
+  "@student": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "officeWorker": "Office worker",
+  "@officeWorker": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "manualWorker": "Manual worker",
+  "@manualWorker": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "parent": "Parent",
+  "@parent": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "athlete": "Athlete",
+  "@athlete": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "newActivityRecord": "New Activity Record",
+  "@newActivityRecord": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "newActivityHint": "Write the details of the physical activity performed",
+  "@newActivityHint": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "whatType": "What kind of activity did you do?",
+  "@whatType": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "activityTitle": "Activity title",
+  "@activityTitle": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "activityTitleHint": "Went to school in the morning...",
+  "@activityTitleHint": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "date": "Date",
+  "@date": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "duration": "Duration",
+  "@duration": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "distance": "Distance",
+  "@distance": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "kcalBurned": "kCal Burned",
+  "@kcalBurned": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "outdoor": "Outdoors",
+  "@outdoor": {
+    "description": "El nombre de la pestaña de historial."
+  },
+
+  "errUserExistsEmail": "A user with this email already exists",
+  "@errUserExistsEmail": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "errUserExistsName": "A user with this username already exists",
+  "@errUserExistsName": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "errIncorrectPassword": "Password is incorrect",
+  "@errIncorrectPassword": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "errNoUser": "There is no user with this identifier",
+  "@errNoUser": {
+    "description": "El nombre de la pestaña de historial."
+  },
+  "errCheckInternetConn": "Check your internet connection and try again",
+  "@errCheckInternetConn": {
+    "description": "El nombre de la pestaña de historial."
+  }
+}

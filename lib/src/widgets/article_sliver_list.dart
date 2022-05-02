@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
@@ -26,6 +26,9 @@ class ArticleSliverList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return SafeArea(
       top: false,
       bottom: false,
@@ -46,13 +49,13 @@ class ArticleSliverList extends StatelessWidget {
                     IconData placeholderIcon = Icons.error;
 
                     if (hasError) {
-                      msg = 'Hubo un error obteniendo los recursos informativos';
+                      msg = localizations.resourcesErr;
                       placeholderIcon = isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded;
 
                     } else if (!isLoading && articles.isEmpty) {
                       msg = isBookmarks 
-                        ? 'Aún no has guardado recursos informativos.' 
-                        : 'No hay recursos informativos disponibles. Intenta más tarde.';
+                        ? localizations.noBookmarks
+                        : localizations.resourcesUnavailable;
                       placeholderIcon = Icons.inbox;
                     }
 
@@ -104,15 +107,17 @@ class _ArticleCard extends StatelessWidget {
     // El mensaje para confirmar la marca/eliminación.
     String snackMsg = '';
 
+    final localizations = AppLocalizations.of(context)!;
+
     if (article.isBookmarked) {
       // Si está marcado, quitar marca.
       int id = await provider.removeArticle(article.id);
-      snackMsg = id > -1 ? 'Artículo removido' : 'No se pudo remover el artículo.';
+      snackMsg = id > -1 ? localizations.resourceRemoved : localizations.resourceNotRemoved;
 
     } else {
       // Si no está marcado, marcar y guardar el recurso informativo.
       final id = await provider.bookmarkArticle(article);
-      snackMsg = id > -1 ? 'Artículo marcado.' : 'No se pudo marcar el artículo.';
+      snackMsg = id > -1 ? localizations.resourceAdded : localizations.resourceNotAdded;
     }
 
     return SnackBar(
@@ -125,11 +130,13 @@ class _ArticleCard extends StatelessWidget {
 
     final articleProvider = Provider.of<ArticleProvider>(context);
 
+    final localizations = AppLocalizations.of(context)!;
+
     final rawPublishDateStr = article.publishDate.toString();
 
     final articleDateStr = (article.publishDate != null)
       ? rawPublishDateStr.substring(0, min(article.publishDate.toString().length, 10))
-      : 'Sin fecha';
+      : localizations.noDate;
 
     return Card(
       child: Column(
@@ -149,7 +156,7 @@ class _ArticleCard extends StatelessWidget {
             subtitle: Container(
               margin: const EdgeInsets.only(top: 8.0),
               child: Text(
-                'Publicación: $articleDateStr',
+                '${localizations.published}: $articleDateStr',
                 style: Theme.of(context).textTheme.bodyText1?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface
                 )

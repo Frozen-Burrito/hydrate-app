@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';
@@ -12,6 +13,9 @@ class ArticlesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return ChangeNotifierProvider(
       create: (_) => ArticleProvider(),
       child: DefaultTabController(
@@ -22,12 +26,12 @@ class ArticlesTab extends StatelessWidget {
               SliverOverlapAbsorber(
                 handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
                 sliver: CustomSliverAppBar(
-                  title: 'Artículos',
+                  title: localizations.resources,
                   bottom: TabBar(
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: <Tab> [
-                      Tab(child: Text('Descubrir', style: Theme.of(context).textTheme.bodyText1, )),
-                      Tab(child: Text('Marcados', style: Theme.of(context).textTheme.bodyText1, )),
+                      Tab(child: Text(localizations.discover, style: Theme.of(context).textTheme.bodyText1, )),
+                      Tab(child: Text(localizations.bookmarks, style: Theme.of(context).textTheme.bodyText1, )),
                     ],
                   ),
                   actions: const <Widget>[

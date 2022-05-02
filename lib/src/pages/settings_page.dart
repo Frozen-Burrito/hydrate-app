@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/settings_items.dart';
 
@@ -17,6 +18,8 @@ class SettingsPage extends StatelessWidget {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final hydrationRecords = Provider.of<HydrationRecordProvider>(context).hydrationRecords;
 
+    final localizations = AppLocalizations.of(context)!;
+    
     final lastBatteryUpdate = hydrationRecords.isNotEmpty ? hydrationRecords.first.date : null;
 
     return Scaffold(
@@ -27,7 +30,7 @@ class SettingsPage extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           slivers: <Widget> [
             CustomSliverAppBar(
-              title: 'Ajustes',
+              title: localizations.settings,
               leading: <Widget> [
                 IconButton(
                   icon: const Icon(Icons.arrow_back), 
@@ -54,7 +57,7 @@ class SettingsPage extends StatelessWidget {
                     child: Row(
                       children: [
                         Text(
-                          'Batería de la Botella', 
+                          localizations.batteryHeading, 
                           style: Theme.of(context).textTheme.headline5,
                           textAlign: TextAlign.start,
                         ),
@@ -67,7 +70,7 @@ class SettingsPage extends StatelessWidget {
                   Container(
                     margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
                     child: Text(
-                      'Última actualización: ${lastBatteryUpdate != null ? lastBatteryUpdate.toString().substring(0,16) : 'Nunca'}', 
+                      '${localizations.lastUpdate}: ${lastBatteryUpdate != null ? lastBatteryUpdate.toString().substring(0,16) : 'Nunca'}', 
                       style: Theme.of(context).textTheme.bodyText2,
                     ),
                   ),
