@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
+import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
@@ -12,15 +11,15 @@ import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/forms/initial_form.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfileTab extends StatefulWidget {
 
-  const ProfilePage({ Key? key }) : super(key: key);
+  const ProfileTab({ Key? key }) : super(key: key);
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<ProfileTab> createState() => _ProfileTabState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfileTabState extends State<ProfileTab> {
 
   bool isEditModeActive = false;
 
@@ -29,109 +28,97 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final profileProvider = Provider.of<ProfileProvider>(context);
 
-    return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: <Widget>[
-          CustomSliverAppBar(
-            title: 'Perfil',
-            leading: const <Widget>[
-              CoinDisplay(),
-            ],
-            actions: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  setState(() {
-                    isEditModeActive = !isEditModeActive;
-                  });
-                }, 
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: <Widget>[
+        CustomSliverAppBar(
+          title: 'Perfil',
+          leading: const <Widget>[
+            CoinDisplay(),
+          ],
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                setState(() {
+                  isEditModeActive = !isEditModeActive;
+                });
+              }, 
+            ),
+
+            const AuthOptionsMenu()
+          ],
+        ),
+  
+        SliverToBoxAdapter(
+          child: Stack(
+            children: <Widget>[
+              SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height * 0.3,
+                child: GestureDetector(
+                  //TODO: Dialog para editar el entorno.
+                  onTap: isEditModeActive ? () => print('Editando entorno') : null,
+                    child: ClipPath(
+                    clipper: WaveImageClipper(),
+                    child: FittedBox(
+                      fit: BoxFit.cover,
+                      child: Image( 
+                        image: AssetImage(profileProvider.profile.selectedEnvironment.imagePath),
+                      ),
+                    ),
+                  ), 
+                ),
+              ),
+              
+              Positioned(
+                top: MediaQuery.of(context).size.height * 0.10,
+                left: MediaQuery.of(context).size.width * 0.5 - 50.0,
+                child: CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  radius: 64.0,
+                  child: Text(
+                    profileProvider.profile.initials,
+                    style: Theme.of(context).textTheme.headline3!.copyWith(
+                      fontSize: 48.0,
+                      color: Theme.of(context).colorScheme.onSecondary
+                    ),
+                  ),
+                ),
+              )
+            ]
+          ),
+        ),
+  
+        SliverToBoxAdapter(
+          child: Column(
+            children: <Widget>[
+              _FullnameDisplay(isEditing: isEditModeActive),
+  
+              const SizedBox( height: 32.0 ,),
+  
+              ActivityTimeBrief(profileProvider.profile.id),
+  
+              const SizedBox( height: 32.0 ,),
+  
+              const _IdealHydrationLabel(2.54),
+  
+              const SizedBox( height: 16.0 ,),
+              
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.9,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: InitialForm(
+                    isFormEditing: true,
+                    isFormModifiable: isEditModeActive
+                  ),
+                ),
               ),
             ],
           ),
-    
-          SliverToBoxAdapter(
-            child: Stack(
-              children: <Widget>[
-                SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height * 0.3,
-                  child: GestureDetector(
-                    //TODO: Dialog para editar el entorno.
-                    onTap: isEditModeActive ? () => print('Editando entorno') : null,
-                      child: ClipPath(
-                      clipper: WaveImageClipper(),
-                      child: FittedBox(
-                        fit: BoxFit.cover,
-                        child: Image( 
-                          image: AssetImage(profileProvider.profile.selectedEnvironment.imagePath),
-                        ),
-                      ),
-                    ), 
-                  ),
-                ),
-                
-                Positioned(
-                  top: MediaQuery.of(context).size.height * 0.10,
-                  left: MediaQuery.of(context).size.width * 0.5 - 50.0,
-                  child: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
-                    radius: 64.0,
-                    child: Text(
-                      profileProvider.profile.initials,
-                      style: Theme.of(context).textTheme.headline3!.copyWith(
-                        fontSize: 48.0,
-                        color: Theme.of(context).colorScheme.onSecondary
-                      ),
-                    ),
-                  ),
-                )
-              ]
-            ),
-          ),
-    
-          SliverToBoxAdapter(
-            child: Column(
-              children: <Widget>[
-                _FullnameDisplay(isEditing: isEditModeActive),
-    
-                const SizedBox( height: 32.0 ,),
-    
-                ActivityTimeBrief(profileProvider.profile.id),
-    
-                const SizedBox( height: 32.0 ,),
-    
-                const _IdealHydrationLabel(2.54),
-    
-                const SizedBox( height: 16.0 ,),
-                
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: InitialForm(
-                      isFormEditing: true,
-                      isFormModifiable: isEditModeActive
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          )
-        ],
-      ),
-      floatingActionButton: (isEditModeActive) 
-        ? FloatingActionButton(
-          child: const Icon(Icons.save),
-          onPressed: () {
-            profileProvider.saveProfileChanges();
-
-            setState(() {
-              isEditModeActive = false;
-            });
-          },
-        ) 
-        : null,
+        )
+      ],
     );
   }
 }

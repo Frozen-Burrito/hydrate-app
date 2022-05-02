@@ -8,6 +8,7 @@ import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
@@ -74,7 +75,7 @@ class _SignupFormState extends State<SignupForm> {
 
         String newAccountID = tokenClaims['id'];
 
-        if (profileProvider.profile.userAccountID != null) {
+        if (profileProvider.profile.userAccountID.isNotEmpty) {
           // Si el perfil actual ya tiene asociada una cuenta de usuario,
           // crear un nuevo perfil con el ID de la nueva cuenta.
           profileProvider.newDefaultProfile(accountID: newAccountID);
@@ -82,7 +83,7 @@ class _SignupFormState extends State<SignupForm> {
           // Se registró la nueva cuenta, asociada con un nuevo perfil. Redirigir
           // al formulario inicial para que el usuario pueda configurar su nuevo
           // perfil.
-          Navigator.of(context).popAndPushNamed('/form/initial', result: resBody['token']);
+          Navigator.of(context).popAndPushNamed(RouteNames.initialForm, result: resBody['token']);
         } else {
           // Si el perfil de usuario no esta asociado con una cuenta de usuario, 
           // asociar el perfil con la cuenta creada.
@@ -91,7 +92,7 @@ class _SignupFormState extends State<SignupForm> {
           profileProvider.saveProfileChanges(restrictModifications: false);
 
           // Se registró la nueva cuenta y se asoció por defecto al perfil local.
-          Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
+          Navigator.of(context).popAndPushNamed(RouteNames.home, result: resBody['token']);
         }
 
       } else if (res.statusCode >= 400) {

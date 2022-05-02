@@ -107,7 +107,6 @@ class _SettingsItemsState extends State<SettingsItems> {
 
 
     if (hasThemeChanged) {
-      print('Theme was modified: de $_originalThemeMode a $_selectedThemeMode');
       widget.settingsProvider.appThemeMode = _selectedThemeMode;
       _originalThemeMode = _selectedThemeMode;
     }

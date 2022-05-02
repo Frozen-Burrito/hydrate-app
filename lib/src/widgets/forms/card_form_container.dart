@@ -11,7 +11,7 @@ class CardFormContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(top: 48.0),
+      margin: const EdgeInsets.symmetric(vertical: 48.0),
       child: SizedBox(
         width: MediaQuery.of(context).size.width * 0.9,
         child: Padding(

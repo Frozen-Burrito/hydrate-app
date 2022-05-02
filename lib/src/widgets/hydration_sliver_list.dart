@@ -4,46 +4,76 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
+import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
 
-class WaterIntakeSliverList extends StatelessWidget {
-  const WaterIntakeSliverList({ Key? key }) : super(key: key);
+class HydrationSliverList extends StatelessWidget {
+  const HydrationSliverList({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return SliverPadding(
-      padding: const EdgeInsets.all(8.0),
-      sliver: Consumer<HydrationRecordProvider>(
-        builder: (_, provider, __) {
-          String msg = '';
-          IconData placeholderIcon = Icons.info;
-    
-          if (!provider.isLoading && provider.hydrationRecords.isEmpty) {
-            msg = 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.';
-            placeholderIcon = Icons.fact_check_rounded;
-          }
-    
-          if (provider.isLoading || provider.hydrationRecords.isEmpty) {
-            // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-            return SliverDataPlaceholder(
-              isLoading: provider.isLoading,
-              message: msg,
-              icon: placeholderIcon,
-            );
+    return SafeArea(
+      top: false,
+      bottom: false,
+      child: Builder(
+        builder: (context) {
+          return Consumer<HydrationRecordProvider>(
+            builder: (_, provider, __) {
+              return CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: <Widget> [
+                  // SliverOverlapInjector(
+                  //   handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  // ),
 
-          } else {
-            // Retornar la lista de registros de hidratacion del usuario.
-            return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int i) {
-                  return _HydrationCard(hydrationRecords: provider.dailyHidration.values.toList()[i],);
-                },
-                childCount: provider.dailyHidration.length,
-              ),
-            );
-          }
-        },
-      )
-    );
+                  SliverToBoxAdapter(
+                    child: WeekTotalsChart(
+                      isLoading: provider.isLoading,
+                      dailyTotals: provider.weekDailyTotals,
+                      yUnit: 'ml',
+                    ),
+                  ),
+
+                  SliverPadding(
+                    padding: const EdgeInsets.all(8.0),
+                    sliver: Builder(
+                      builder: (context) {
+                        String msg = '';
+                        IconData placeholderIcon = Icons.info;
+                  
+                        if (!provider.isLoading && provider.hydrationRecords.isEmpty) {
+                          msg = 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.';
+                          placeholderIcon = Icons.fact_check_rounded;
+                        }
+                  
+                        if (provider.isLoading || provider.hydrationRecords.isEmpty) {
+                          // Retornar un placeholder si los datos están cargando, o no hay datos aín.
+                          return SliverDataPlaceholder(
+                            isLoading: provider.isLoading,
+                            message: msg,
+                            icon: placeholderIcon,
+                          );
+          
+                        } else {
+                          // Retornar la lista de registros de hidratacion del usuario.
+                          return SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (BuildContext context, int i) {
+                                return _HydrationCard(hydrationRecords: provider.dailyHidration.values.toList()[i],);
+                              },
+                              childCount: provider.dailyHidration.length,
+                            ),
+                          );
+                        }
+                      }
+                    ),
+                  ),
+                ],
+              );
+            }
+          );
+        }
+      ),
+    ); 
   }
 }
 

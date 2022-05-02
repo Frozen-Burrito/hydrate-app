@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/pages/auth_page.dart';
@@ -67,24 +68,29 @@ class AuthOptionsMenu extends StatelessWidget {
       options: settingsProvider.authToken.isEmpty 
         ? <MenuItem> [
           MenuItem(
+            icon: Icons.settings, 
+            label: 'Ajustes',
+            onSelected: () => Navigator.pushNamed(context, RouteNames.config),
+          ),
+          
+          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+
+          MenuItem(
             icon: Icons.account_circle_rounded, 
             label: 'Iniciar Sesión',
-            onSelected: () => Navigator.pushNamed(context, 'auth', arguments: AuthFormType.login),
+            onSelected: () => Navigator.pushNamed(
+              context, 
+              RouteNames.authentication, 
+              arguments: AuthFormType.login
+            ),
           ),
-
-          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+        ]
+        : <MenuItem> [
 
           MenuItem(
             icon: Icons.settings, 
             label: 'Ajustes',
-            onSelected: () => Navigator.pushNamed(context, '/config'),
-          ),
-        ]
-        : <MenuItem> [
-          MenuItem(
-            icon: Icons.account_circle_rounded, 
-            label: 'Perfil',
-            onSelected: () => Navigator.pushNamed(context, '/profile'),
+            onSelected: () => Navigator.pushNamed(context, RouteNames.config),
           ),
 
           MenuItem(isDivider: true, label: '', icon: Icons.settings),
@@ -93,12 +99,6 @@ class AuthOptionsMenu extends StatelessWidget {
             icon: Icons.logout,
             label: 'Cerrar Sesión',
             onSelected: () => settingsProvider.logOut(),
-          ),
-
-          MenuItem(
-            icon: Icons.settings, 
-            label: 'Ajustes',
-            onSelected: () => Navigator.pushNamed(context, '/config'),
           ),
         ],
     );

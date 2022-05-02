@@ -3,6 +3,32 @@ import 'package:hydrate_app/src/models/models.dart';
 
 class DropdownLabels {
 
+  static final activityLabels = <IconLabel> [
+    IconLabel('Caminar', Icons.directions_walk),
+    IconLabel('Correr', Icons.directions_run),
+    IconLabel('Andar en bicicleta', Icons.directions_bike),
+    IconLabel('Nadar', Icons.pool),
+    IconLabel('Fútbol', Icons.sports_soccer),
+    IconLabel('Básquetbol', Icons.sports_basketball),
+    IconLabel('Volleybol', Icons.sports_volleyball),
+    IconLabel('Danza', Icons.emoji_people),
+    IconLabel('Yoga', Icons.self_improvement),
+  ];
+
+  static get sexDropdownItems => _sexDropdownItems;
+  static get occupationDropdownItems => _occupationDropdownItems;
+  static get conditionDropdownItems => _conditionDropdownItems;
+
+  static get occupationLabels => <String>[
+    'Prefiero no especificar',
+    'Estudiante',
+    'Oficinista',
+    'Trabajador Físico',
+    'Padre o Madre',
+    'Atleta',
+    'Otro'
+  ];
+
   static final _sexDropdownItems = UserSex.values
     .map((e) {
 
@@ -26,6 +52,28 @@ class DropdownLabels {
       return DropdownMenuItem(
         value: country.id,
         child: Text(labels[country.code] ?? 'No especificado', overflow: TextOverflow.ellipsis,),
+      );
+    }).toList();
+  }
+
+  static List<DropdownMenuItem<int>> activityTypes(List<ActivityType> activityTypes) {
+
+    return activityTypes.map((activityType) {
+      return DropdownMenuItem(
+        value: activityType.activityTypeValue.index,
+        child: Row(
+          children: [
+            
+            Icon(activityLabels[activityType.activityTypeValue.index].icon),
+
+            const SizedBox( width: 4.0,),
+
+            Text(
+              activityLabels[activityType.activityTypeValue.index].label, 
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       );
     }).toList();
   }
@@ -59,18 +107,12 @@ class DropdownLabels {
         child: Text(labels[e.index]),
       );
     }).toList();
+}
 
-  static get sexDropdownItems => _sexDropdownItems;
-  static get occupationDropdownItems => _occupationDropdownItems;
-  static get conditionDropdownItems => _conditionDropdownItems;
+class IconLabel {
 
-  static get occupationLabels => <String>[
-    'Prefiero no especificar',
-    'Estudiante',
-    'Oficinista',
-    'Trabajador Físico',
-    'Padre o Madre',
-    'Atleta',
-    'Otro'
-  ];
+  final String label;
+  final IconData icon;
+
+  IconLabel(this.label, this.icon);
 }

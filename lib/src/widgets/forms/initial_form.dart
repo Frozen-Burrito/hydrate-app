@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
@@ -11,7 +12,7 @@ import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
 class InitialForm extends StatefulWidget {
 
-  InitialForm({ 
+  const InitialForm({ 
     this.isFormEditing = false, 
     this.isFormModifiable = true, 
     Key? key 
@@ -273,7 +274,7 @@ class _InitialFormState extends State<InitialForm> {
           ),
         
           (widget.isFormEditing) 
-            ? const SizedBox( height: 120.0 )
+            ? const SizedBox( height: 48.0 )
             : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -287,7 +288,7 @@ class _InitialFormState extends State<InitialForm> {
                       int newProfileId = await profileProvider.newDefaultProfile();
                       settingsProvider.currentProfileId = newProfileId;
 
-                      Navigator.pushReplacementNamed(context, '/');
+                      Navigator.pushReplacementNamed(context, RouteNames.home);
                     },
                   ),
                 ),

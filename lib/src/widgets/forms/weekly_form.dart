@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/habits.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 
 class WeeklyForm extends StatefulWidget {
   const WeeklyForm({ Key? key }) : super(key: key);
@@ -137,7 +138,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
                 style: ElevatedButton.styleFrom(
                   primary: Colors.blue,
                 ),
-                onPressed: () => _validateAndSave(context),
+                onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
               ),
             ),
           )
