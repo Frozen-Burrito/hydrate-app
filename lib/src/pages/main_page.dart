@@ -16,7 +16,7 @@ class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => NavigationProvider(),
+      create: (_) => NavigationProvider(1),
       child: Scaffold(
         body: const TabPageView(
           tabs: <Widget>[

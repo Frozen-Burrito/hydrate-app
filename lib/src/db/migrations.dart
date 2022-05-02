@@ -63,7 +63,7 @@ class SQLiteMigrator {
       '''INSERT INTO ${Country.tableName} VALUES (1, 'EU');''',
       '''INSERT INTO ${Country.tableName} VALUES (2, 'MX');''',      
     ],
-    13: [
+    14: [
       '${SQLiteKeywords.dropTableIfExists} ${ActivityRecord.tableName}',
       '${SQLiteKeywords.dropTableIfExists} ${ActivityType.tableName}',
 

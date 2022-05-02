@@ -25,15 +25,7 @@ class ActivityRecord extends SQLiteModel {
     this.doneOutdoors = true,
     required this.activityType,
     required this.profileId
-  }) {
-    // TODO: Quitar esta logica del constructor, solo usarla en formulario.
-    if (activityType.hasAverageSpeed() && distance < 0.001 && duration > 0) {
-      // Si no se registró una distancia específica y la actividad tiene una 
-      // velocidad promedio asociada, calcular la distancia con la duración y 
-      // la velocidad.
-      distance = distanceFromSpeedAndDuration(duration, activityType);
-    }
-  }
+  });
 
   static const String tableName = 'actividad';
 
@@ -101,6 +93,34 @@ class ActivityRecord extends SQLiteModel {
     return map;
   }
 
+  bool _kCalModifiedByUser = false;
+  bool _distanceModifiedByUser = false;
+
+  void kCalModifiedByUser() => _kCalModifiedByUser = true;
+  void distanceModifiedByUser() => _distanceModifiedByUser = true;
+
+  void aproximateData(double userWeight) {
+    if (!_distanceModifiedByUser && duration > 0) {
+
+      if (activityType.hasAverageSpeed()) {
+        // Si no se ha registrado una distancia específica y la actividad tiene una 
+        // velocidad promedio asociada, calcular la distancia con la duración y 
+        // la velocidad.
+        distance = distanceFromSpeedAndDuration(duration, activityType);
+
+      } else {
+        distance = 0;
+      }
+    }
+
+    if (!_kCalModifiedByUser && duration > 0 && userWeight > 0) {
+      // Si no se ha registrado la cantidad específica de kilocalorías y se tiene el 
+      // peso del usuario, calcular las kilocalorías con la duración, el peso y 
+      // los METs del tipo de actividad.
+      kiloCaloriesBurned = kCalFromWeightAndDuration(userWeight, duration, activityType);
+    }
+  }
+
   /// Calcula la distancia aproximada de una actividad física.
   /// 
   /// Usa la siguiente fórmula:
@@ -142,9 +162,15 @@ class ActivityRecord extends SQLiteModel {
   String get formattedKcal => '${kiloCaloriesBurned.toString()} kCal';
 
   //TODO: Localizar el formato de la fecha.
+  final meses = <String>[
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
   String get formattedDate {
-    String dateStr = '${date.day} de ${date.month} de ${date.year}, ';
-    String hour = 'a la${date.hour > 1 ? 's' : ''} ${date.hour}:${date.minute}';
+    String dateStr = '${date.day} de ${meses[date.month]} de ${date.year}';
+    String minuteStr = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
+    String hour = 'a la${date.hour > 1 ? 's' : ''} ${date.hour}:$minuteStr';
 
     return '$dateStr, $hour';
   }
@@ -160,8 +186,8 @@ class ActivityRecord extends SQLiteModel {
   }
 
   String get numericDate {
-
-    return date.toString();
+    // Fecha con horas y minutos.
+    return date.toString().substring(0, 16);
   }
 
 

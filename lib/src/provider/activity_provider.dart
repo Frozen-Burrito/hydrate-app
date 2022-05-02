@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
+import 'package:hydrate_app/src/provider/provider_data_state.dart';
 
 class ActivityProvider extends ChangeNotifier {
 
@@ -12,15 +13,12 @@ class ActivityProvider extends ChangeNotifier {
 
   final Map<DateTime, List<ActivityRecord>> _activitiesByDay = {};
 
-  bool _recordsQueried = false;
-  bool _typesQueried = false;
-  bool _isLoading = false;
-  bool _areTypesLoading = false;
-  bool _hasError = false;
+  DataState _activityDataState = DataState.initial;
+  DataState _actTypesDataState = DataState.initial;
 
   List<ActivityRecord> get activityRecords {
 
-    if (!_recordsQueried && !_isLoading) {
+    if (_activityDataState != DataState.loading && _activityDataState != DataState.loaded) {
       _queryActivityRecords();
     }
 
@@ -29,8 +27,8 @@ class ActivityProvider extends ChangeNotifier {
 
   List<ActivityType> get activityTypes {
 
-    if (!_typesQueried && !_areTypesLoading) {
-      _queryActivityRecords();
+    if (_actTypesDataState != DataState.loading && _actTypesDataState != DataState.loaded) {
+      _queryActivityTypes();
     }
 
     return _activityTypes;
@@ -40,15 +38,17 @@ class ActivityProvider extends ChangeNotifier {
 
   List<int> get weekDailyTotals => _previousSevenDaysTotals();
 
-  bool get isLoading => _isLoading;
+  bool get isLoading => _activityDataState == DataState.loading;
 
-  bool get hasError => _hasError;
+  bool get hasError => _activityDataState == DataState.error;
 
-  bool get areTypesLoading => _areTypesLoading;
+  bool get areTypesLoading => _actTypesDataState == DataState.loading;
+
+  bool get doTypesHaveError => _actTypesDataState == DataState.error;
 
   Future<void> _queryActivityRecords() async {
     try {
-      _isLoading = true;
+      _activityDataState = DataState.loading;
       _activityRecords.clear();
 
       final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
@@ -63,14 +63,57 @@ class ActivityProvider extends ChangeNotifier {
 
       _joinDailyRecords();
 
-      _isLoading = false;
-      _hasError = false;
+      _activityDataState = DataState.loaded;
 
     } on Exception catch (_) {
-      _hasError = true;
+      _activityDataState = DataState.error;
 
     } finally {
-      _recordsQueried = true;
+      notifyListeners();
+    }
+  }
+
+  Future<int> createActivityRecord(ActivityRecord newRecord) async {
+    
+    try {
+      int result = await SQLiteDB.instance.insert(newRecord);
+
+      if (result >= 0) {
+        _activityDataState = DataState.initial;
+        return result;
+      } else {
+        throw Exception('Error creando el registro de actividad fisica.');
+      }
+    }
+    on Exception catch (e) {
+      _activityDataState = DataState.error;
+      print(e);
+
+    } finally {
+      notifyListeners();
+    }
+
+    return -1;
+  }
+
+  Future<void> _queryActivityTypes() async {
+    try {
+      _actTypesDataState = DataState.loading;
+      _activityTypes.clear();
+
+      final queryResults = await SQLiteDB.instance.select<ActivityType>(
+        ActivityType.fromMap, 
+        ActivityType.tableName,
+      );
+
+      _activityTypes.addAll(queryResults);
+
+      _actTypesDataState = DataState.loaded;
+
+    } on Exception catch (_) {
+      _actTypesDataState = DataState.error;
+
+    } finally {
       notifyListeners();
     }
   }

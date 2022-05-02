@@ -35,6 +35,12 @@ class AppThemes {
       unselectedItemColor: Color(0x77D6C3C3), 
     ),
     
+    cardTheme: const CardTheme(
+      color: Color(0xFFF8F8F8),
+      elevation: 2.0,
+      shadowColor: Color.fromRGBO(0, 0, 0, 0.15),
+    ),
+
     textTheme: const TextTheme(
       headline1: TextStyle(color: Color(0xFF0F0F0F), fontSize: 24.0, fontWeight: FontWeight.w700),
       headline2: TextStyle(color: Color(0xFF0F0F0F), fontSize: 24.0, fontWeight: FontWeight.w700),
@@ -87,6 +93,12 @@ class AppThemes {
 
     iconTheme: const IconThemeData(
       color: Color(0xFFEFEFEF),
+    ),
+
+    cardTheme: const CardTheme(
+      color: Color(0xFF29292D),
+      elevation: 2.0,
+      shadowColor: Color.fromRGBO(0, 0, 0, 0.15),
     ),
 
     textTheme: const TextTheme(

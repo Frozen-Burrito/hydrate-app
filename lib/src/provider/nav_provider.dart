@@ -18,6 +18,8 @@ class NavigationProvider with ChangeNotifier {
   /// Obtiene el índice de la página activa.
   int get activePage => _activePage;
 
+  NavigationProvider(this._activePage);
+
   /// Realiza una transición desde la página actual a [newPage].
   /// 
   /// Primero cambia el valor interno del índice de la página activa. Luego 

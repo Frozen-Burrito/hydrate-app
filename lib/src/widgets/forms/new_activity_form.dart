@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/db/where_clause.dart';
-import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/models.dart';
-import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
@@ -32,8 +31,6 @@ class _NewActivityFormState extends State<NewActivityForm> {
 
   bool isLoading = false;
 
-  final List<ActivityType> activityTypes = [];
-
   int titleLength = 0;
   int notesLength = 0;
 
@@ -45,7 +42,6 @@ class _NewActivityFormState extends State<NewActivityForm> {
   @override
   void initState() {
     super.initState();
-    _getActivityTypes();
   }
 
   @override
@@ -64,7 +60,16 @@ class _NewActivityFormState extends State<NewActivityForm> {
       // Asociar el perfil del usuario actual con la nueva meta.
       newActivityRecord.profileId = widget.currentProfileId;
 
-      int resultado = await SQLiteDB.instance.insert(newActivityRecord);
+      final provider = Provider.of<ActivityProvider>(context, listen: false);
+
+      if (newActivityRecord.activityType.id < 0) {
+        int activityTypeIdx = provider.activityTypes
+                    .indexWhere((t) => t.activityTypeValue.index == 0);
+
+        newActivityRecord.activityType = provider.activityTypes[activityTypeIdx];
+      }
+
+      int resultado = await provider.createActivityRecord(newActivityRecord);
 
       if (resultado >= 0) {
         if (redirectRoute != null) {
@@ -76,241 +81,258 @@ class _NewActivityFormState extends State<NewActivityForm> {
     }
   }
 
-  /// Obtiene los [ActivityTypes] disponibles. 
-  Future<void> _getActivityTypes() async {
-    activityTypes.clear();
-
-    final tagResults = await SQLiteDB.instance.select<ActivityType>(
-      ActivityType.fromMap, 
-      ActivityType.tableName,
-    );
-
-    setState(() {
-      activityTypes.addAll(tagResults);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+
+    final userWeight = Provider.of<ProfileProvider>(context).profile.weight;
 
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-    
-          DropdownButtonFormField(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: '¿Qué tipo de actividad hiciste?',
-              helperText: ' ',
-              hintText: 'Selecciona' 
-            ),
-            items: DropdownLabels.activityTypes(activityTypes),
-            value: newActivityRecord.activityType.activityTypeValue.index,
-            validator: (int? value) => ActivityType.validateType(value),
-            onChanged: (int? newValue) {
-              // Obtener el tipo de actividad correspondiente.
-              int activityTypeIdx = activityTypes
-                .indexWhere((t) => t.activityTypeValue.index == newValue);
+      child: Consumer<ActivityProvider>(
+        builder: (_, provider, __) {
 
-              setState(() {
-                newActivityRecord.activityType = activityTypes[activityTypeIdx];
-              });
-            },
-          ),
+          if (provider.areTypesLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (provider.activityTypes.isEmpty) {
+            return const Center(
+              child: Text('No se encontraron tipos de actividad.'),
+            );
+          }
 
-          const SizedBox( height: 16.0, ),
-
-          TextFormField(
-            maxLength: 40,
-            maxLines: 1,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: 'Título de la actividad',
-              hintText: 'Ir a la escuela en la mañana',
-              helperText: ' ',
-              suffixIcon: const Icon(Icons.text_fields),
-              counterText: '${titleLength.toString()}/40'
-            ),
-            validator: (value) => ActivityRecord.validateTitle(value),
-            onChanged: (value) => setState(() {
-              newActivityRecord.title = value;
-              titleLength = newActivityRecord.title.length;
-            }),
-          ),
-
-          const SizedBox( height: 16.0, ),
-
-          TextFormField(
-            readOnly: true,
-            controller: dateController,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Fecha',
-              helperText: ' ', // Para evitar cambios en la altura del widget
-              suffixIcon: Icon(Icons.event_rounded)
-            ),
-            onTap: () async {
-
-              final now = DateTime.now();
-
-              final newActivityDate = await showDatePicker(
-                context: context, 
-                initialDate: now, 
-                firstDate: DateTime(2000), 
-                lastDate: now
-              );
-
-              final newActivityTime = await showTimePicker(
-                context: context, 
-                initialTime: TimeOfDay.fromDateTime(now)
-              );
-
-              if (newActivityDate != null && newActivityTime != null) {
-
-                newActivityRecord.date = DateTime(
-                  newActivityDate.year,
-                  newActivityDate.month,
-                  newActivityDate.day,
-                  newActivityTime.hour,
-                  newActivityTime.minute,
-                );
-
-                dateController.text = newActivityRecord.numericDate;
-              }
-              
-            },
-          ),
-
-          const SizedBox( height: 16.0, ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Duración (minutos)',
-                    hintText: '20 min.',
-                    helperText: ' ',
-                    suffixIcon: Icon(Icons.timer_rounded)
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      newActivityRecord.duration = int.tryParse(value.split(" ").first) ?? 0;
-                    });
 
-                    durationController.text = newActivityRecord.formattedDuration; 
-                  },
-                  validator: (value) => ActivityRecord.validateDuration(value),
+              DropdownButtonFormField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: '¿Qué tipo de actividad hiciste?',
+                  helperText: ' ',
+                  hintText: 'Selecciona' 
                 ),
+                items: DropdownLabels.activityTypes(provider.activityTypes),
+                value: newActivityRecord.activityType.activityTypeValue.index,
+                validator: (int? value) => ActivityType.validateType(value),
+                onChanged: (int? newValue) {
+                  // Obtener el tipo de actividad correspondiente.
+                  int activityTypeIdx = provider.activityTypes
+                    .indexWhere((t) => t.activityTypeValue.index == newValue);
+        
+                  setState(() {
+                    newActivityRecord.activityType = provider.activityTypes[activityTypeIdx];
+
+                    newActivityRecord.aproximateData(userWeight);
+                  });
+
+                  kCalController.text = newActivityRecord.formattedKcal;
+                  distanceController.text = newActivityRecord.formattedDistance;
+                },
               ),
-
-              const SizedBox( width: 16.0, ),
-
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  controller: distanceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Distancia',
-                    hintText: '1 km',
-                    helperText: ' ',
-                  ),
-                  onChanged: (value) {
-
-                    setState(() {
-                      newActivityRecord.distance = double.tryParse(value.split(" ").first) ?? 0.0;
-                    });
-
-                    // distanceController.text = newActivityRecord.formattedDistance; 
-                  },
-                  validator: (value) => ActivityRecord.validateDitance(value),
+        
+              const SizedBox( height: 16.0, ),
+        
+              TextFormField(
+                maxLength: 40,
+                maxLines: 1,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  labelText: 'Título de la actividad',
+                  hintText: 'Ir a la escuela en la mañana',
+                  helperText: ' ',
+                  suffixIcon: const Icon(Icons.text_fields),
+                  counterText: '${titleLength.toString()}/40'
                 ),
+                validator: (value) => ActivityRecord.validateTitle(value),
+                onChanged: (value) => setState(() {
+                  newActivityRecord.title = value;
+                  titleLength = newActivityRecord.title.length;
+                }),
               ),
-            ]
-          ),
-
-          const SizedBox( height: 16.0, ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Kilocalorías quemadas',
-                    hintText: '1700 kCal',
-                    helperText: ' ',
-                    suffixIcon: Icon(Icons.bolt),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      newActivityRecord.kiloCaloriesBurned = int.tryParse(value.split(" ").first) ?? 0;
-                    });
-
-                    kCalController.text = newActivityRecord.formattedKcal; 
-                  },
-                  validator: (value) => ActivityRecord.validateKcal(value),
+        
+              const SizedBox( height: 16.0, ),
+        
+              TextFormField(
+                readOnly: true,
+                controller: dateController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Fecha',
+                  helperText: ' ', // Para evitar cambios en la altura del widget
+                  suffixIcon: Icon(Icons.event_rounded)
                 ),
-              ),
-
-              const SizedBox( width: 16.0, ),
-
-              Expanded(
-                child: CheckboxListTile(
-                  title: const Text('Al aire libre'),
-                  dense: true,
-                  value: newActivityRecord.doneOutdoors, 
-                  onChanged: (bool? value) {
-                    setState(() {
-                      newActivityRecord.doneOutdoors = value ?? false;
-                    });
+                onTap: () async {
+        
+                  final now = DateTime.now();
+        
+                  final newActivityDate = await showDatePicker(
+                    context: context, 
+                    initialDate: now, 
+                    firstDate: DateTime(2000), 
+                    lastDate: now
+                  );
+        
+                  final newActivityTime = await showTimePicker(
+                    context: context, 
+                    initialTime: TimeOfDay.fromDateTime(now)
+                  );
+        
+                  if (newActivityDate != null && newActivityTime != null) {
+        
+                    newActivityRecord.date = DateTime(
+                      newActivityDate.year,
+                      newActivityDate.month,
+                      newActivityDate.day,
+                      newActivityTime.hour,
+                      newActivityTime.minute,
+                    );
+        
+                    dateController.text = newActivityRecord.formattedDate;
                   }
-                ),
+                  
+                },
               ),
-            ]
-          ),
+        
+              const SizedBox( height: 16.0, ),
+        
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: TextFormField(
+                      autocorrect: false,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Duración (minutos)',
+                        hintText: '20 min.',
+                        helperText: ' ',
+                        suffixIcon: Icon(Icons.timer_rounded)
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          newActivityRecord.duration = int.tryParse(value.split(" ").first) ?? 0;
 
-          const SizedBox( height: 16.0, ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: ElevatedButton(
-                  child: const Text('Cancelar'),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.grey.shade700,
+                          newActivityRecord.aproximateData(userWeight);
+                       
+                          kCalController.text = newActivityRecord.formattedKcal;
+                          distanceController.text = newActivityRecord.formattedDistance;
+                          durationController.text = newActivityRecord.formattedDuration; 
+                        });
+                      },
+                      validator: (value) => ActivityRecord.validateDuration(value),
+                    ),
                   ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
+        
+                  const SizedBox( width: 16.0, ),
+        
+                  Expanded(
+                    child: TextFormField(
+                      autocorrect: false,
+                      controller: distanceController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Distancia',
+                        hintText: '1 km',
+                        helperText: ' ',
+                      ),
+                      onChanged: (value) {
+        
+                        setState(() {
+                          newActivityRecord.distance = double.tryParse(value.split(" ").first) ?? 0.0;
 
-              const SizedBox( width: 16.0, ),
-
-              Expanded(
-                child: ElevatedButton(
-                  child: const Text('Registrar'),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.blue,
+                          newActivityRecord.distanceModifiedByUser();
+                        });
+        
+                        // distanceController.text = newActivityRecord.formattedDistance; 
+                      },
+                      validator: (value) => ActivityRecord.validateDitance(value),
+                    ),
                   ),
-                  onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
-                ),
+                ]
               ),
-            ]
-          ),
-        ],
+        
+              const SizedBox( height: 16.0, ),
+        
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: TextFormField(
+                      autocorrect: false,
+                      keyboardType: TextInputType.number,
+                      controller: kCalController,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Kilocalorías quemadas',
+                        hintText: '1700 kCal',
+                        helperText: ' ',
+                        suffixIcon: Icon(Icons.bolt),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          newActivityRecord.kiloCaloriesBurned = int.tryParse(value.split(" ").first) ?? 0;
+
+                          newActivityRecord.kCalModifiedByUser();
+                        });
+        
+                        // kCalController.text = newActivityRecord.formattedKcal; 
+                      },
+                      validator: (value) => ActivityRecord.validateKcal(value),
+                    ),
+                  ),
+        
+                  const SizedBox( width: 16.0, ),
+        
+                  Expanded(
+                    child: CheckboxListTile(
+                      title: const Text('Al aire libre'),
+                      dense: true,
+                      value: newActivityRecord.doneOutdoors, 
+                      onChanged: (bool? value) {
+                        setState(() {
+                          newActivityRecord.doneOutdoors = value ?? false;
+                        });
+                      }
+                    ),
+                  ),
+                ]
+              ),
+        
+              const SizedBox( height: 16.0, ),
+        
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Expanded(
+                    child: ElevatedButton(
+                      child: const Text('Cancelar'),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.grey.shade700,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+        
+                  const SizedBox( width: 16.0, ),
+        
+                  Expanded(
+                    child: ElevatedButton(
+                      child: const Text('Registrar'),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.blue,
+                      ),
+                      onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
+                    ),
+                  ),
+                ]
+              ),
+            ],
+          );
+        }
       ),
     );
   }

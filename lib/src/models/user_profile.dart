@@ -174,7 +174,7 @@ class UserProfile extends SQLiteModel {
 
     if (inputName == null) return null;
 
-    return (inputName.length <= 50)
+    return (inputName.length >= 50)
         ? 'El nombre debe tener menos de 50 caracteres.'
         : null;
   }
@@ -184,7 +184,7 @@ class UserProfile extends SQLiteModel {
 
     if (inputLastName == null) return null;
 
-    return (inputLastName.length <= 50)
+    return (inputLastName.length >= 50)
         ? 'El apellido debe tener menos de 50 caracteres.'
         : null;
   }

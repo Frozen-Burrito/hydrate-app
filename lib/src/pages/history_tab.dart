@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/nav_provider.dart';
+import 'package:hydrate_app/src/widgets/tab_page_view.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
@@ -18,10 +20,11 @@ class HistoryTab extends StatelessWidget {
     final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
     final createTestRecords = hydrationProvider.insertTestRecords;
 
-    return DefaultTabController(
-      length: 2,
+    return ChangeNotifierProvider(
+      create: (_) => NavigationProvider(0),
       child: NestedScrollView(
         headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+
           return <Widget> [
             SliverOverlapAbsorber(
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
@@ -36,7 +39,7 @@ class HistoryTab extends StatelessWidget {
                 bottom: const PreferredSize(
                   preferredSize: Size(double.infinity, 48.0),
                   child: ButtonTabBar(
-                    tabs: [
+                    tabs: <String>[
                       'Hidratación',
                       'Actividad'
                     ],
@@ -49,12 +52,11 @@ class HistoryTab extends StatelessWidget {
             ),
           ];
         },
-        body: const TabBarView(
-          physics: BouncingScrollPhysics(),
-          children: <Widget> [
+        body: const TabPageView(
+          tabs: [
             HydrationSliverList(),
-            ActivitySliverList(),
-          ] 
+            ActivitySliverList()
+          ],
         ),
       )
     );

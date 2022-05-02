@@ -5,7 +5,7 @@ class DropdownLabels {
 
   static final activityLabels = <IconLabel> [
     IconLabel('Caminar', Icons.directions_walk),
-    IconLabel('Correr', Icons.directions_walk),
+    IconLabel('Correr', Icons.directions_run),
     IconLabel('Andar en bicicleta', Icons.directions_bike),
     IconLabel('Nadar', Icons.pool),
     IconLabel('Fútbol', Icons.sports_soccer),

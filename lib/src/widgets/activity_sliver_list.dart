@@ -40,19 +40,20 @@ class ActivitySliverList extends StatelessWidget {
                       builder: (context) {
                         String msg = '';
                         IconData placeholderIcon = Icons.info;
-                  
-                        if (!provider.isLoading && provider.activityRecords.isEmpty) {
-                          msg = 'Aún no hay actividad física registrada.';
-                          placeholderIcon = Icons.fact_check_rounded;
-                        }
-                  
+
                         if (provider.isLoading || provider.activityRecords.isEmpty) {
+
+                          if (provider.activityRecords.isEmpty) {
+                            msg = 'Aún no hay actividad física registrada.';
+                            placeholderIcon = Icons.fact_check_rounded;
+                          }
+
                           // Retornar un placeholder si los datos están cargando, o no hay datos aín.
                           return SliverDataPlaceholder(
                             isLoading: provider.isLoading,
                             message: msg,
                             icon: placeholderIcon,
-                          );
+                          );                          
           
                         } else {
                           // Retornar la lista de registros de hidratacion del usuario.
