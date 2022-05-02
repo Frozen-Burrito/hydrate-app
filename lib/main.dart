@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
@@ -59,6 +61,17 @@ class HydrateApp extends StatelessWidget {
               // Rutas de la app
               routes: Routes.appRoutes,
               onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
+              // Localización e internacionalización
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en', ' '),
+                Locale('es', ' '),
+              ],
             )
           );
         }

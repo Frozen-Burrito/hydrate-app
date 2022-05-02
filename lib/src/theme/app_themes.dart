@@ -64,7 +64,7 @@ class AppThemes {
         color: Color(0xFF0F0F0F), 
         fontSize: 24.0,
         fontFamily: 'WorkSans', 
-        fontWeight: FontWeight.w600
+        fontWeight: FontWeight.w700
       ),
       headline5: TextStyle(
         color: Color(0xFF0F0F0F), 
@@ -171,7 +171,7 @@ class AppThemes {
         color: Color(0xFF0F0F0F), 
         fontSize: 24.0,
         fontFamily: 'WorkSans', 
-        fontWeight: FontWeight.w600
+        fontWeight: FontWeight.w700
       ),
       headline5: TextStyle(
         color: Color(0xFF0F0F0F), 
