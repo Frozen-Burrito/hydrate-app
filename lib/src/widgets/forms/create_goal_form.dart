@@ -25,6 +25,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     startDate: DateTime.now(), 
     endDate: DateTime.now(),
     tags: <Tag>[],
+    profileId: -1,
+    quantity: 0,
   );
 
   bool isLoading = false;

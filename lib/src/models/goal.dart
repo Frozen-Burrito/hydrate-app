@@ -23,12 +23,12 @@ class Goal extends SQLiteModel {
 
   Goal({
     this.id = -1,
-    this.profileId = -1,
+    required this.profileId,
     required this.term,
     this.startDate,
     required this.endDate,
     this.reward = 0,
-    this.quantity = 0,
+    required this.quantity,
     this.notes,
     required this.tags,
   });
@@ -65,6 +65,9 @@ class Goal extends SQLiteModel {
 
     int indexPlazo = (map['plazo'] is int ? map['plazo'] as int : 0);
 
+    const profileKey = 'id_${UserProfile.tableName}';
+    final valProfileId = (map[profileKey] is int ? map[profileKey] as int : -1);
+
     final goal = Goal(
       id: (map['id'] is int ? map['id'] as int : -1),
       term: GoalTerm.values[indexPlazo],
@@ -74,6 +77,7 @@ class Goal extends SQLiteModel {
       quantity: (map['cantidad'] is int ? map['cantidad'] as int : -1),
       notes: map['notas'].toString(),
       tags: tagList,
+      profileId: valProfileId
     );
 
     return goal;
@@ -88,7 +92,8 @@ class Goal extends SQLiteModel {
       'recompensa': reward,
       'cantidad': quantity,
       'notas': notes,
-      'etiquetas': tags
+      'etiquetas': tags,
+      'id_${UserProfile.tableName}': profileId,
     };
 
     if (id >= 0) map['id'] = id;
