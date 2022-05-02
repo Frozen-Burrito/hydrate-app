@@ -105,12 +105,15 @@ class _ActivityCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               mainAxisSize: MainAxisSize.max,
               children: [
-                Text(
-                  activityRecord.title,
-                  style: Theme.of(context).textTheme.headline6,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                SizedBox( 
+                  width: MediaQuery.of(context).size.width * 0.75,
+                  child: Text(
+                    activityRecord.title,
+                    style: Theme.of(context).textTheme.headline6,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),                
 
                 (activityRecord.isIntense)
                 ? Container(
