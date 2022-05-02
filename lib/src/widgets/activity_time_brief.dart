@@ -37,6 +37,7 @@ class _ActivityTimeBriefState extends State<ActivityTimeBrief> {
     try {
       final results = await SQLiteDB.instance.select<Habits>(
         Habits.fromMap, 
+        Habits.tableName, 
         where: [ WhereClause('id_perfil', widget.userProfileId.toString()) ],
         orderByColumn: 'fecha',
         orderByAsc: false,

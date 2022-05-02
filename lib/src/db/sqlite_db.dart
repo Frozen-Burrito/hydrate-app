@@ -120,6 +120,7 @@ class SQLiteDB {
   /// Retorna una lista con todos los registros de una tabla.
   Future<Iterable<T>> select<T extends SQLiteModel>(
     T Function(Map<String, Object?>) mapper,
+    final String table,
     { 
       final List<WhereClause>? where,
       final List<String>? whereUnions,
@@ -138,8 +139,6 @@ class SQLiteDB {
       : null;
 
     print('WHERE query: ${fullWhere?.where}, ARGS: ${fullWhere?.args}');
-
-    final String table = (T as SQLiteModel).table;
 
     final records = await db.query(table, 
       where: fullWhere?.where,

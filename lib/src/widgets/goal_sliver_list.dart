@@ -32,6 +32,7 @@ class _GoalSliverListState extends State<GoalSliverList> {
 
     final goals = await SQLiteDB.instance.select<Goal>(
       Goal.fromMap,
+      Goal.tableName,
       queryManyToMany: true,
       limit: 20,
     );

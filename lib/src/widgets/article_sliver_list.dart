@@ -135,6 +135,8 @@ class _ArticleCard extends StatelessWidget {
       child: Column(
         children: [
           ListTile(
+            visualDensity: VisualDensity.comfortable,
+            minVerticalPadding: 16.0,
             title: GestureDetector(
               onTap: article.url.startsWith('https')
                 ? () => UrlLauncher.launchUrlInBrowser(Uri.parse(article.url))
@@ -144,9 +146,14 @@ class _ArticleCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.headline6,
               ),
             ),
-            subtitle: Text(
-              'Publicación: $articleDateStr',
-              style: Theme.of(context).textTheme.bodyText1
+            subtitle: Container(
+              margin: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                'Publicación: $articleDateStr',
+                style: Theme.of(context).textTheme.bodyText1?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface
+                )
+              ),
             ),
             trailing: IconButton(
               icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 

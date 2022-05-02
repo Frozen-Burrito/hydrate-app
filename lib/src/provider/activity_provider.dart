@@ -52,6 +52,7 @@ class ActivityProvider extends ChangeNotifier {
 
       final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
         ActivityRecord.fromMap, 
+        ActivityRecord.tableName, 
         orderByColumn: 'fecha',
         orderByAsc: false,
         includeOneToMany: true,
@@ -101,6 +102,7 @@ class ActivityProvider extends ChangeNotifier {
 
       final queryResults = await SQLiteDB.instance.select<ActivityType>(
         ActivityType.fromMap, 
+        ActivityType.tableName, 
       );
 
       _activityTypes.addAll(queryResults);
