@@ -42,18 +42,65 @@ class AppThemes {
     ),
 
     textTheme: const TextTheme(
-      headline1: TextStyle(color: Color(0xFF0F0F0F), fontSize: 24.0, fontWeight: FontWeight.w700),
-      headline2: TextStyle(color: Color(0xFF0F0F0F), fontSize: 24.0, fontWeight: FontWeight.w700),
-      headline3: TextStyle(color: Color(0xFF0F0F0F), fontSize: 24.0, fontWeight: FontWeight.w700),
-      headline4: TextStyle(color: Color(0xFF0F0F0F), fontSize: 24.0, fontWeight: FontWeight.w700),
-      headline5: TextStyle(color: Color(0xFF0F0F0F), fontSize: 22.0, fontWeight: FontWeight.w400),
-      headline6: TextStyle(color: Color(0xFF0F0F0F), fontSize: 20.0, fontWeight: FontWeight.w400),
-      bodyText1: TextStyle(color: Color(0xFF0F0F0F), fontSize: 16.0, fontWeight: FontWeight.w400),
-      bodyText2: TextStyle(color: Color(0xFF0F0F0F), fontSize: 14.0, fontWeight: FontWeight.w400),
-      subtitle1: TextStyle(color: Color(0xFF0F0F0F), fontSize: 16.0),
-      subtitle2: TextStyle(color: Colors.green),
-      caption: TextStyle(color: Colors.blue),
-      overline: TextStyle(color: Colors.purple),
+      headline1: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 24.0, 
+        fontFamily: 'WorkSans',
+        fontWeight: FontWeight.w600
+      ),
+      headline2: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 24.0, 
+        fontFamily: 'WorkSans',
+        fontWeight: FontWeight.w600
+      ),
+      headline3: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 24.0,
+        fontFamily: 'WorkSans', 
+        fontWeight: FontWeight.w600
+      ),
+      headline4: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 24.0,
+        fontFamily: 'WorkSans', 
+        fontWeight: FontWeight.w600
+      ),
+      headline5: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 22.0,
+        fontFamily: 'WorkSans', 
+        fontWeight: FontWeight.w500
+      ),
+      headline6: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 20.0,
+        fontFamily: 'WorkSans', 
+        fontWeight: FontWeight.w500
+      ),
+      bodyText1: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 16.0,
+        fontFamily: 'WorkSans', 
+        fontWeight: FontWeight.w400
+      ),
+      bodyText2: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 14.0,
+        fontFamily: 'WorkSans', 
+        fontWeight: FontWeight.w400
+      ),
+      subtitle1: TextStyle(
+        color: Color(0xFF0F0F0F), 
+        fontSize: 16.0,
+        fontFamily: 'WorkSans',
+        fontWeight: FontWeight.w500
+      ),
+
+      caption: TextStyle(color: 
+      Colors.blue),
+      overline
+      : TextStyle(color: Colors.purple),
       button: TextStyle(color: Colors.amber),
     )
   );

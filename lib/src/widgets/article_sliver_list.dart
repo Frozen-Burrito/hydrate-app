@@ -143,7 +143,7 @@ class _ArticleCard extends StatelessWidget {
                 : null,
               child: Text(
                 article.title, 
-                style: Theme.of(context).textTheme.headline6,
+                style: Theme.of(context).textTheme.headline5,
               ),
             ),
             subtitle: Container(
