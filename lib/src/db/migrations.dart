@@ -82,6 +82,13 @@ class SQLiteMigrator {
       '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8, 7);''',
       '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3, 8);''',
     ],
+    15: [
+      '${SQLiteKeywords.dropTableIfExists} ${Habits.tableName}',
+      '${SQLiteKeywords.dropTableIfExists} ${MedicalData.tableName}',
+
+      Habits.createTableQuery,
+      MedicalData.createTableQuery,
+    ],
   };
 
 }
