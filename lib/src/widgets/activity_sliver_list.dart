@@ -28,46 +28,54 @@ class ActivitySliverList extends StatelessWidget {
 
                   SliverToBoxAdapter(
                     child: WeekTotalsChart(
-                      isLoading: provider.isLoading,
-                      dailyTotals: provider.weekDailyTotals,
+                      isLoading: provider.activitiesLoading,
+                      dailyTotals: provider.prevWeekDailyTotals,
                       yUnit: 'kCal',
                     ),
                   ),
 
                   SliverPadding(
                     padding: const EdgeInsets.all(8.0),
-                    sliver: Builder(
-                      builder: (context) {
-                        String msg = '';
-                        IconData placeholderIcon = Icons.info;
+                    sliver: FutureBuilder(
+                      future: provider.activityRecords,
+                      builder: (context, AsyncSnapshot<List<ActivityRecord>> snapshot) {
+                        // Revisar si hay datos en el snapshot del future.
+                        if (snapshot.hasData) {
 
-                        if (provider.isLoading || provider.activityRecords.isEmpty) {
-
-                          if (provider.activityRecords.isEmpty) {
-                            msg = 'Aún no hay actividad física registrada.';
-                            placeholderIcon = Icons.fact_check_rounded;
+                          if (snapshot.data!.isNotEmpty) {
+                            // Si hay datos y la lista de registros no esta vacia, 
+                            // mostrar los registros de actividad.
+                            return SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int i) {
+                                  return _ActivityCard(
+                                    activityRecord: snapshot.data![i],
+                                  );
+                                },
+                                childCount: snapshot.data!.length,
+                              ),
+                            );
+                          } else {
+                            // Retornar un placeholder si los datos están cargando, o no hay datos aín.
+                            return const SliverDataPlaceholder(
+                              message: 'Aún no hay actividad física registrada.',
+                              icon: Icons.fact_check_rounded,
+                            );  
                           }
-
-                          // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-                          return SliverDataPlaceholder(
-                            isLoading: provider.isLoading,
-                            message: msg,
-                            icon: placeholderIcon,
-                          );                          
-          
-                        } else {
-                          // Retornar la lista de registros de hidratacion del usuario.
-                          return SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (BuildContext context, int i) {
-                                return _ActivityCard(
-                                  activityRecord: provider.activityRecords[i],
-                                );
-                              },
-                              childCount: provider.activityRecords.length,
-                            ),
-                          );
+                        } else if (snapshot.hasError) {
+                          // Retornar un placeholder, indicando que hubo un error.
+                          return const SliverDataPlaceholder(
+                            isLoading: false,
+                            message: 'Hubo un error obteniendo tus registros de actividad.',
+                            icon: Icons.error,
+                          ); 
                         }
+
+                        // El future no tiene datos ni error, aún no ha sido
+                        // completado.
+                        return const SliverDataPlaceholder(
+                          isLoading: true,
+                        );  
                       }
                     ),
                   ),

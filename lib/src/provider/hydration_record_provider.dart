@@ -10,26 +10,30 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   final Map<DateTime, List<HydrationRecord>> _dailyHydration = {};
 
-  bool _recordsQueried = false;
-  bool _isLoading = false;
-  bool _hasError = false;
+  bool _shouldRefreshHydration = false;
+  bool _isHydrationLoading = false;
 
-  List<HydrationRecord> get hydrationRecords {
+  Future<List<HydrationRecord>> get hydrationRecords {
 
-    if (!_recordsQueried && !_isLoading) {
-      _queryHydrationRecords();
+    if (!_isHydrationLoading && _shouldRefreshHydration) {
+      return _queryHydrationRecords();
     }
 
-    return _hydrationRecords;
+    return Future.value(_hydrationRecords);
   }
 
-  Map<DateTime, List<HydrationRecord>> get dailyHidration => _dailyHydration;
+  Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration {
+
+    if (!_isHydrationLoading && _shouldRefreshHydration) {
+      return _queryHydrationRecords().then((value) => _sortRecordsByDay(value));
+    }
+
+    return Future.value(_dailyHydration);
+  }
 
   List<int> get weekDailyTotals => _previousSevenDaysTotals();
 
-  bool get isLoading => _isLoading;
-
-  bool get hasError => _hasError;
+  bool get isLoading => _isHydrationLoading;
 
   //TODO: Quitar esta funcion helper temporal.
   Future<void> insertTestRecords() async {
@@ -48,6 +52,8 @@ class HydrationRecordProvider extends ChangeNotifier {
 
     DateTime lastDate = DateTime.now();
 
+    final newRecords = <HydrationRecord>[];
+
     // Crear registros de hidratacion aleatorios para pruebas.
     for (var i = 0; i < 10; i++) {
       lastDate = lastDate.subtract(Duration(hours: 8 - rand.nextInt(3)));
@@ -58,15 +64,68 @@ class HydrationRecordProvider extends ChangeNotifier {
         date: lastDate
       );
 
-      await SQLiteDB.instance.insert(randRecord);
+      newRecords.add(randRecord);
     }
 
-    _queryHydrationRecords();
+    await saveHydrationRecords(newRecords);
   }
 
-  Future<void> _queryHydrationRecords() async {
+  /// Guarda una coleccion de registros de hidratación en la base de datos.
+  Future<List<int>> saveHydrationRecords(List<HydrationRecord> newRecords) async {
+    
+    final results = <int>[];
+
     try {
-      _isLoading = true;
+      for (var newRecord in newRecords) { 
+        int result = await SQLiteDB.instance.insert(newRecord);
+
+        if (result < 0) {
+          throw Exception('No se pudo crear el registro de actividad fisica.');
+        } else {
+          results.add(result);
+        }
+      }
+      
+      _shouldRefreshHydration = true;
+      return results;
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Guarda un nuevo registro de hidratación en la base de datos.
+  Future<int> saveHydrationRecord(HydrationRecord newRecord) async {
+    
+    try {
+      int result = await SQLiteDB.instance.insert(newRecord);
+
+      if (result >= 0) {
+        _shouldRefreshHydration = true;
+        return result;
+      } else {
+        throw Exception('No se pudo crear el registro de actividad fisica.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Obtiene todos los registros de hidratación de la base de datos.
+  /// 
+  /// Los registros son ordendos cronológicamente por sus fechas, con los más 
+  /// recientes primero.
+  Future<List<HydrationRecord>> _queryHydrationRecords() async {
+    _shouldRefreshHydration = false;
+    _isHydrationLoading = true;
+    try {
       _hydrationRecords.clear();
 
       final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
@@ -78,27 +137,24 @@ class HydrationRecordProvider extends ChangeNotifier {
 
       _hydrationRecords.addAll(queryResults);
 
-      _joinDailyRecords();
+      return _hydrationRecords;
 
-      _isLoading = false;
-      _hasError = false;
-
-    } on Exception catch (_) {
-      _hasError = true;
+    } on Exception catch (e) {
+      return Future.error(e);
 
     } finally {
-      _recordsQueried = true;
+      _isHydrationLoading = false;
       notifyListeners();
     }
   }
 
   /// Crea un mapa en donde todos los valores de [_hydrationRecords] son agrupados
   /// por día.
-  void _joinDailyRecords() {
+  Map<DateTime, List<HydrationRecord>> _sortRecordsByDay(List<HydrationRecord> records) {
 
     _dailyHydration.clear();
 
-    for (var hydrationRecord in _hydrationRecords) {
+    for (var hydrationRecord in records) {
 
       DateTime recordDate = hydrationRecord.date;
       DateTime day = DateTime(recordDate.year, recordDate.month, recordDate.day);
@@ -107,6 +163,8 @@ class HydrationRecordProvider extends ChangeNotifier {
 
       _dailyHydration[day]?.add(hydrationRecord);
     }
+
+    return _dailyHydration;
   }
 
   /// Retorna una lista con la cantidad total en ml diaria de consumo de agua de los 
