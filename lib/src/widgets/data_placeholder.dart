@@ -41,16 +41,18 @@ class SliverDataPlaceholder extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: isLoading 
+          ? <Widget> [
+            const SizedBox( height: 64.0,),
+            
+            const Center(
+              child: CircularProgressIndicator()
+            ),
+          ]
+          : <Widget>[
             const SizedBox( height: 64.0,),
 
-            // Mostrar un progress indicator si está cargando, de lo contrario
-            // mostrar un icono.
-            isLoading 
-            ? const Center(
-              child: CircularProgressIndicator()
-            )
-            : Icon(
+            Icon(
               icon,
               size: 100.0,
             ),
