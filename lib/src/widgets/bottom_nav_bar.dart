@@ -71,8 +71,9 @@ class BottomAppBarItem extends StatelessWidget {
     this.label = '', 
     this.icon = Icons.space_bar, 
     this.pageIndex = -1, 
-    this.onTap
-  });
+    this.onTap,
+    Key? key
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

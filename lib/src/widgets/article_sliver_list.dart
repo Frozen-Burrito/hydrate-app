@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/api.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';

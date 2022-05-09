@@ -156,11 +156,13 @@ class Goal extends SQLiteModel {
 
       if (endDateValue != null && startDateValue != null)
       {
-        return (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue))
-          ? 'La fecha de termino debe ser mayor que la fecha de inicio.' 
-          : null;
+        if (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue)) {
+          return 'La fecha de termino debe ser mayor que la fecha de inicio.';
+        }
       }
     }
+
+    return null;
   }
 
   static String? validateWaterQuantity(String? inputValue) {
@@ -169,10 +171,12 @@ class Goal extends SQLiteModel {
     int? waterQuantity = int.tryParse(inputValue);
     
     if (waterQuantity != null) {
-      return (waterQuantity > 0 && waterQuantity < 1000) 
-          ? null 
-          : 'La cantidad debe ser entre 0 y 1000 ml.'; 
+      if (waterQuantity < 1 || waterQuantity > 1000) {
+        return 'La cantidad debe ser entre 0 y 1000 ml.';
+      }
     }
+
+    return null;
   }
 
   static String? validateReward(String? inputValue) {
@@ -180,10 +184,12 @@ class Goal extends SQLiteModel {
     int? reward = int.tryParse(inputValue ?? '0');
     
     if (reward != null) {
-      return (reward >= 0 && reward <= 1000) 
-          ? null 
-          : 'La recompensa debe estar entre 0 y 1000.'; 
+      if (reward < 0 || reward > 1000) {
+        return 'La recompensa debe estar entre 0 y 1000.';
+      }
     }
+
+    return null;
   }
 
   static String? validateTags(String? inputValue) {
@@ -199,10 +205,12 @@ class Goal extends SQLiteModel {
 
       if (totalLength > 30) return 'Exceso de caracteres para etiquetas.';
 
-      return (strTags.length > 3 && strTags.last.isNotEmpty) 
-        ? 'Una meta debe tener 3 etiquetas o menos.'
-        : null;
+      if (strTags.length > 3 && strTags.last.isNotEmpty) {
+        return 'Una meta debe tener 3 etiquetas o menos.';
+      }
     }
+
+    return null;
   } 
 
   static String? validateNotes(String? inputValue) {

@@ -135,7 +135,7 @@ class _HydrationCard extends StatelessWidget {
                       Container(
                         width: 16.0,
                         height: 16.0,
-                        color: Theme.of(context).colorScheme.primaryVariant,
+                        color: Theme.of(context).colorScheme.primaryContainer,
                         margin: const EdgeInsets.only(right: 4.0),
                       ),
 

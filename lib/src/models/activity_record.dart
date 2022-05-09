@@ -243,10 +243,12 @@ class ActivityRecord extends SQLiteModel {
     int? newDuration = int.tryParse(inputValue?.split(" ").first ?? '0');
 
     if (inputValue != null && inputValue.isNotEmpty) {
-      return (newDuration != null && newDuration > 60 * 12)
-          ? 'Las duración debe ser menor a 12h'
-          : null;
+      if (newDuration != null && newDuration > 60 * 12) {
+        return 'Las duración debe ser menor a 12h';
+      }
     }
+
+    return null;
   }
 
 
@@ -255,9 +257,11 @@ class ActivityRecord extends SQLiteModel {
     double? newKcal = double.tryParse(inputValue?.split(" ").first ?? '0');
 
     if (inputValue != null && inputValue.isNotEmpty) {
-      return (newKcal != null && newKcal > 2500)
-          ? 'La kilocalorías deben ser menores a 2500'
-          : null;
+      if (newKcal != null && newKcal > 2500) {
+        return 'La kilocalorías deben ser menores a 2500';
+      }
     }
+
+    return null;
   }
 }

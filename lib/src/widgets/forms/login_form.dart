@@ -71,7 +71,7 @@ class _LoginFormState extends State<LoginForm> {
 
         String accountId = tokenClaims['id'];
 
-        if (profileProvider.profile.userAccountID != null) {
+        if (profileProvider.profile.userAccountID.isNotEmpty) {
           int profileLinkedToAccount = await profileProvider.findAndSetProfileLinkedToAccount(accountId);
 
           if (profileLinkedToAccount < 0) {

@@ -75,7 +75,7 @@ class _SignupFormState extends State<SignupForm> {
 
         String newAccountID = tokenClaims['id'];
 
-        if (profileProvider.profile.userAccountID != null) {
+        if (profileProvider.profile.userAccountID.isNotEmpty) {
           // Si el perfil actual ya tiene asociada una cuenta de usuario,
           // crear un nuevo perfil con el ID de la nueva cuenta.
           profileProvider.newDefaultProfile(accountID: newAccountID);

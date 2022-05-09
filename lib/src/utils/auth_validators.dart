@@ -32,6 +32,8 @@ class AuthValidators {
       
       return isValidEmail(emailInput) ? null : 'El correo no tiene un formato válido.';
     }
+
+    return null;
   }
 
   static String? usernameValidator(final String? usernameInput, final bool fieldEdited) {
@@ -43,6 +45,8 @@ class AuthValidators {
     if (!usernameRegExp.hasMatch(usernameInput)) {
       return 'El usuario debe tener entre 4 y 20 letras o números';
     }
+
+    return null;
   }
 
   static String? passwordValidator(final String? passwordInput, final bool fieldEdited) {
@@ -58,6 +62,8 @@ class AuthValidators {
         return 'La contraseña debe tener un número y una mayúscula';
       }
     }
+
+    return null;
   }
 
   static String? confirmPasswordValidator(final String? password, final String? confirmInput, final bool fieldEdited) {
@@ -72,5 +78,7 @@ class AuthValidators {
         return 'Las contraseñas no coinciden';
       }
     }
+
+    return null;
   }
 }

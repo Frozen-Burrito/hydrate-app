@@ -1,7 +1,6 @@
 import 'dart:collection';
 import 'package:flutter/material.dart';
 
-import 'package:hydrate_app/src/pages/main_page.dart';
 import 'package:hydrate_app/src/pages/pages.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/forms/create_goal_form.dart';

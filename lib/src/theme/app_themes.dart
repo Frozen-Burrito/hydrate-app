@@ -75,9 +75,9 @@ class AppThemes {
 
     colorScheme: ColorScheme.fromSwatch().copyWith(
       primary: const Color(0xFF29B6F6),
-      primaryVariant: const Color(0xFF1998D2),
+      primaryContainer: const Color(0xFF1998D2),
       secondary: const Color(0xFF6FD873),
-      secondaryVariant: const Color(0xFF63C166),
+      secondaryContainer: const Color(0xFF63C166),
       surface: const Color(0xFF29292D),
       onBackground: const Color(0xFFEFEFEF),
       onSurface: const Color(0x77D6C3C3),

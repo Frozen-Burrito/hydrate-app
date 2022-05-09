@@ -135,7 +135,7 @@ class ArticleProvider with ChangeNotifier {
       _shouldRefreshBookmarks = false;
       _bookmarksError = false;
 
-    } on Exception catch (e) {
+    } on Exception catch (_) {
       
       _bookmarksError = true;
     } finally {
