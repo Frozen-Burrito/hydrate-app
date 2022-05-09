@@ -156,6 +156,28 @@ class ActivityRecord extends SQLiteModel {
     return kCalPerMinute * durationMins;
   }
 
+  /// Determina si este [ActivityRecord] y [other] son similares.
+  /// 
+  /// Dos actividades son similares si:
+  ///  - Tienen el mismo [activityType].
+  ///  - Sus [date] tienen menos de 15 minutos de diferencia.
+  ///  - Sus [duration] tienen menos de 10 minutos de diferencia.
+  ///  - Tienen intensidades similares.
+  bool isSimilarTo(ActivityRecord other) {
+    bool sameType = activityType == other.activityType;
+
+    final millisDiff = (date.millisecondsSinceEpoch - other.date.millisecondsSinceEpoch).abs();
+    bool similarDate = millisDiff < const Duration(minutes: 15).inMilliseconds;
+
+    bool similarDuration = (duration - other.duration).abs() < 10;
+
+    bool similarIntensity = 
+      (kiloCaloriesBurned - other.kiloCaloriesBurned).abs() < 50 ||
+      (distance - other.distance).abs() < 0.15;
+
+    return sameType && similarDate && similarDuration && similarIntensity;
+  }
+
   bool get isIntense => (duration > 60 * 3 || distance > 10 || kiloCaloriesBurned > 1500);
 
   bool get isExhausting => (duration > 60 * 5 || distance > 20 || kiloCaloriesBurned > 2000);
@@ -195,7 +217,6 @@ class ActivityRecord extends SQLiteModel {
     return date.toString().substring(0, 16);
   }
 
-
   static String? validateTitle(String? inputValue) {
     return (inputValue != null && inputValue.length > 40)
         ? 'El título debe tener menos de 40 caracteres'
@@ -206,10 +227,12 @@ class ActivityRecord extends SQLiteModel {
 
     double? newDistance = double.tryParse(inputValue?.split(" ").first ?? '0');
 
-    if (inputValue != null && inputValue.isNotEmpty) {
-      return (newDistance != null && newDistance > 30)
-          ? 'Las distancia debe ser menor a 30 km'
-          : null;
+    if (inputValue != null && inputValue.isNotEmpty && newDistance != null) {
+      if (newDistance > 30.0) {
+        return 'Las distancia debe ser menor a 30 km';
+      } else if (newDistance < 0.0) {
+        return 'Las distancia debe ser mayor a 0 km';
+      }
     }
 
     return null;
