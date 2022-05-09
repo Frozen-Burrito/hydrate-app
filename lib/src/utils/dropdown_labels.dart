@@ -60,16 +60,16 @@ class DropdownLabels {
 
     return activityTypes.map((activityType) {
       return DropdownMenuItem(
-        value: activityType.activityTypeValue.index,
+        value: activityType.id,
         child: Row(
           children: [
             
-            Icon(activityLabels[activityType.activityTypeValue.index].icon),
+            Icon(activityLabels[activityType.id].icon),
 
             const SizedBox( width: 4.0,),
 
             Text(
-              activityLabels[activityType.activityTypeValue.index].label, 
+              activityLabels[activityType.id].label, 
               overflow: TextOverflow.ellipsis,
             ),
           ],

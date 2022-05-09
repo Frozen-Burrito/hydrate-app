@@ -90,7 +90,7 @@ class _ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final int activityTypeIdx = activityRecord.activityType.activityTypeValue.index;
+    final int activityTypeIdx = activityRecord.activityType.id;
     final activityTypeLabel = DropdownLabels.activityLabels[activityTypeIdx];
 
     return Card(

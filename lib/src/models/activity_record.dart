@@ -12,6 +12,7 @@ class ActivityRecord extends SQLiteModel {
   double distance;
   int kiloCaloriesBurned;
   bool doneOutdoors;
+  bool isRoutine;
   ActivityType activityType;
   int profileId;
 
@@ -23,6 +24,7 @@ class ActivityRecord extends SQLiteModel {
     this.distance = 0.0,
     this.kiloCaloriesBurned = 0,
     this.doneOutdoors = true,
+    this.isRoutine = false,
     required this.activityType,
     required this.profileId
   });
@@ -41,6 +43,7 @@ class ActivityRecord extends SQLiteModel {
       distancia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
       kilocalorias_quemadas ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       al_aire_libre ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      es_rutina ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       id_${ActivityType.tableName} ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       id_${UserProfile.tableName} ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
@@ -69,6 +72,7 @@ class ActivityRecord extends SQLiteModel {
       distance: double.tryParse(map['distancia'].toString()) ?? 0.0,
       kiloCaloriesBurned: int.tryParse(map['kilocalorias_quemadas'].toString()) ?? 0,
       doneOutdoors: (int.tryParse(map['al_aire_libre'].toString()) ?? 0) != 0,
+      isRoutine: (int.tryParse(map['es_rutina'].toString()) ?? 0) != 0,
       activityType: type,
       profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
     );
@@ -84,6 +88,7 @@ class ActivityRecord extends SQLiteModel {
       'distancia': distance,
       'kilocalorias_quemadas': kiloCaloriesBurned,
       'al_aire_libre': doneOutdoors ? 1 : 0,
+      'es_rutina': isRoutine ? 1 : 0,
       ActivityType.tableName: activityType,
       'id_perfil': profileId
     };
@@ -206,6 +211,8 @@ class ActivityRecord extends SQLiteModel {
           ? 'Las distancia debe ser menor a 30 km'
           : null;
     }
+
+    return null;
   }
 
   static String? validateDuration(String? inputValue) {

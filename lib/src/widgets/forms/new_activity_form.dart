@@ -25,7 +25,7 @@ class _NewActivityFormState extends State<NewActivityForm> {
     title: '', 
     date: DateTime.now(), 
     duration: 0, 
-    activityType: ActivityType(mets: 0.0, activityTypeValue: ActivityTypeValue.walk), 
+    activityType: ActivityType(mets: 0.0,), 
     profileId: -1
   );
 
@@ -64,7 +64,7 @@ class _NewActivityFormState extends State<NewActivityForm> {
 
       if (newActivityRecord.activityType.id < 0) {
         int activityTypeIdx = provider.activityTypes
-                    .indexWhere((t) => t.activityTypeValue.index == 0);
+                    .indexWhere((t) => t.id == 0);
 
         newActivityRecord.activityType = provider.activityTypes[activityTypeIdx];
       }
@@ -114,12 +114,12 @@ class _NewActivityFormState extends State<NewActivityForm> {
                   hintText: 'Selecciona' 
                 ),
                 items: DropdownLabels.activityTypes(provider.activityTypes),
-                value: newActivityRecord.activityType.activityTypeValue.index,
+                value: newActivityRecord.activityType.id,
                 validator: (int? value) => ActivityType.validateType(value),
                 onChanged: (int? newValue) {
                   // Obtener el tipo de actividad correspondiente.
                   int activityTypeIdx = provider.activityTypes
-                    .indexWhere((t) => t.activityTypeValue.index == newValue);
+                    .indexWhere((t) => t.id == newValue);
         
                   setState(() {
                     newActivityRecord.activityType = provider.activityTypes[activityTypeIdx];

@@ -1,6 +1,4 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
-import 'package:hydrate_app/src/models/activity_record.dart';
-import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
 class SQLiteMigrator {
@@ -82,6 +80,26 @@ class SQLiteMigrator {
       '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8, 7);''',
       '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3, 8);''',
     ],
+    15: [
+      '${SQLiteKeywords.dropTableIfExists} ${ActivityRecord.tableName}',
+      '${SQLiteKeywords.dropTableIfExists} ${ActivityType.tableName}',
+      '${SQLiteKeywords.dropTableIfExists} ${RoutineActivity.tableName}',
+
+      ActivityRecord.createTableQuery,
+      ActivityType.createTableQuery,
+      RoutineActivity.createTableQuery,
+
+      // Insertar todos los tipos de actividad con modelos actualizados.
+      '''INSERT INTO ${ActivityType.tableName} VALUES (0, 5.0, 4.3);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (1, 8.0, 7.0);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (2, 11.0, 7.5);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (3, 0.0, 9.8);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (4, 0.0, 7.0);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (5, 0.0, 6.5);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (6, 0.0, 4.0);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3);''',
+    ]
   };
 
 }
