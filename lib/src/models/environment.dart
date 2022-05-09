@@ -9,7 +9,9 @@ class Environment extends SQLiteModel {
 
   Environment({
     this.id = -1, 
-    this.imagePath = 'assets/img/placeholder.png', 
+    // this.imagePath = 'assets/img/placeholder.png', 
+    //TODO: Prueba, correjir el path por defecto de los entornos.
+    this.imagePath = 'assets/img/entorno_1_agua.png', 
     this.price = 0 
   });
 

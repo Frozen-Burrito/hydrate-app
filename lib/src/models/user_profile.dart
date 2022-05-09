@@ -213,9 +213,9 @@ class UserProfile extends SQLiteModel {
 }
 
 enum UserSex {
-  notSpecified,
   woman,
   man,
+  notSpecified,
 }
 
 enum Occupation {

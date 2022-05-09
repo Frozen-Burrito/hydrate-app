@@ -30,10 +30,10 @@ class Habits extends SQLiteModel {
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
       id ${SQLiteKeywords.idType},
-      horas_sueno ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      horas_act_fisica ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      horas_ocupacion ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      temperatura_max ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      horas_sueno ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      horas_act_fisica ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      horas_ocupacion ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      temperatura_max ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
       fecha ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
       id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 

@@ -10,7 +10,7 @@ class NavigationProvider with ChangeNotifier {
   int _activePage = 1;
 
   /// Controlador para el [PageView] principal.
-  final PageController _pageController = PageController(initialPage: 1);
+  final PageController _pageController;
 
   /// Es `true` si el controlador está animando una transición.
   bool isAnimatingPageChange = false;
@@ -18,7 +18,8 @@ class NavigationProvider with ChangeNotifier {
   /// Obtiene el índice de la página activa.
   int get activePage => _activePage;
 
-  NavigationProvider(this._activePage);
+  NavigationProvider(this._activePage) 
+    : _pageController = PageController(initialPage: _activePage);
 
   /// Realiza una transición desde la página actual a [newPage].
   /// 

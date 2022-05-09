@@ -119,8 +119,8 @@ class SQLiteDB {
 
   /// Retorna una lista con todos los registros de una tabla.
   Future<Iterable<T>> select<T extends SQLiteModel>(
-    T Function(Map<String, Object?>) mapper, 
-    final String table, 
+    T Function(Map<String, Object?>) mapper,
+    final String table,
     { 
       final List<WhereClause>? where,
       final List<String>? whereUnions,

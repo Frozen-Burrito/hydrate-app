@@ -35,35 +35,41 @@ class HydrationSliverList extends StatelessWidget {
 
                   SliverPadding(
                     padding: const EdgeInsets.all(8.0),
-                    sliver: Builder(
-                      builder: (context) {
-                        String msg = '';
-                        IconData placeholderIcon = Icons.info;
-                  
-                        if (!provider.isLoading && provider.hydrationRecords.isEmpty) {
-                          msg = 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.';
-                          placeholderIcon = Icons.fact_check_rounded;
-                        }
-                  
-                        if (provider.isLoading || provider.hydrationRecords.isEmpty) {
-                          // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-                          return SliverDataPlaceholder(
-                            isLoading: provider.isLoading,
-                            message: msg,
-                            icon: placeholderIcon,
+                    sliver: FutureBuilder<Map<DateTime, List<HydrationRecord>>>(
+                      future: provider.dailyHidration,
+                      builder: (context, snapshot) {
+
+                        if (snapshot.hasData) {
+                          if (snapshot.data!.isNotEmpty) {
+                            final sortedRecords = snapshot.data!.values.toList();
+
+                            // Retornar la lista de registros de hidratacion del usuario.
+                            return SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int i) {
+                                  return _HydrationCard(
+                                    hydrationRecords: sortedRecords[i],
+                                  );
+                                },
+                                childCount: snapshot.data!.length,
+                              ),
+                            );
+                          } else {
+                            return const SliverDataPlaceholder(
+                              message: 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.',
+                              icon: Icons.fact_check_rounded,
+                            );
+                          }
+                        } else if (snapshot.hasError) {
+                          return const SliverDataPlaceholder(
+                            message: 'Hubo un error al intentar obtener registros de hidratación.',
+                            icon: Icons.error_outline,
                           );
-          
-                        } else {
-                          // Retornar la lista de registros de hidratacion del usuario.
-                          return SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (BuildContext context, int i) {
-                                return _HydrationCard(hydrationRecords: provider.dailyHidration.values.toList()[i],);
-                              },
-                              childCount: provider.dailyHidration.length,
-                            ),
-                          );
                         }
+
+                        return const SliverDataPlaceholder(
+                          isLoading: true,
+                        );
                       }
                     ),
                   ),

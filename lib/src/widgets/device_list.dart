@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 import 'package:hydrate_app/src/widgets/scan_result_tile.dart';
 
 /// Un widget con una lista de dispositivos conectados y otra de dispositivos 
@@ -9,6 +11,9 @@ class BleDeviceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return RefreshIndicator(
       onRefresh: () => FlutterBlue.instance.startScan(timeout: const Duration(seconds: 4)),
       child: SingleChildScrollView(
@@ -20,7 +25,7 @@ class BleDeviceList extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Text(
-                'Botella conectada',
+                localizations.connectedDevice,
                 style: Theme.of(context).textTheme.bodyText1,
               ),
             ),
@@ -59,7 +64,7 @@ class BleDeviceList extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Text(
-                'Dispositivos disponibles',
+                localizations.availableDevices,
                 style: Theme.of(context).textTheme.bodyText1,
               ),
             ),

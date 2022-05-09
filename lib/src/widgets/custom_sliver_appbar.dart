@@ -32,7 +32,10 @@ class CustomSliverAppBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric( vertical: 10.0 ),
         child: Text(title),
       ),
-      titleTextStyle: Theme.of(context).textTheme.headline4,
+      titleTextStyle: Theme.of(context).textTheme.headline4?.copyWith(
+        fontSize: 22.0
+      ),
+      titleSpacing: 4.0,
       centerTitle: true,
       floating: true,
       leadingWidth: MediaQuery.of(context).size.width * 0.4,

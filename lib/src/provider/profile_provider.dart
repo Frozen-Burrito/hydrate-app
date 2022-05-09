@@ -26,8 +26,6 @@ class ProfileProvider extends ChangeNotifier
 
   bool _countriesLoading = true;
 
-  bool _isProfileModified = false;
-
   bool get isProfileLoading => _profileLoading;
   bool get hasError => _profileError;
 
@@ -221,56 +219,48 @@ class ProfileProvider extends ChangeNotifier
 
   set firstName(String newFirstName) {
     if (newFirstName != _profile.firstName) {
-      _isProfileModified = true;
       _profileChanges.firstName = newFirstName;
     }
   }
 
   set lastName(String newLastName) {
     if (newLastName != _profile.lastName) {
-      _isProfileModified = true;
       _profileChanges.lastName = newLastName;
     }
   }
 
   set dateOfBirth(DateTime? newDateOfBirth) {
     if (newDateOfBirth != _profile.birthDate) {
-      _isProfileModified = true;
       _profileChanges.birthDate = newDateOfBirth;
     }
   }
 
   set userSex(UserSex newUserSex) {
     if (newUserSex != _profile.sex) {
-      _isProfileModified = true;
       _profileChanges.sex = newUserSex;
     }
   }
 
   set height(double newHeight) {
     if (newHeight != _profile.height) {
-      _isProfileModified = true;
       _profileChanges.height = newHeight;
     }
   }
 
   set weight(double newWeight) {
     if (newWeight != _profile.weight) {
-      _isProfileModified = true;
       _profileChanges.weight = newWeight;
     }
   }
 
   set occupation(Occupation newOccupation) {
     if (newOccupation != _profile.occupation) {
-      _isProfileModified = true;
       _profileChanges.occupation = newOccupation;
     }
   }
 
   set medicalCondition(MedicalCondition newMedicalCondition) {
     if (newMedicalCondition != _profile.medicalCondition) {
-      _isProfileModified = true;
       _profileChanges.medicalCondition = newMedicalCondition;
     }
   }

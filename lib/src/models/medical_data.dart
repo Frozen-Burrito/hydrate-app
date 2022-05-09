@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 
 enum MedicalCondition {
   notSpecified,
@@ -47,7 +48,11 @@ class MedicalData extends SQLiteModel {
       normovolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
       ganancia_rec ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
       ganancia_real ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      fecha_prox_cita ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType}
+      fecha_prox_cita ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      id_${UserProfile.tableName} ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+
+      ${SQLiteKeywords.fk} (id_${UserProfile.tableName}) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+          ${SQLiteKeywords.onDelete} ${SQLiteKeywords.noAction}
     )
   ''';
 

@@ -25,6 +25,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     startDate: DateTime.now(), 
     endDate: DateTime.now(),
     tags: <Tag>[],
+    profileId: -1,
+    quantity: 0,
   );
 
   bool isLoading = false;
@@ -93,8 +95,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
     final tagResults = await SQLiteDB.instance.select<Tag>(
       Tag.fromMap, 
-      Tag.tableName,
-      where: [ WhereClause('id_perfil', profileId.toString())]
+      Tag.tableName, 
+      where: [ WhereClause('id_perfil', widget.currentProfileId.toString())]
     );
 
     existingTags.addAll(tagResults);

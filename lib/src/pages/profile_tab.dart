@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
@@ -8,6 +8,7 @@ import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:hydrate_app/src/widgets/activity_time_brief.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
+import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:hydrate_app/src/widgets/forms/initial_form.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
@@ -32,7 +33,7 @@ class _ProfileTabState extends State<ProfileTab> {
       physics: const BouncingScrollPhysics(),
       slivers: <Widget>[
         CustomSliverAppBar(
-          title: 'Perfil',
+          title: '',
           leading: const <Widget>[
             CoinDisplay(),
           ],
@@ -132,6 +133,8 @@ class _FullnameDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final localizations = AppLocalizations.of(context)!;
+
     return Consumer<ProfileProvider>(
       builder: (_, provider, __) {
 
@@ -148,7 +151,7 @@ class _FullnameDisplay extends StatelessWidget {
                       maxLength: 50,
                       decoration: InputDecoration(
                         border: const OutlineInputBorder(),
-                        labelText: 'Nombre(s)',
+                        labelText: localizations.firstName,
                         helperText: ' ',
                         counterText: '${provider.profileChanges.firstName.length.toString()}/50'
                       ),
@@ -167,7 +170,7 @@ class _FullnameDisplay extends StatelessWidget {
                       maxLength: 50,
                       decoration: InputDecoration(
                         border: const OutlineInputBorder(),
-                        labelText: 'Appellido(s)',
+                        labelText: localizations.lastName,
                         helperText: ' ',
                         counterText: '${provider.profileChanges.lastName.length.toString()}/50'
                       ),
@@ -184,13 +187,13 @@ class _FullnameDisplay extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 48.0),
                 child: DropdownButtonFormField(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Ocupación',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.occupation,
                     helperText: ' ',
                     hintText: 'Selecciona' 
                   ),
-                  items: DropdownLabels.occupationDropdownItems,
+                  items: DropdownLabels.occupationDropdownItems(context),
                   value: provider.profileChanges.occupation.index,
                   onChanged: (int? value) => provider.occupation = Occupation.values[value ?? 0],
                 ),
@@ -208,7 +211,7 @@ class _FullnameDisplay extends StatelessWidget {
               const SizedBox( height: 16.0 ,),
 
               Text(
-                DropdownLabels.occupationLabels[provider.profile.occupation.index],
+                DropdownLabels.occupationLabels(context)[provider.profile.occupation.index],
                 style: Theme.of(context).textTheme.headline6,
               ),
             ]
@@ -234,7 +237,7 @@ class _IdealHydrationLabel extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         Text(
-          'Hidratación ideal:',
+          AppLocalizations.of(context)!.idealHydration,
           style: Theme.of(context).textTheme.headline6
         ),
 

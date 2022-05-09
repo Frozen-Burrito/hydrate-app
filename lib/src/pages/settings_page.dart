@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/models/hydration_record.dart';
+import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/settings_items.dart';
 
@@ -15,10 +18,10 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final settingsProvider = Provider.of<SettingsProvider>(context);
-    final hydrationRecords = Provider.of<HydrationRecordProvider>(context).hydrationRecords;
+    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
 
-    final lastBatteryUpdate = hydrationRecords.isNotEmpty ? hydrationRecords.first.date : null;
-
+    final localizations = AppLocalizations.of(context)!;
+    
     return Scaffold(
       body: SafeArea(
         top: false,
@@ -27,7 +30,7 @@ class SettingsPage extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           slivers: <Widget> [
             CustomSliverAppBar(
-              title: 'Ajustes',
+              title: localizations.settings,
               leading: <Widget> [
                 IconButton(
                   icon: const Icon(Icons.arrow_back), 
@@ -54,25 +57,41 @@ class SettingsPage extends StatelessWidget {
                     child: Row(
                       children: [
                         Text(
-                          'Batería de la Botella', 
+                          localizations.batteryHeading, 
                           style: Theme.of(context).textTheme.headline5,
                           textAlign: TextAlign.start,
                         ),
                       ],
                     ),
                   ),
-
+            
                   const _BatteryUsageChart(),
+                ]
+              )
+            ),
 
-                  Container(
+            FutureBuilder<List<HydrationRecord>>(
+              future: hydrationProvider.hydrationRecords,
+              initialData: const [],
+              builder: (context, snapshot) {
+
+                String lastBatteryUpdate = 'Nunca'; //TODO: Localizacion de 'nunca'
+
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  // Determinar actualización más reciente de nivel de batería.
+                  lastBatteryUpdate = snapshot.data!.first.date.toString().substring(0,16);
+                } 
+
+                return SliverToBoxAdapter(
+                  child: Container(
                     margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
                     child: Text(
-                      'Última actualización: ${lastBatteryUpdate != null ? lastBatteryUpdate.toString().substring(0,16) : 'Nunca'}', 
+                      '${localizations.lastUpdate}: $lastBatteryUpdate', 
                       style: Theme.of(context).textTheme.bodyText2,
                     ),
                   ),
-                ],
-              )
+                );
+              }
             ),
 
             SliverToBoxAdapter(
@@ -95,19 +114,14 @@ class SettingsPage extends StatelessWidget {
 /// de registros de hidratación está ordenada cronológicamente. 
 class _BatteryUsageChart extends StatelessWidget {
 
-  const _BatteryUsageChart({
-    Key? key,
-  }) : super(key: key);
+  const _BatteryUsageChart({ Key? key, }) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
+  List<FlSpot> _getBatteryUsageSpots(
+    final List<HydrationRecord> hydrationRecords, 
+    final DateTime now
+  ) {
 
-    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
-
-    final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
-
-    final hydrationRecords = hydrationProvider.hydrationRecords;
 
     // Transforma la lista de registros de consumo en una lista de puntos para la gráfica.
     // - Filtra los datos para obtener los registros de las últimas 24 hrs.
@@ -143,65 +157,84 @@ class _BatteryUsageChart extends StatelessWidget {
 
     batteryData.add(FlSpot(0.0, prevBatteryLvl));
 
+    return batteryData;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
+
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: 300.0,
-      child: hydrationProvider.isLoading 
-      ? const Center(
-        child: CircularProgressIndicator(),
+      child: FutureBuilder<List<HydrationRecord>>(
+        future: hydrationProvider.hydrationRecords,
+        builder: (context, snapshot) {
+
+          if (snapshot.hasData) {
+
+            final now = DateTime.now();
+
+            return LineChart(
+              LineChartData(
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: _getBatteryUsageSpots(snapshot.data!, now),
+                    colors: [
+                      Colors.yellow.shade300,
+                    ],
+                    isCurved: false,
+                    barWidth: 2,
+                    belowBarData: BarAreaData(
+                      show: false,
+                    ),
+                    dotData: FlDotData(show: false)
+                  )
+                ],
+                minY: 0.0,
+                maxY: 100.0,
+                minX: 0.0,
+                maxX: 24.0,
+                titlesData: FlTitlesData(
+                  topTitles: SideTitles( showTitles: false),
+                  rightTitles: SideTitles( showTitles: false),
+                  leftTitles: SideTitles( showTitles: false,),
+                  bottomTitles: SideTitles( 
+                    showTitles: true,
+                    reservedSize: 30,
+                    interval: 4,
+                    getTextStyles: (context, value) => Theme.of(context).textTheme.bodyText2,
+                    getTitles: (value) {
+                      if (value <= 0.0 || value >= 24.0) return '';
+
+                      DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
+
+                      // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
+
+                      return '${labelDate.toString().substring(11,14)}00';
+                    }
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawHorizontalLine: true,
+                  drawVerticalLine: true,
+                  horizontalInterval: 4,
+                  verticalInterval: 10,
+                  checkToShowHorizontalLine: (x) => x.toInt() % 10 == 0,
+                  checkToShowVerticalLine: (y) => y.toInt() == 0,
+                ),
+                borderData: FlBorderData( show: false, ),
+              )
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
       )
-      : LineChart(
-        LineChartData(
-          lineBarsData: [
-            LineChartBarData(
-              spots: batteryData,
-              colors: [
-                Colors.yellow.shade300,
-              ],
-              isCurved: false,
-              barWidth: 2,
-              belowBarData: BarAreaData(
-                show: false,
-              ),
-              dotData: FlDotData(show: false)
-            )
-          ],
-          minY: 0.0,
-          maxY: 100.0,
-          minX: 0.0,
-          maxX: 24.0,
-          titlesData: FlTitlesData(
-            topTitles: SideTitles( showTitles: false),
-            rightTitles: SideTitles( showTitles: false),
-            leftTitles: SideTitles( showTitles: false,),
-            bottomTitles: SideTitles( 
-              showTitles: true,
-              reservedSize: 30,
-              interval: 4,
-              getTextStyles: (context, value) => Theme.of(context).textTheme.bodyText2,
-              getTitles: (value) {
-                if (value <= 0.0 || value >= 24.0) return '';
-
-                DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
-
-                // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
-
-                return '${labelDate.toString().substring(11,14)}00';
-              }
-            ),
-          ),
-          gridData: FlGridData(
-            show: true,
-            drawHorizontalLine: true,
-            drawVerticalLine: true,
-            horizontalInterval: 4,
-            verticalInterval: 10,
-            checkToShowHorizontalLine: (x) => x.toInt() % 10 == 0,
-            checkToShowVerticalLine: (y) => y.toInt() == 0,
-          ),
-          borderData: FlBorderData( show: false, ),
-        )
-      ),
     );
   }
 }

@@ -1,13 +1,14 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
-import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
 class InitialForm extends StatefulWidget {
@@ -60,6 +61,8 @@ class _InitialFormState extends State<InitialForm> {
     final profileProvider = Provider.of<ProfileProvider>(context);
     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
 
+    final localizations = AppLocalizations.of(context)!;
+
     final profileChanges = profileProvider.profileChanges;
 
     birthDateController.text = profileProvider.profile.birthDate
@@ -88,7 +91,7 @@ class _InitialFormState extends State<InitialForm> {
               readOnly: !widget.isFormModifiable,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
-                labelText: 'Nombre(s)',
+                labelText: localizations.firstName,
                 helperText: ' ',
                 counterText: '${profileChanges.firstName.length.toString()}/50'
               ),
@@ -107,7 +110,7 @@ class _InitialFormState extends State<InitialForm> {
               readOnly: !widget.isFormModifiable,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
-                labelText: 'Appellido(s)',
+                labelText: localizations.lastName,
                 helperText: ' ',
                 counterText: '${profileChanges.lastName.length.toString()}/50'
               ),
@@ -121,11 +124,11 @@ class _InitialFormState extends State<InitialForm> {
             readOnly: true,
             controller: birthDateController,
             enabled: widget.isFormModifiable,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Fecha de Nacimiento',
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.dateOfBirth,
               helperText: ' ', // Para evitar cambios en la altura del widget
-              suffixIcon: Icon(Icons.event_rounded)
+              suffixIcon: const Icon(Icons.event_rounded)
             ),
             onTap: () async {
               DateTime? newBirthDate = await showDatePicker(
@@ -150,13 +153,14 @@ class _InitialFormState extends State<InitialForm> {
             children:  <Widget>[
               Expanded(
                 child: DropdownButtonFormField(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Sexo',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.gender,
                     helperText: ' ',
-                    hintText: 'Selecciona' 
+                    hintText: localizations.select
                   ),
-                  items: DropdownLabels.sexDropdownItems,
+                  isExpanded: true,
+                  items: DropdownLabels.genderDropdownItems(context),
                   value: profileChanges.sex.index,
                   onChanged: (widget.isFormModifiable) 
                     ? (int? newValue) {
@@ -170,15 +174,15 @@ class _InitialFormState extends State<InitialForm> {
 
               Expanded(
                 child: DropdownButtonFormField(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'País',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.country,
                     helperText: ' ',
-                    hintText: 'Selecciona' 
+                    hintText: localizations.select
                   ),
                   isExpanded: true,
                   items: DropdownLabels
-                            .getCountryDropdownItems(profileProvider.countries),
+                            .getCountryDropdownItems(context, profileProvider.countries),
                   value: profileProvider.indexOfCountry(profileChanges.country),
                   onChanged: (widget.isFormModifiable)
                     ? (int? newValue) {
@@ -200,12 +204,12 @@ class _InitialFormState extends State<InitialForm> {
                   // autocorrect: false,
                   keyboardType: TextInputType.number,
                   enabled: widget.isFormModifiable,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Estatura (m)',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: '${localizations.height} (m)',
                     hintText: '1.70',
                     helperText: ' ',
-                    suffixIcon: Icon(Icons.height),
+                    suffixIcon: const Icon(Icons.height),
                   ),
                   initialValue: profileChanges.height.toStringAsFixed(2),
                   onChanged: (value) => profileProvider.height = double.tryParse(value) ?? 0,
@@ -220,12 +224,12 @@ class _InitialFormState extends State<InitialForm> {
                   autocorrect: false,
                   keyboardType: TextInputType.number,
                   enabled: widget.isFormModifiable,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Peso (kg)',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: '${localizations.weight} (kg)',
                     hintText: '60.0',
                     helperText: ' ',
-                    suffixIcon: Icon(Icons.monitor_weight_outlined)
+                    suffixIcon: const Icon(Icons.monitor_weight_outlined)
                   ),
                   initialValue: profileChanges.weight.toString(),
                   onChanged: (value) => profileProvider.weight = double.tryParse(value) ?? 0,
@@ -240,13 +244,13 @@ class _InitialFormState extends State<InitialForm> {
           (widget.isFormEditing)
           ? const SizedBox( height: 0.0, )
           : DropdownButtonFormField(
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Ocupación',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: localizations.occupation,
                 helperText: ' ',
-                hintText: 'Selecciona' 
+                hintText: localizations.select
               ),
-              items: DropdownLabels.occupationDropdownItems,
+              items: DropdownLabels.occupationDropdownItems(context),
               value: profileChanges.occupation.index,
               onChanged: (widget.isFormModifiable) 
                 ? (int? newValue) {
@@ -258,13 +262,12 @@ class _InitialFormState extends State<InitialForm> {
           const SizedBox( height: 16.0, ),
 
           DropdownButtonFormField(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Condiciones Médicas',
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.medicalCondition,
               helperText: ' ',
-              hintText: 'Padecimientos crónicos' 
             ),
-            items: DropdownLabels.conditionDropdownItems,
+            items: DropdownLabels.conditionDropdownItems(context),
             value: profileChanges.medicalCondition.index,
             onChanged: (widget.isFormModifiable) 
               ? (int? newValue) {
@@ -280,7 +283,7 @@ class _InitialFormState extends State<InitialForm> {
               children: <Widget>[
                 Expanded(
                   child: ElevatedButton(
-                    child: const Text('Omitir'),
+                    child: Text(localizations.skip),
                     style: ElevatedButton.styleFrom(
                       primary: Colors.grey.shade700,
                     ),
@@ -297,7 +300,7 @@ class _InitialFormState extends State<InitialForm> {
           
                 Expanded(
                   child: ElevatedButton(
-                    child: const Text('Continuar'),
+                    child: Text(localizations.continueAction),
                     style: ElevatedButton.styleFrom(
                       primary: Colors.blue,
                     ),

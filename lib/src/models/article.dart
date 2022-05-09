@@ -16,10 +16,10 @@ class Article extends SQLiteModel {
   bool isBookmarked;
 
   Article({
-    required this.id,
-    required this.title,
+    this.id = -1,
+    this.title = '',
     this.description,
-    required this.url,
+    this.url = '',
     this.publishDate,
     this.isBookmarked = false,
   });
@@ -39,14 +39,19 @@ class Article extends SQLiteModel {
     )
   ''';
 
-  static Article fromMap(Map<String, Object?> map) => Article(
-    id: (map['id'] is int ? map['id'] as int : -1),
-    title: map['titulo'].toString(),
-    description: map['descripcion'].toString(),
-    url: map['url'].toString(),
-    publishDate: DateTime.tryParse(map['fecha_pub'] is String ? map['fechaPublicacion'].toString(): ''),
-    isBookmarked: false
-  );
+  static Article fromMap(Map<String, Object?> map, { bool usarNombresDeAPI = false}) {
+    
+    String campoFechaPub = usarNombresDeAPI ? 'fechaPublicacion' : 'fecha_pub';
+
+    return Article(
+      id: (map['id'] is int ? map['id'] as int : -1),
+      title: map['titulo'].toString(),
+      description: map['descripcion'].toString(),
+      url: map['url'].toString(),
+      publishDate: DateTime.tryParse(map[campoFechaPub] is String ? map[campoFechaPub].toString(): ''),
+      isBookmarked: false
+    );
+  }
 
   @override
   Map<String, Object?> toMap() {
@@ -70,7 +75,7 @@ class ArticleCollection {
   ArticleCollection.fromJsonCollection(List<dynamic> json) {
 
     for (var articleMap in json) {
-      final article = Article.fromMap(articleMap);
+      final article = Article.fromMap(articleMap, usarNombresDeAPI: true);
       items.add(article);
     }
   }

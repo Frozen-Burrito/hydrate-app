@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/pages/auth_page.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/routes/route_names.dart';
 
 /// Un [PopupMenuButton] que despliega una lista de [options].
 /// 
@@ -63,13 +64,14 @@ class AuthOptionsMenu extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final settingsProvider = Provider.of<SettingsProvider>(context);
+    final localizations = AppLocalizations.of(context)!;
     
     return OptionsPopupMenu(
       options: settingsProvider.authToken.isEmpty 
         ? <MenuItem> [
           MenuItem(
             icon: Icons.settings, 
-            label: 'Ajustes',
+            label: localizations.settings,
             onSelected: () => Navigator.pushNamed(context, RouteNames.config),
           ),
           
@@ -77,7 +79,7 @@ class AuthOptionsMenu extends StatelessWidget {
 
           MenuItem(
             icon: Icons.account_circle_rounded, 
-            label: 'Iniciar Sesión',
+            label: localizations.signIn,
             onSelected: () => Navigator.pushNamed(
               context, 
               RouteNames.authentication, 
@@ -89,7 +91,7 @@ class AuthOptionsMenu extends StatelessWidget {
 
           MenuItem(
             icon: Icons.settings, 
-            label: 'Ajustes',
+            label: localizations.settings,
             onSelected: () => Navigator.pushNamed(context, RouteNames.config),
           ),
 
@@ -97,7 +99,7 @@ class AuthOptionsMenu extends StatelessWidget {
 
           MenuItem(
             icon: Icons.logout,
-            label: 'Cerrar Sesión',
+            label: localizations.signOut,
             onSelected: () => settingsProvider.logOut(),
           ),
         ],

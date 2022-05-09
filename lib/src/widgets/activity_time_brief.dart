@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
@@ -37,7 +38,7 @@ class _ActivityTimeBriefState extends State<ActivityTimeBrief> {
     try {
       final results = await SQLiteDB.instance.select<Habits>(
         Habits.fromMap, 
-        Habits.tableName,
+        Habits.tableName, 
         where: [ WhereClause('id_perfil', widget.userProfileId.toString()) ],
         orderByColumn: 'fecha',
         orderByAsc: false,
@@ -64,7 +65,7 @@ class _ActivityTimeBriefState extends State<ActivityTimeBrief> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Text(
-          'Horas por actividad',
+          AppLocalizations.of(context)!.hoursOfActivity,
           style: Theme.of(context).textTheme.subtitle1,
         ),
 

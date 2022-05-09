@@ -1,51 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 import 'package:hydrate_app/src/models/models.dart';
 
 class DropdownLabels {
 
-  static final activityLabels = <IconLabel> [
-    IconLabel('Caminar', Icons.directions_walk),
-    IconLabel('Correr', Icons.directions_run),
-    IconLabel('Andar en bicicleta', Icons.directions_bike),
-    IconLabel('Nadar', Icons.pool),
-    IconLabel('Fútbol', Icons.sports_soccer),
-    IconLabel('Básquetbol', Icons.sports_basketball),
-    IconLabel('Volleybol', Icons.sports_volleyball),
-    IconLabel('Danza', Icons.emoji_people),
-    IconLabel('Yoga', Icons.self_improvement),
-  ];
+  static  genderDropdownItems(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
 
-  static get sexDropdownItems => _sexDropdownItems;
-  static get occupationDropdownItems => _occupationDropdownItems;
-  static get conditionDropdownItems => _conditionDropdownItems;
+    final genderLabels = <String>[
+      localizations.genderWoman,
+      localizations.genderMan,
+      localizations.other,
+    ];
 
-  static get occupationLabels => <String>[
-    'Prefiero no especificar',
-    'Estudiante',
-    'Oficinista',
-    'Trabajador Físico',
-    'Padre o Madre',
-    'Atleta',
-    'Otro'
-  ];
+    return UserSex.values
+      .map((e) {
 
-  static final _sexDropdownItems = UserSex.values
-    .map((e) {
-
-      const labels = <String>['Otro','Mujer','Hombre'];
-
-      return DropdownMenuItem(
-        value: e.index,
-        child: Text(labels[e.index]),
-      );
-    }).toList();
+        return DropdownMenuItem(
+          value: e.index,
+          child: Text(genderLabels[e.index], overflow: TextOverflow.ellipsis,),
+        );
+      }).toList();
+  }
     
-  static List<DropdownMenuItem<int>> getCountryDropdownItems(List<Country> countries) {
+  static List<DropdownMenuItem<int>> getCountryDropdownItems(BuildContext context, List<Country> countries) {
+
+    final localizations = AppLocalizations.of(context)!;
 
     final labels = <String, String>{
-      'MX': 'México',
-      'EU': 'E.U.',
-      'OT': 'Otro'
+      '--': localizations.preferNotToSay,
+      'MX': localizations.countryMx,
+      'EU': localizations.countryUs,
+      'OT': localizations.other,
     };
 
     return countries.map((country) {
@@ -56,7 +43,26 @@ class DropdownLabels {
     }).toList();
   }
 
-  static List<DropdownMenuItem<int>> activityTypes(List<ActivityType> activityTypes) {
+  static List<IconLabel> activityLabels(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
+    return <IconLabel> [
+      IconLabel(localizations.actTypeWalk, Icons.directions_walk),
+      IconLabel(localizations.actTypeRun, Icons.directions_run),
+      IconLabel(localizations.actTypeCycle, Icons.directions_bike),
+      IconLabel(localizations.actTypeSwim, Icons.pool),
+      IconLabel(localizations.actTypeSoccer, Icons.sports_soccer),
+      IconLabel(localizations.actTypeBasketball, Icons.sports_basketball),
+      IconLabel(localizations.actTypeVolleyball, Icons.sports_volleyball),
+      IconLabel(localizations.actTypeDance, Icons.emoji_people),
+      IconLabel(localizations.actTypeYoga, Icons.self_improvement),
+    ];
+  }
+
+  static List<DropdownMenuItem<int>> activityTypes(BuildContext context, List<ActivityType> activityTypes) {
+
+    final activityLabels = DropdownLabels.activityLabels(context);
 
     return activityTypes.map((activityType) {
       return DropdownMenuItem(
@@ -77,36 +83,53 @@ class DropdownLabels {
       );
     }).toList();
   }
+
+  static occupationLabels(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    return <String>[
+      localizations.preferNotToSay,
+      localizations.student,
+      localizations.officeWorker,
+      localizations.manualWorker,
+      localizations.parent,
+      localizations.athlete,
+      localizations.other,
+    ];
+  }
    
-  static final _occupationDropdownItems = Occupation.values
+  static occupationDropdownItems(BuildContext context) {
+
+    final occupationLabels = DropdownLabels.occupationLabels(context);
+
+    return Occupation.values
     .map((e) {
-
-      const labels = <String>[
-        'Prefiero no especificar',
-        'Estudiante',
-        'Oficinista',
-        'Trabajador Físico',
-        'Padre o Madre',
-        'Atleta',
-        'Otro'
-      ];
-
       return DropdownMenuItem(
         value: e.index,
-        child: Text(labels[e.index]),
+        child: Text(occupationLabels[e.index], overflow: TextOverflow.ellipsis,),
       );
     }).toList();
+  }
 
-  static final _conditionDropdownItems = MedicalCondition.values
-    .map((e) {
+  static conditionDropdownItems(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
 
-      const labels = <String>['Prefiero no especificar', 'Ninguna','Insuficiencia Renal','Síndrome Nefrótico','Otro'];
+    final labels = <String>[
+      localizations.preferNotToSay, 
+      localizations.condNone,
+      localizations.condRenalInsuf,
+      localizations.condNephriticSynd,
+      localizations.other
+    ];
 
-      return DropdownMenuItem(
-        value: e.index,
-        child: Text(labels[e.index]),
-      );
-    }).toList();
+    return MedicalCondition.values
+      .map((e) {
+        return DropdownMenuItem(
+          value: e.index,
+          child: Text(labels[e.index], overflow: TextOverflow.ellipsis,),
+        );
+      }).toList();
+  }
 }
 
 class IconLabel {

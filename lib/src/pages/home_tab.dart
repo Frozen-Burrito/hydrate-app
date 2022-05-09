@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
@@ -25,7 +26,7 @@ class HomeTab extends StatelessWidget {
         slivers: <Widget> [
 
           CustomSliverAppBar(
-            title: 'Inicio',
+            title: AppLocalizations.of(context)!.home,
             leading: const <Widget> [CoinDisplay()],
             actions: <Widget>[
               IconButton(

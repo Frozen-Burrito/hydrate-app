@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
@@ -10,22 +10,21 @@ import 'package:provider/provider.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
-  final List<Article> articles;
+  final Future<List<Article>> articles;
 
   final bool isBookmarks;
-  final bool hasError;
-  final bool isLoading;
 
   const ArticleSliverList({ 
     required this.articles, 
-    this.isBookmarks = false,
-    this.isLoading = false, 
-    this.hasError = false,
+    required this.isBookmarks,
     Key? key 
     }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return SafeArea(
       top: false,
       bottom: false,
@@ -39,38 +38,41 @@ class ArticleSliverList extends StatelessWidget {
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(8.0),
-                sliver: Builder(
-                  builder: (context) {
+                sliver: FutureBuilder(
+                  future: articles,
+                  builder: (context, AsyncSnapshot<List<Article>> snapshot) {
 
-                    String msg = '';
-                    IconData placeholderIcon = Icons.error;
-
-                    if (hasError) {
-                      msg = 'Hubo un error obteniendo los recursos informativos';
-                      placeholderIcon = isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded;
-
-                    } else if (!isLoading && articles.isEmpty) {
-                      msg = isBookmarks 
-                        ? 'Aún no has guardado recursos informativos.' 
-                        : 'No hay recursos informativos disponibles. Intenta más tarde.';
-                      placeholderIcon = Icons.inbox;
-                    }
-
-                    if (isLoading || hasError || articles.isEmpty) {
+                    if (snapshot.hasData) {
+                      // El Future tiene datos.
+                      if (snapshot.data!.isNotEmpty) {
+                        // Retornar lista de articulos, si los hay.
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (BuildContext context, int i) {
+                              return _ArticleCard(article: snapshot.data![i]);
+                            },
+                            childCount: snapshot.data!.length
+                          ),
+                        );
+                      } else {
+                        // Mostrar contenido placeholder cuando no hay articulos.
+                        return SliverDataPlaceholder(
+                          message: isBookmarks 
+                            ? localizations.noBookmarks
+                            : localizations.resourcesUnavailable,
+                          icon: Icons.inbox,
+                        );
+                      }
+                    } else if (snapshot.hasError) {
+                      // Mostrar contenido placeholder de error.
                       return SliverDataPlaceholder(
-                        isLoading: isLoading,
-                        message: msg,
-                        icon: placeholderIcon,
+                        message: localizations.resourcesErr,
+                        icon: isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded,
                       );
                     }
 
-                    return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int i) {
-                          return _ArticleCard(article: articles[i]);
-                        },
-                        childCount: articles.length
-                      ),
+                    return const SliverDataPlaceholder(
+                      isLoading: true,
                     );
                   }
                 )
@@ -104,15 +106,17 @@ class _ArticleCard extends StatelessWidget {
     // El mensaje para confirmar la marca/eliminación.
     String snackMsg = '';
 
+    final localizations = AppLocalizations.of(context)!;
+
     if (article.isBookmarked) {
       // Si está marcado, quitar marca.
       int id = await provider.removeArticle(article.id);
-      snackMsg = id > -1 ? 'Artículo removido' : 'No se pudo remover el artículo.';
+      snackMsg = id > -1 ? localizations.resourceRemoved : localizations.resourceNotRemoved;
 
     } else {
       // Si no está marcado, marcar y guardar el recurso informativo.
       final id = await provider.bookmarkArticle(article);
-      snackMsg = id > -1 ? 'Artículo marcado.' : 'No se pudo marcar el artículo.';
+      snackMsg = id > -1 ? localizations.resourceAdded : localizations.resourceNotAdded;
     }
 
     return SnackBar(
@@ -125,28 +129,37 @@ class _ArticleCard extends StatelessWidget {
 
     final articleProvider = Provider.of<ArticleProvider>(context);
 
+    final localizations = AppLocalizations.of(context)!;
+
     final rawPublishDateStr = article.publishDate.toString();
 
     final articleDateStr = (article.publishDate != null)
       ? rawPublishDateStr.substring(0, min(article.publishDate.toString().length, 10))
-      : 'Sin fecha';
+      : localizations.noDate;
 
     return Card(
       child: Column(
         children: [
           ListTile(
+            visualDensity: VisualDensity.comfortable,
+            minVerticalPadding: 16.0,
             title: GestureDetector(
               onTap: article.url.startsWith('https')
                 ? () => UrlLauncher.launchUrlInBrowser(Uri.parse(article.url))
                 : null,
               child: Text(
                 article.title, 
-                style: Theme.of(context).textTheme.headline6,
+                style: Theme.of(context).textTheme.headline5,
               ),
             ),
-            subtitle: Text(
-              'Publicación: $articleDateStr',
-              style: Theme.of(context).textTheme.bodyText1
+            subtitle: Container(
+              margin: const EdgeInsets.only(top: 8.0),
+              child: Text(
+                '${localizations.published}: $articleDateStr',
+                style: Theme.of(context).textTheme.bodyText1?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface
+                )
+              ),
             ),
             trailing: IconButton(
               icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 

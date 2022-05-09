@@ -3,52 +3,48 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
-import 'package:hydrate_app/src/provider/provider_data_state.dart';
 
 class ActivityProvider extends ChangeNotifier {
 
   final List<ActivityRecord> _activityRecords = [];
   final List<ActivityType> _activityTypes = [];
 
+  final List<int> _dailyKcalTotals = [];
+
   final Map<DateTime, List<ActivityRecord>> _activitiesByDay = {};
 
-  DataState _activityDataState = DataState.initial;
-  DataState _actTypesDataState = DataState.initial;
+  bool _shouldRefreshActivities = true;
+  bool _activitiesLoading = true;
+  bool _shouldRefreshTypes = true;
 
-  List<ActivityRecord> get activityRecords {
+  Future<List<ActivityRecord>> get activityRecords {
 
-    if (_activityDataState != DataState.loading && _activityDataState != DataState.loaded) {
-      _queryActivityRecords();
+    if (_shouldRefreshActivities) {
+      return _queryActivityRecords();
     }
 
-    return _activityRecords;
+    return Future.value(_activityRecords);
   }
 
-  List<ActivityType> get activityTypes {
+  bool get activitiesLoading => _activitiesLoading;
 
-    if (_actTypesDataState != DataState.loading && _actTypesDataState != DataState.loaded) {
-      _queryActivityTypes();
+  Future<List<ActivityType>> get activityTypes {
+
+    if (_shouldRefreshTypes) {
+      return _queryActivityTypes();
     }
 
-    return _activityTypes;
+    return Future.value(_activityTypes);
   }
 
   Map<DateTime, List<ActivityRecord>> get activitiesByDay => _activitiesByDay;
 
-  List<int> get weekDailyTotals => _previousSevenDaysTotals();
+  List<int> get prevWeekDailyTotals => _previousSevenDaysTotals();
 
-  bool get isLoading => _activityDataState == DataState.loading;
-
-  bool get hasError => _activityDataState == DataState.error;
-
-  bool get areTypesLoading => _actTypesDataState == DataState.loading;
-
-  bool get doTypesHaveError => _actTypesDataState == DataState.error;
-
-  Future<void> _queryActivityRecords() async {
+  Future<List<ActivityRecord>> _queryActivityRecords() async {
     try {
-      _activityDataState = DataState.loading;
       _activityRecords.clear();
+      _activitiesLoading = true;
 
       final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
         ActivityRecord.fromMap, 
@@ -62,12 +58,15 @@ class ActivityProvider extends ChangeNotifier {
 
       _joinDailyRecords();
 
-      _activityDataState = DataState.loaded;
+      _shouldRefreshActivities = false;
 
-    } on Exception catch (_) {
-      _activityDataState = DataState.error;
+      return _activityRecords;
+
+    } on Exception catch (e) {
+      return Future.error(e);
 
     } finally {
+      _activitiesLoading = false;
       notifyListeners();
     }
   }
@@ -78,40 +77,37 @@ class ActivityProvider extends ChangeNotifier {
       int result = await SQLiteDB.instance.insert(newRecord);
 
       if (result >= 0) {
-        _activityDataState = DataState.initial;
+        _shouldRefreshActivities = true;
         return result;
       } else {
-        throw Exception('Error creando el registro de actividad fisica.');
+        throw Exception('No se pudo crear el registro de actividad fisica.');
       }
     }
     on Exception catch (e) {
-      _activityDataState = DataState.error;
-      print(e);
+      return Future.error(e);
 
     } finally {
       notifyListeners();
     }
-
-    return -1;
   }
 
-  Future<void> _queryActivityTypes() async {
+  Future<List<ActivityType>> _queryActivityTypes() async {
     try {
-      _actTypesDataState = DataState.loading;
       _activityTypes.clear();
 
       final queryResults = await SQLiteDB.instance.select<ActivityType>(
         ActivityType.fromMap, 
-        ActivityType.tableName,
+        ActivityType.tableName, 
       );
 
       _activityTypes.addAll(queryResults);
 
-      _actTypesDataState = DataState.loaded;
+      _shouldRefreshTypes = false;
+      
+      return _activityTypes;
 
-    } on Exception catch (_) {
-      _actTypesDataState = DataState.error;
-
+    } on Exception catch (e) {
+      return Future.error(e);
     } finally {
       notifyListeners();
     }
@@ -138,9 +134,10 @@ class ActivityProvider extends ChangeNotifier {
   /// 7 días más recientes.
   List<int> _previousSevenDaysTotals() {
 
-    final List<int> recentTotals = [];
     final DateTime now = DateTime.now();
     final DateTime today = DateTime(now.year, now.month, now.day);
+
+    _dailyKcalTotals.clear();
 
     for (int i = 0; i < 7; i++) {
 
@@ -154,15 +151,15 @@ class ActivityProvider extends ChangeNotifier {
           totalKcal += record.kiloCaloriesBurned;
         }
 
-        recentTotals.add(totalKcal);
+        _dailyKcalTotals.add(totalKcal);
       } else {
         // No hubo actividades registradas, agregar 0 por defecto.
-        recentTotals.add(0);
+        _dailyKcalTotals.add(0);
       }
     }
 
-    assert(recentTotals.length == 7);
+    assert(_dailyKcalTotals.length == 7);
 
-    return recentTotals.reversed.toList();
+    return _dailyKcalTotals.reversed.toList();
   }
 }

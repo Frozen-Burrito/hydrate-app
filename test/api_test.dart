@@ -14,7 +14,7 @@ void main() {
       const String expectedBaseUrl = 'https://$host/$apiRoute/$version';
 
       // Act
-      String actualBaseUrl = API.baseUrl;
+      String actualBaseUrl = API.apiUrl;
 
       // Assert
       expect(actualBaseUrl, expectedBaseUrl);
