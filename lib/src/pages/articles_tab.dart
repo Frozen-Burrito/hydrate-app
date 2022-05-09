@@ -30,8 +30,14 @@ class ArticlesTab extends StatelessWidget {
                   bottom: TabBar(
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     tabs: <Tab> [
-                      Tab(child: Text(localizations.discover, style: Theme.of(context).textTheme.bodyText1, )),
-                      Tab(child: Text(localizations.bookmarks, style: Theme.of(context).textTheme.bodyText1, )),
+                      Tab(
+                        child: Text(localizations.discover, 
+                        style: Theme.of(context).textTheme.bodyText1, )
+                      ),
+                      Tab(
+                        child: Text(localizations.bookmarks, 
+                        style: Theme.of(context).textTheme.bodyText1, )
+                      ),
                     ],
                   ),
                   actions: const <Widget>[
@@ -49,14 +55,10 @@ class ArticlesTab extends StatelessWidget {
                   ArticleSliverList(
                     articles: articleProvider.articles,
                     isBookmarks: false,
-                    isLoading:  articleProvider.articlesLoading,
-                    hasError: articleProvider.articlesError,
                   ),
                   ArticleSliverList(
                     articles: articleProvider.bookmarks, 
                     isBookmarks: true,
-                    isLoading: articleProvider.areBookmarksLoading,
-                    hasError: articleProvider.bookmarksError,
                   ),
                 ]
               );

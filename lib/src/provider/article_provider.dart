@@ -13,54 +13,39 @@ class ArticleProvider with ChangeNotifier {
   
   final List<Article> _bookmarkedArticles = [];
 
-  bool articlesLoading = true;
-  bool articlesError = false;
-
   bool _shouldRefreshArticles = true;
-
-  bool _bookmarksLoading = true;
-  bool _bookmarksError = false;
 
   bool _shouldRefreshBookmarks = true;
 
   bool _mounted = true;
 
-  bool get areBookmarksLoading => _bookmarksLoading;
-  bool get bookmarksError => _bookmarksError;
-
   /// La lista de artículos obtenidos desde la API.
-  List<Article> get articles {
+  Future<List<Article>> get articles {
 
     if (_shouldRefreshArticles) {
-      fetchArticles();
+      return _fetchArticles();
     }
 
-    return _allArticles.map((article) {
+    return Future.value(_allArticles.map((article) {
+        int bookmarkIdx = _bookmarkedArticles.indexWhere((bookmark) => bookmark.id == article.id);
+        if (bookmarkIdx > -1) {
+          article.isBookmarked = true;
+        }
 
-      int bookmarkIdx = _bookmarkedArticles.indexWhere((bookmark) => bookmark.id == article.id);
-      if (bookmarkIdx > -1) {
-        article.isBookmarked = true;
-      }
-
-      return article;
-    }).toList();
+        return article;
+      }).toList()
+    );
   }
 
   /// La lista de artículos marcados y guardados por el usuario.
-  List<Article> get bookmarks {
+  Future<List<Article>> get bookmarks {
     
-    try {
-      if (_shouldRefreshBookmarks) {
-        // Solo obtener bookmarks desde BD si hubo un cambio importante.
-        _bookmarksLoading = true;
-        refreshBookmarks();
-      }
-    } catch (e) {
-      _bookmarksLoading = false;
-      _bookmarksError = true;
-    } 
+    if (_shouldRefreshBookmarks) {
+      // Solo obtener bookmarks desde BD si hubo un cambio importante.
+      return _refreshBookmarks();
+    }
 
-    return _bookmarkedArticles;
+    return Future.value(_bookmarkedArticles);
   }
 
   /// Intenta obtener una [List<Article>] desde la API web.
@@ -71,12 +56,9 @@ class ArticleProvider with ChangeNotifier {
   /// Si logra obtener los recursos informativos, actualiza la lista local de
   /// recursos nuevos. Si surge un error, cambia el estado de [articlesError]
   /// a [true].
-  Future fetchArticles() async {
+  Future<List<Article>> _fetchArticles() async {
 
     _allArticles.clear();
-
-    articlesLoading = true;
-    articlesError = false;
 
     try {
       _shouldRefreshArticles = false;
@@ -90,59 +72,44 @@ class ArticleProvider with ChangeNotifier {
 
         final articles = ArticleCollection.fromJsonCollection(jsonCollection);
 
-        _allArticles.addAll(articles.items);
+        return articles.items;
 
-        articlesError = false;
       } else {
-        articlesError = true;
         print('Hubo un error obteniendo los recursos informativos.');
       }
 
     } on IOException catch (e) {
       // Es lanzada por http si el dispositivo no tiene internet. 
       print('El dispositivo no cuenta con conexion a internet: $e');
-      articlesError = true;
 
     } on FormatException catch (e) {
       // Lanzada por http si no logra hacer el parse de la URL solicitada.
       print('Error de formato en url: ${e.message}');
-      articlesError = true;
       
     } finally {
       // Evitar que se vuelva a refrescar, indiacar que ya no se están cargando
       // los artículos.
       _shouldRefreshArticles = false;
-      articlesLoading = false;
-
-      if (_mounted) {
-        notifyListeners();
-      }
     }
+
+    return [];
   }
 
   /// Obtiene de la BD los [Article] marcados para leer más tarde.
-  Future<void> refreshBookmarks() async {
+  Future<List<Article>> _refreshBookmarks() async {
 
     try {
       _bookmarkedArticles.clear();
       final articles = await SQLiteDB.instance.select<Article>(Article.fromMap, Article.tableName);
 
-      _bookmarkedArticles.addAll(articles.map((a) {
+      return articles.map((a) {
         a.isBookmarked = true;
         return a;
-      }));
-
-      _shouldRefreshBookmarks = false;
-      _bookmarksError = false;
-
-    } on Exception {
-      
-      _bookmarksError = true;
+      }).toList();
     } finally {
-      if (_mounted) {
-        _bookmarksLoading = false;
-        notifyListeners();
-      }
+      // Evitar que se vuelva a refrescar, indiacar que ya no se están cargando
+      // los artículos.
+      _shouldRefreshBookmarks = false;
     }   
   }
 

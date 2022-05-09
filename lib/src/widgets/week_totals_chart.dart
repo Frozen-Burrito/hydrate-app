@@ -28,6 +28,10 @@ class WeekTotalsChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    if (dailyTotals.isEmpty) {
+      dailyTotals.addAll(Iterable<int>.generate(7));
+    }
+
     final consumptionAverage = dailyTotals.reduce((total, valor) => total + valor) / 7;
 
     print('Average: ${consumptionAverage.toInt()}');

@@ -10,17 +10,13 @@ import 'package:provider/provider.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
-  final List<Article> articles;
+  final Future<List<Article>> articles;
 
   final bool isBookmarks;
-  final bool hasError;
-  final bool isLoading;
 
   const ArticleSliverList({ 
     required this.articles, 
-    this.isBookmarks = false,
-    this.isLoading = false, 
-    this.hasError = false,
+    required this.isBookmarks,
     Key? key 
     }) : super(key: key);
 
@@ -42,38 +38,41 @@ class ArticleSliverList extends StatelessWidget {
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(8.0),
-                sliver: Builder(
-                  builder: (context) {
+                sliver: FutureBuilder(
+                  future: articles,
+                  builder: (context, AsyncSnapshot<List<Article>> snapshot) {
 
-                    String msg = '';
-                    IconData placeholderIcon = Icons.error;
-
-                    if (hasError) {
-                      msg = localizations.resourcesErr;
-                      placeholderIcon = isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded;
-
-                    } else if (!isLoading && articles.isEmpty) {
-                      msg = isBookmarks 
-                        ? localizations.noBookmarks
-                        : localizations.resourcesUnavailable;
-                      placeholderIcon = Icons.inbox;
-                    }
-
-                    if (isLoading || hasError || articles.isEmpty) {
+                    if (snapshot.hasData) {
+                      // El Future tiene datos.
+                      if (snapshot.data!.isNotEmpty) {
+                        // Retornar lista de articulos, si los hay.
+                        return SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (BuildContext context, int i) {
+                              return _ArticleCard(article: snapshot.data![i]);
+                            },
+                            childCount: snapshot.data!.length
+                          ),
+                        );
+                      } else {
+                        // Mostrar contenido placeholder cuando no hay articulos.
+                        return SliverDataPlaceholder(
+                          message: isBookmarks 
+                            ? localizations.noBookmarks
+                            : localizations.resourcesUnavailable,
+                          icon: Icons.inbox,
+                        );
+                      }
+                    } else if (snapshot.hasError) {
+                      // Mostrar contenido placeholder de error.
                       return SliverDataPlaceholder(
-                        isLoading: isLoading,
-                        message: msg,
-                        icon: placeholderIcon,
+                        message: localizations.resourcesErr,
+                        icon: isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded,
                       );
                     }
 
-                    return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int i) {
-                          return _ArticleCard(article: articles[i]);
-                        },
-                        childCount: articles.length
-                      ),
+                    return const SliverDataPlaceholder(
+                      isLoading: true,
                     );
                   }
                 )
