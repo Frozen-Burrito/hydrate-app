@@ -158,9 +158,7 @@ class _BatteryUsageChart extends StatelessWidget {
           lineBarsData: [
             LineChartBarData(
               spots: batteryData,
-              colors: [
-                Colors.yellow.shade300,
-              ],
+              color: Colors.yellow.shade300,
               isCurved: false,
               barWidth: 2,
               belowBarData: BarAreaData(
@@ -174,23 +172,38 @@ class _BatteryUsageChart extends StatelessWidget {
           minX: 0.0,
           maxX: 24.0,
           titlesData: FlTitlesData(
-            topTitles: SideTitles( showTitles: false),
-            rightTitles: SideTitles( showTitles: false),
-            leftTitles: SideTitles( showTitles: false,),
-            bottomTitles: SideTitles( 
-              showTitles: true,
-              reservedSize: 30,
-              interval: 4,
-              getTextStyles: (context, value) => Theme.of(context).textTheme.bodyText2,
-              getTitles: (value) {
-                if (value <= 0.0 || value >= 24.0) return '';
+            topTitles: AxisTitles(
+              sideTitles: SideTitles( showTitles: false )
+            ),
+            rightTitles: AxisTitles(
+              sideTitles: SideTitles( showTitles: false )
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles( showTitles: false )
+            ),
+            bottomTitles: AxisTitles( 
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 4,
+                reservedSize: 30,
+                getTitlesWidget: (double value, TitleMeta? _) {
 
-                DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
+                  String titleContent = '';
 
-                // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
+                  if (value > 0.0 && value < 24.0) {
 
-                return '${labelDate.toString().substring(11,14)}00';
-              }
+                    DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
+                    // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
+
+                    titleContent = '${labelDate.toString().substring(11,14)}00';
+                  }
+
+                  return Text(
+                    titleContent,
+                    style: Theme.of(context).textTheme.bodyText2,
+                  );
+                }
+              ),
             ),
           ),
           gridData: FlGridData(
