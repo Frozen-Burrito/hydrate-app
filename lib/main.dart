@@ -2,8 +2,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/provider/notifications_service.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -22,25 +20,10 @@ Future<void> main() async {
   // Inicializar el proveedor de configuracion y la app de Firebase, al mismo tiempo.
   await Future.wait([
     SettingsProvider.init(), 
-    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    NotificationsService.initFirebase(),
   ]);
 
-  final fcmToken = await FirebaseMessaging.instance.getToken();
-
-  print('Token de FCM: $fcmToken');
-
-  FirebaseMessaging.instance.onTokenRefresh
-    .listen((fcmToken) {
-      //TODO: Enviar token al servidor, si es necesario.
-
-      // Este callback es invocado cuando la app inicia y cada vez que 
-      // se genera un nuevo token.
-    })
-    .onError((e) {
-      // Error obteniendo el token.
-    });
-
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+  NotificationsService.addForegroundHandler((RemoteMessage message) {
     print('Se recibió un mensaje estando en foreground!');
     print('Datos del mensaje: ${message.data}');
 
@@ -49,17 +32,13 @@ Future<void> main() async {
     }
   });
 
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  NotificationsService.addBackgroundHandler((RemoteMessage message) {
+    print('Ejecutando handler para mensajes en segundo plano.');
+
+    return Future.value();
+  });
 
   runApp(const HydrateApp());
-}
-
-//TODO: Esto es temporal, ver mejor manera de hacerlo.
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  
-  await Firebase.initializeApp();
-
-  print("Manejando un mensaje en el background: ${message.messageId}");
 }
 
 /// La [MaterialApp] que incluye toda la aplicación.
