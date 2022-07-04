@@ -28,8 +28,8 @@ class ActivitySliverList extends StatelessWidget {
 
                   SliverToBoxAdapter(
                     child: WeekTotalsChart(
-                      isLoading: provider.activitiesLoading,
-                      dailyTotals: provider.prevWeekDailyTotals,
+                      isLoading: provider.areActivitiesLoading,
+                      dailyTotals: provider.prevWeekKcalTotals,
                       yUnit: 'kCal',
                     ),
                   ),
