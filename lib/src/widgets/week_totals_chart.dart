@@ -61,27 +61,41 @@ class WeekTotalsChart extends StatelessWidget {
               BarChartData(
                 maxY: 3000, // Maximo 3000 de yUnit.
                 titlesData: FlTitlesData(
-                  show: true,
-                  leftTitles: SideTitles(showTitles: false),
-                  topTitles: SideTitles(showTitles: false),
-                  rightTitles: SideTitles(showTitles: false),
-                  bottomTitles: SideTitles(
-                    showTitles: true,
-                    getTextStyles: (context,  value) => Theme.of(context).textTheme.bodyText2?.copyWith(
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.82),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles( showTitles: false )
+                  ),
+                  topTitles:AxisTitles(
+                    sideTitles: SideTitles( showTitles: false )
+                  ),
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles( showTitles: false )
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      // interval: 4,
+                      getTitlesWidget: (double value, TitleMeta? _) {
+                        int intValue = value.toInt();
+
+                        String contenidoTitulo = '';
+
+                        if (intValue >= 0 && intValue <= 6) {
+
+                          int dayNumber = currentDay + value.toInt();
+
+                          int dayIndex = dayNumber > 6 ? dayNumber - 7 : dayNumber;
+
+                          contenidoTitulo = weekdayLabels[dayIndex];
+                        }
+
+                        return Text(
+                          contenidoTitulo, 
+                          style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.82),
+                          ), 
+                        );
+                      }
                     ),
-                    margin: 20.0,
-                    getTitles: (double value) {
-                      int intValue = value.toInt();
-
-                      if (intValue < 0 || intValue > 6) return '';
-
-                      int dayNumber = currentDay + value.toInt();
-
-                      int dayIndex = dayNumber > 6 ? dayNumber - 7 : dayNumber;
-
-                      return weekdayLabels[dayIndex];
-                    }
                   )
                 ),
                 borderData: FlBorderData( show: false, ),
@@ -90,8 +104,8 @@ class WeekTotalsChart extends StatelessWidget {
                   x: index,
                   barRods: [
                     BarChartRodData(
-                      y: dailyTotals[index].toDouble(),
-                      colors: [ Colors.greenAccent ],
+                      toY: dailyTotals[index].toDouble(),
+                      color: Colors.greenAccent,
                     )
                   ]
                 )).toList(),
@@ -115,7 +129,7 @@ class WeekTotalsChart extends StatelessWidget {
                       int rodIndex,
                     ) {
                       return BarTooltipItem(
-                        rod.y.round().toString() + ' $yUnit',
+                        rod.toY.round().toString() + ' $yUnit',
                         Theme.of(context).textTheme.bodyText1 ?? const TextStyle(color: Colors.black),
                       );
                     },

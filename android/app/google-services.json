@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "432198579055",
+    "project_id": "hydrate-service",
+    "storage_bucket": "hydrate-service.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:432198579055:android:2677ec57d0e71b707c6e9a",
+        "android_client_info": {
+          "package_name": "com.ceti.fernando.hydrate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "432198579055-bubn8t46ad9kvd0j55ndaksoitm34riq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCyYxhyZPFefFleVg_hZPShf0YSCLU0ZIo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "432198579055-bubn8t46ad9kvd0j55ndaksoitm34riq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "432198579055-veprhik3fbv0k240m38j1n81bfmjf0fv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.hydrateApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
