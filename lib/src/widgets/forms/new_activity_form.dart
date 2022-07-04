@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -16,16 +17,19 @@ class NewActivityForm extends StatelessWidget {
 
   final int currentProfileId;
 
-  /// Verifica cada campo del formulario. Si no hay errores, inserta la nueva
-  /// meta en la DB y redirige a [redirectRoute]. 
+  /// Agrega un registro para [newActivity], asociado con el perfil de usuario 
+  /// activo. Si es exitoso, redirige la app a [redirectRoute].
   void _saveActivityRecord(BuildContext context, ActivityRecord newActivity, {String? redirectRoute}) async {
+    
     // Asociar el perfil del usuario actual con la nueva meta.
     newActivity.profileId = currentProfileId;
 
-    final provider = Provider.of<ActivityProvider>(context, listen: false);
+    // Obtener instancias de providers, usando el context.
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
 
     if (newActivity.activityType.id < 0) {
-      final activityTypes = await provider.activityTypes;
+      final activityTypes = await activityProvider.activityTypes;
 
       int actTypeIndex = activityTypes.indexWhere((t) => t.id == 0);
 
@@ -34,15 +38,113 @@ class NewActivityForm extends StatelessWidget {
 
     assert(newActivity.activityType.id >= 0);
 
-    int resultado = await provider.createActivityRecord(newActivity);
+    final pastWeekActivities = await activityProvider.activitiesFromPastWeek;
 
-    if (resultado >= 0) {
+    final today = DateTime.now().onlyDate;
+    final activitiesToday = pastWeekActivities[today]?.length ?? 0;
+
+    // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
+    // el día de hoy.
+    await giveActivityReward(
+      activitiesToday, 
+      newActivity, 
+      profileProvider.profileChanges.giveOrTakeCoins,
+      profileProvider.saveProfileChanges
+    );
+
+    // Obtener todos los registros de actividades de la semana pasada que sean 
+    // similares a newActivity.
+    final similarActivities = activityProvider
+        .isActivitySimilarToPrevious(newActivity, onlyPastWeek: true);
+
+    int resultadoDeSave = -1;
+
+    // Determinar si puede crear una rutina con la nueva actividad.
+    if (similarActivities.isNotEmpty) {
+      // Hay actividades similares. Preguntar si desea crear una rutina con ellas.
+      final shouldCreateRoutine = await showAskIfRoutineDialog(
+        context, 
+        similarActivities.length
+      ) ?? false;
+
+      // Revisar si usuario eligió crear una nueva rutina.
+      if (shouldCreateRoutine) {
+        // Obtener los días de la semana en que el usuario realiza la actividad. 
+        final routineDays = similarActivities.map((activity) => activity.date.weekday);
+
+        // Asegurar que los días de la rutina no contengan duplicados (que no haya
+        // dos elementos en la lista con el mismo día) convirtiendo temporalmente a un Set.
+        final uniqueRoutineDays = routineDays.toSet().toList();
+
+        final baseActivity = similarActivities.first;
+
+        // Crear nueva rutina a partir de actividades previas.
+        final newRoutine = RoutineActivity(
+          activityId: baseActivity.id, 
+          daysOfWeek: uniqueRoutineDays, 
+          timeOfDay: baseActivity.date.onlyTime, 
+          profileId: currentProfileId
+        );
+        
+        resultadoDeSave = await activityProvider.createRoutine(newRoutine);
+      }
+    } else {
+      // Crear registro local de actividad.
+      resultadoDeSave = await activityProvider.createActivityRecord(newActivity);
+    }
+
+    if (resultadoDeSave >= 0) {
       if (redirectRoute != null) {
         Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
       } else {
         Navigator.of(context).pop();
       }
     }
+  }
+
+  /// Revisa si el usuario ha registrado [] o menos actividades en el día actual.
+  /// 
+  /// Si es así, otorga una recompensa en monedas al perfil de usuario, dada por
+  /// [newActivity.coinReward]. Si no, no realiza ninguna modificación al perfil.
+  Future<void> giveActivityReward(
+    int numOfActivitiesToday, 
+    ActivityRecord newActivity,
+    void Function(int) giveCoinsToProfile,
+    Future<void> Function({ bool restrictModifications }) saveProfile
+  ) {
+
+    if (numOfActivitiesToday < ActivityProvider.actPerDayWithReward) {
+      // Si esta nueva actividad es de las tres primeras del día actual,
+      // entregar recompensa en monedas al usuario.
+      giveCoinsToProfile(newActivity.coinReward);
+
+      return saveProfile(restrictModifications: false);
+    } else {
+      return Future.value();
+    }
+  }
+
+  Future<bool?> showAskIfRoutineDialog(BuildContext context, int numOfSimilarActivities) {
+
+    final content = '''Hay $numOfSimilarActivities registros de actividad en la semana pasada que son similares a la actividad que estás registrando. ¿Deseas crear una rutina con ellas?''';
+
+    return showDialog<bool>(
+      context: context, 
+      builder: (context) => AlertDialog(
+        title: const Text('¿Quieres crear una rutina?'),
+        content: Text(content),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), 
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text('Sí, crear rutina'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

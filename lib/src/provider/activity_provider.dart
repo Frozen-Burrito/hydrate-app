@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
+import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
 /// Maneja el estado para los __[ActivityRecords]__, __[RoutineActivity]__ y 
 /// __[ActivityTypes]__ asociados al perfil de usuario activo.
@@ -18,6 +20,8 @@ class ActivityProvider extends ChangeNotifier {
 
   bool _shouldRefreshActivities = true;
   bool _activitiesLoading = false;
+
+  bool _areActTypesLoading = false;
   bool _shouldRefreshTypes = true;
 
   /// Es [true] si el provider está cargando los [ActivityRecords].
@@ -38,7 +42,7 @@ class ActivityProvider extends ChangeNotifier {
   /// Solo hace un query a la BD si ha habido modificaciones a los datos.
   Future<List<ActivityType>> get activityTypes {
 
-    if (_shouldRefreshTypes) {
+    if (_shouldRefreshTypes && !_areActTypesLoading) {
       return _queryActivityTypes();
     }
 
@@ -58,6 +62,13 @@ class ActivityProvider extends ChangeNotifier {
 
     return Future.value(_getActivitiesFromPastWeek());
   }
+
+  /// El número máximo de actividades por día que otorgan una recompensa al 
+  /// usuario por registrarlas.
+  /// 
+  /// Por ejemplo, si el usuario registra su cuarta actividad y [actPerDayWithReward]
+  /// es 3, no debería recibir una recomensa.
+  static const actPerDayWithReward = 3;
 
   /// Determina si hay al menos una actividad "extenuante" en un conjunto de 
   /// registros de actividad.
@@ -82,6 +93,34 @@ class ActivityProvider extends ChangeNotifier {
     }
     
     return hasExhausting;
+  }
+
+  /// Determina si en [activityRecords] existe uno o más registros de actividad
+  /// que sean similares a [record], como es definido en [record.isSimilarTo(other)].
+  /// 
+  /// Si [onlyPastWeek] es __true__, sólo los registros de la semana pasada 
+  /// serán analizadaos para obtener las actividades similares.
+  /// 
+  /// Retorna todos los registros en donde [record.isSimilarTo(other)] retorne 
+  /// [true].
+  List<ActivityRecord> isActivitySimilarToPrevious(
+    ActivityRecord record, 
+    { bool onlyPastWeek = false }
+  ) {
+
+    final activityRecords = onlyPastWeek 
+      ? _getActivitiesFromPastWeek(includeToday: false) 
+      : activitiesByDay;
+
+    final similarActivities = <ActivityRecord>[];
+
+    activityRecords.forEach((date, activities) { 
+      final similarRecords = activities.where((activity) => record.isSimilarTo(activity));
+
+      similarActivities.addAll(similarRecords);
+    });
+
+    return similarActivities;
   }
 
   /// Calcula la cantidad total de kilocalorías quemadas en actividad física por
@@ -143,9 +182,31 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
+  /// Agrega una nueva rutina de actividad física.
+  Future<int> createRoutine(RoutineActivity newRoutine) async {
+    
+    try {
+      int result = await SQLiteDB.instance.insert(newRoutine);
+
+      if (result >= 0) {
+        _shouldRefreshActivities = true;
+        return result;
+      } else {
+        throw Exception('No se pudo crear la nueva rutina.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
+      notifyListeners();
+    }
+  }
+
   Future<List<ActivityType>> _queryActivityTypes() async {
     try {
       _activityTypes.clear();
+      _areActTypesLoading = true;
 
       final queryResults = await SQLiteDB.instance.select<ActivityType>(
         ActivityType.fromMap, 
@@ -161,6 +222,7 @@ class ActivityProvider extends ChangeNotifier {
     } on Exception catch (e) {
       return Future.error(e);
     } finally {
+      _areActTypesLoading = false;
       notifyListeners();
     }
   }
@@ -184,11 +246,18 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Crea un mapa con los [ActivityRecord] de la semana pasada, agrupados por 
   /// día.  
-  Map<DateTime, List<ActivityRecord>> _getActivitiesFromPastWeek() {
+  /// 
+  /// Si __[includeToday]__ es __true__, los registros abarcarán 7 días, incluyendo
+  /// el día actual. Por ejemplo, si el día actual es martes e __[includeToday]__ 
+  /// es __true__, el resultado incluirá todos los registros hasta el miércoles
+  /// de la semana pasada, sin incluir el martes pasado.
+  Map<DateTime, List<ActivityRecord>> _getActivitiesFromPastWeek({ bool includeToday = true}) {
+
+    int dayOffset = includeToday ? 0 : -1;
 
     // Obtener la fecha de hoy y la fecha de siete días atrás.
     final DateTime now = DateTime.now();
-    final DateTime aWeekAgo = DateTime(now.year, now.month, now.day - 6);
+    final DateTime aWeekAgo = DateTime(now.year, now.month, now.day - 6 + dayOffset);
 
     Map<DateTime, List<ActivityRecord>> activitiesOfWeek = {};
 
@@ -223,9 +292,8 @@ class ActivityProvider extends ChangeNotifier {
 
     final List<int> kcalTotals = List.filled(7, 0);
 
-    // Obtener la fecha de hoy y la fecha de siete días atrás.
-    final DateTime now = DateTime.now();
-    final DateTime aWeekAgo = DateTime(now.year, now.month, now.day - 7);
+    // Obtener la fecha de siete días atrás.
+    final aWeekAgo = DateTime.now().onlyDate.subtract(const Duration( days: 6 ));
 
     // Obtener todos los registros de actividad en los últimos 7 días.
     final activitiesInPastWeek = _getActivitiesFromPastWeek();
@@ -243,7 +311,7 @@ class ActivityProvider extends ChangeNotifier {
       final daysAgo = day.difference(aWeekAgo).inDays;
 
       // La diferencia en días es la posición en el array.
-      kcalTotals[daysAgo -1] = totalKcal;
+      kcalTotals[daysAgo] = totalKcal;
     });
 
     return kcalTotals.toList();

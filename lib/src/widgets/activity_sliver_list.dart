@@ -114,7 +114,7 @@ class _ActivityCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 SizedBox( 
-                  width: MediaQuery.of(context).size.width * 0.75,
+                  width: MediaQuery.of(context).size.width * 0.7,
                   child: Text(
                     activityRecord.title,
                     style: Theme.of(context).textTheme.headline6,
@@ -123,21 +123,46 @@ class _ActivityCard extends StatelessWidget {
                   ),
                 ),                
 
-                (activityRecord.isIntense)
-                ? Container(
-                    width: 24.0,
-                    child: const Icon(
-                      Icons.directions_walk, 
-                      color: Colors.yellow,
-                      size: 24.0,
-                    ),
-                    decoration: BoxDecoration(
+                SizedBox( 
+                  width: MediaQuery.of(context).size.width * 0.14,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
 
-                      shape: BoxShape.circle,
-                      color: Colors.yellow[300]?.withOpacity(0.3),
-                    ),
+                      (activityRecord.isRoutine)
+                      ? Container(
+                          width: 24.0,
+                          margin: const EdgeInsets.only(right: 4.0),
+                          child: const Icon(
+                            Icons.alarm, 
+                            color: Colors.blue,
+                            size: 22.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue.shade300.withOpacity(0.3),
+                          ),
+                        )
+                      : const SizedBox(),
+
+                      (activityRecord.isIntense)
+                      ? Container(
+                          width: 24.0,
+                          child: const Icon(
+                            Icons.directions_walk, 
+                            color: Colors.yellow,
+                            size: 22.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.yellow[300]?.withOpacity(0.3),
+                          ),
+                        )
+                      : const SizedBox(),
+                    ],
                   )
-                : const SizedBox(),
+                ),
               ],
             ),
 

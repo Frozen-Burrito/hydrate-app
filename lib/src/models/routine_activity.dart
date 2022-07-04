@@ -3,25 +3,29 @@ import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/day_frequency.dart';
 
 class RoutineActivity extends SQLiteModel {
 
   int id;
   int activityId;
-  DayFrequency days;
+  Iterable<int> daysOfWeek;
   TimeOfDay timeOfDay;
   int profileId;
 
   RoutineActivity({
     this.id = -1,
     required this.activityId,
-    required Iterable<DayOfWeek> daysOfWeek,
+    required this.daysOfWeek,
     required this.timeOfDay,
     required this.profileId,
-  }) : days = DayFrequency.fromDays(daysOfWeek);
+  });
 
   static const String tableName = 'registro_rutina';
+
+  @override
+  String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE ${RoutineActivity.tableName} (
@@ -43,7 +47,7 @@ class RoutineActivity extends SQLiteModel {
   Map<String, Object?> toMap() {
 
     final Map<String, Object?> map = {
-      'dias': days.bitValue,
+      'dias': 0x00.setDayBits(daysOfWeek),
       'hora': timeOfDay.toString(), 
       'id_actividad': activityId,
       'id_perfil': profileId
@@ -64,7 +68,7 @@ class RoutineActivity extends SQLiteModel {
 
     return RoutineActivity(
       id: int.tryParse(map['id'].toString()) ?? -1,
-      daysOfWeek: DayFrequency.fromBits(dayBits).toDays(),
+      daysOfWeek: dayBits.toWeekdays,
       timeOfDay: TimeOfDay(hour: hours, minute: minutes),
       activityId: int.tryParse(map['id_actividad'].toString()) ?? -1,
       profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,

@@ -25,6 +25,8 @@ class UserProfile extends SQLiteModel {
   int selectedEnvId;
   List<Environment> unlockedEnvironments;
 
+  static const maxCoins = 9999;
+
   UserProfile({
     this.id = -1,
     this.firstName = '',
@@ -167,6 +169,23 @@ class UserProfile extends SQLiteModel {
     String lastInitial = lastName.isNotEmpty ? lastName[0].toUpperCase() : '-';
     
     return firstInitial + lastInitial;
+  }
+
+  /// Modifica el número de monedas del perfil, incrementándolo si [amount] es 
+  /// positivo o reduciéndolo si [amount] es negativo.
+  /// 
+  /// El valor absoluto de las monedas del perfil después de la operación debe 
+  /// ser estar en el rango (0..[maxCoins]). Si no es así, este método produce 
+  /// un [RangeError].
+  void giveOrTakeCoins(int amount) {
+
+    int newCoinCount = coins + amount;
+
+    if (newCoinCount.abs() > maxCoins) {
+      throw RangeError.range(newCoinCount, 0, maxCoins, 'amount');
+    }
+
+    coins = amount;
   }
 
   /// Verifica que [inputName] sea un string con longitud menor a 50.

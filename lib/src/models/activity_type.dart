@@ -53,6 +53,24 @@ class ActivityType extends SQLiteModel {
     return map;
   }
 
+  @override
+  bool operator ==(Object? other) {
+
+    if (other is! ActivityType) {
+      return false;
+    } 
+
+    final otherActType = other;
+
+    bool isSpeedEqual = (averageSpeedKmH - otherActType.averageSpeedKmH).abs() < 0.01;
+    bool areMetsEqual = (mets - otherActType.mets).abs() < 0.001;
+
+    return id == otherActType.id && isSpeedEqual && areMetsEqual;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([ id, averageSpeedKmH, mets ]);
+
   bool hasAverageSpeed() {
     return averageSpeedKmH > 0.0 && id < ActivityTypeValue.bicycle.index +1;
   }
@@ -63,7 +81,7 @@ class ActivityType extends SQLiteModel {
     return (value >= 0 && value < ActivityTypeValue.values.length) 
         ? null
         : 'El tipo de actividad no es válido.';
-  }
+  }  
 }
 
 enum ActivityTypeValue {

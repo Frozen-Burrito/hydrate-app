@@ -116,6 +116,9 @@ class ActivityRecord extends SQLiteModel {
   void kCalModifiedByUser() => _kCalModifiedByUser = true;
   void distanceModifiedByUser() => _distanceModifiedByUser = true;
 
+  /// Estima los valores de kilocalorías quemadas y distancia para este 
+  /// [ActivityRecord] según la duración y el tipo de la actividad, además del 
+  /// peso actual del usuario.
   void aproximateData(double userWeight) {
     if (!_distanceModifiedByUser && duration > 0) {
 
@@ -172,27 +175,44 @@ class ActivityRecord extends SQLiteModel {
   /// 
   /// Dos actividades son similares si:
   ///  - Tienen el mismo [activityType].
-  ///  - Sus [date] tienen menos de 15 minutos de diferencia.
+  ///  - Sus fechas, dadas por [date], están en un rango de 7 días.
+  ///  - Las horas de las actividades, dadas por sus [date], tiene menos de 15 
+  ///    minutos de diferencia.
   ///  - Sus [duration] tienen menos de 10 minutos de diferencia.
   ///  - Tienen intensidades similares.
   bool isSimilarTo(ActivityRecord other) {
-    bool sameType = activityType == other.activityType;
+    // Revisar si son el mismo tipo de actividad.
+    final bool sameType = activityType == other.activityType;
 
-    final millisDiff = (date.millisecondsSinceEpoch - other.date.millisecondsSinceEpoch).abs();
-    bool similarDate = millisDiff < const Duration(minutes: 15).inMilliseconds;
+    // Revisar si son en la misma semana, pero distinto día.
+    final diffInDays = date.difference(other.date).inDays.abs();
+    final bool areDatesInSameWeek = diffInDays > 0 && diffInDays <= 7 ;
 
-    bool similarDuration = (duration - other.duration).abs() < 10;
+    // Revisar si las actividades son en horas similares.
+    final minuteOfDay = (date.hour * 60) + date.minute;
+    final otherMinuteOfDay = (other.date.hour * 60) + other.date.minute;
+    final int absTimeDiff = (minuteOfDay - otherMinuteOfDay).abs();
+    final bool similarTime = (absTimeDiff < 15);
 
-    bool similarIntensity = 
+    // Revisar ti tienen duraciones similares.
+    final bool similarDuration = (duration - other.duration).abs() < 10;
+    
+    // Revisar si tienen intensidades similares.
+    final bool similarIntensity = 
       (kiloCaloriesBurned - other.kiloCaloriesBurned).abs() < 50 ||
       (distance - other.distance).abs() < 0.15;
 
-    return sameType && similarDate && similarDuration && similarIntensity;
+    // Este método solo retorna true si todas las condiciones anteriores se 
+    // cumplen.
+    return sameType && areDatesInSameWeek && similarTime && similarDuration && similarIntensity;
   }
 
   bool get isIntense => (duration > 60 * 3 || distance > 10 || kiloCaloriesBurned > 1500);
 
   bool get isExhausting => (duration > 60 * 5 || distance > 20 || kiloCaloriesBurned > 2000);
+
+  /// Calcula la cantidad de monedas de recompensa por realizar esta actividad.
+  int get coinReward => 50;
 
   String get formattedDuration => '$duration min.';
 
@@ -201,13 +221,13 @@ class ActivityRecord extends SQLiteModel {
   String get formattedKcal => '${kiloCaloriesBurned.toString()} kCal';
 
   //TODO: Localizar el formato de la fecha.
-  final meses = <String>[
+  static const meses = <String>[
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
 
   String get formattedDate {
-    String dateStr = '${date.day} de ${meses[date.month]} de ${date.year}';
+    String dateStr = '${date.day} de ${meses[date.month -1]} de ${date.year}';
     String minuteStr = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
     String hour = 'a la${date.hour > 1 ? 's' : ''} ${date.hour}:$minuteStr';
 
