@@ -29,8 +29,20 @@ class ActivityRecord extends SQLiteModel {
     required this.profileId
   });
 
+  /// Crea un nuevo [ActivityRecord] que no ha sido almacenado como una entidad.
+  /// Puede ser usado en formularios de creación, para almacenar los datos de los
+  /// campos antes de insertarlo en la BD.
+  ActivityRecord.uncommited() : this(
+    title: '', 
+    date: DateTime.now(), 
+    duration: 0, 
+    activityType: ActivityType.uncommited(),
+    profileId: -1
+  );
+
   static const String tableName = 'actividad';
 
+  /// El nombre de la tabla, usado en SQLite.
   @override
   String get table => tableName;
 

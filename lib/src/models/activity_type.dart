@@ -13,6 +13,12 @@ class ActivityType extends SQLiteModel {
     required this.mets,
   });
 
+  ActivityType.uncommited() : this(
+    id: -1,
+    averageSpeedKmH: 0.0,
+    mets: 0.0,
+  );
+
   static const String tableName = 'tipo_actividad';
 
   @override
