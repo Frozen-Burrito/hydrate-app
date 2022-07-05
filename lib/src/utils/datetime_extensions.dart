@@ -25,13 +25,22 @@ extension DateTimeExtensions on DateTime {
 
   /// Produce un string legible por humanos, localizado a la región y zona horaria
   /// del usuario.
-  String get toLocalizedReadable {
+  String get toLocalizedDateTime {
 
     String dateStr = '$day de ${meses[month -1]} de $year';
     String minuteStr = minute < 10 ? '0$minute' : minute.toString();
     String hourStr = 'a la ${hour > 1 ? 's' : ''} $hour:$minuteStr';
 
     return '$dateStr, $hourStr';
+  }
+
+  /// Produce un string legible por humanos, localizado a la región y zona horaria
+  /// del usuario, sin incluir la hora.
+  String get toLocalizedDate {
+
+    String dateStr = '$day de ${meses[month -1]} de $year';
+
+    return dateStr;
   }
 }
 

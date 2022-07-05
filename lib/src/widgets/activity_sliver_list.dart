@@ -184,7 +184,7 @@ class _ActivityCard extends StatelessWidget {
             const SizedBox( height: 8.0 ),
 
             Text(
-              activityRecord.date.toLocalizedReadable,
+              activityRecord.date.toLocalizedDateTime,
               style: Theme.of(context).textTheme.bodyText2?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),

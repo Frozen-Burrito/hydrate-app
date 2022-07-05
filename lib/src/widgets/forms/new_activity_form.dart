@@ -340,7 +340,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                   newActivityTime.minute,
                 );
     
-                dateController.text = newActivityRecord.date.toLocalizedReadable;
+                dateController.text = newActivityRecord.date.toLocalizedDateTime;
               }
               
             },

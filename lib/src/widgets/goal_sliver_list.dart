@@ -1,65 +1,80 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/models/goal.dart';
+import 'package:hydrate_app/src/provider/goals_provider.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
-class GoalSliverList extends StatefulWidget {
-  const GoalSliverList({ Key? key }) : super(key: key);
+import '../routes/route_names.dart';
 
-  @override
-  State<GoalSliverList> createState() => _GoalSliverListState();
-}
+class GoalSliverList extends StatelessWidget {
 
-class _GoalSliverListState extends State<GoalSliverList> {
-
-  List<Goal> userGoals = [];
-  bool isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _getUserGoals();
-  }
-
-  void _getUserGoals() async {
-    if (mounted) {
-      setState(() {
-        isLoading = true;
-      });
-    }
-
-    final goals = await SQLiteDB.instance.select<Goal>(
-      Goal.fromMap,
-      Goal.tableName,
-      queryManyToMany: true,
-      limit: 20,
-    );
-
-    if (mounted) {
-      setState(() {
-        userGoals = goals.toList();
-        isLoading = false;
-      });
-    }
-  }
+  const GoalSliverList({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+
+    final profileID = Provider.of<ProfileProvider>(context).profile.id;
+    final goalsProvider = Provider.of<GoalProvider>(context);
+
+    goalsProvider.activeProfileId = profileID;
+
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
-      sliver: isLoading 
-        ? const SliverDataPlaceholder( isLoading: true, )
-        : SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int i) {
-              return _GoalCard(goal: userGoals[i],);
-            },
-            childCount: userGoals.length,
-          ),
-        ),
+      sliver: FutureBuilder<List<Goal>>(
+        future: goalsProvider.goals,
+        builder: (context, snapshot) {
+          
+          if (snapshot.hasData) {
+
+            final goals = snapshot.data;
+
+            if (goals != null && goals.isNotEmpty) {
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int i) {
+                    return _GoalCard(goal: goals[i],);
+                  },
+                  childCount: goals.length,
+                ),
+              );
+            } else {
+              // Retornar un placeholder si los datos están cargando, o no hay datos aín.
+              return SliverDataPlaceholder(
+                message: 'Aún no has creado metas de hidratación.',
+                icon: Icons.flag,
+                hasTopSpacing: false,
+                action: ElevatedButton(
+                  onPressed: () => Navigator.pushNamed(context, RouteNames.newHydrationGoal), 
+                  child: const Text('Crea una meta'),
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.blue,
+                  ),
+                ),
+              );  
+            }
+
+          } else if (snapshot.hasError) {
+            // Retornar un placeholder, indicando que hubo un error.
+            return const SliverDataPlaceholder(
+              isLoading: false,
+              message: 'Hubo un error obteniendo tus metas de hidratación.',
+              icon: Icons.error,
+              hasTopSpacing: false,
+            ); 
+          } else {
+            // El future no tiene datos ni error, aún no ha sido
+            // completado.
+            return const SliverDataPlaceholder(
+              isLoading: true,
+              hasTopSpacing: false,
+            );  
+          }
+        },
+      ),
     );
   }
 }
@@ -75,6 +90,15 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final startDateStr = goal.startDate != null 
+      ? 'Desde ${goal.startDate?.toLocalizedDate}'
+      : '';
+
+    final endDateStr = goal.endDate != null 
+      ? 'hasta ${goal.endDate?.toLocalizedDate}'
+      : '';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -163,7 +187,7 @@ class _GoalCard extends StatelessWidget {
             : const SizedBox( width: 0.0,),
               
             Text(
-              'Desde ${goal.startDate.toString().substring(0,10)} hasta ${goal.endDate.toString().substring(0,10)}', 
+              '$startDateStr $endDateStr', 
               style: Theme.of(context).textTheme.bodyText1,
               textAlign: TextAlign.left
             ),

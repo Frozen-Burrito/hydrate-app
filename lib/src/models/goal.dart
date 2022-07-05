@@ -22,16 +22,28 @@ class Goal extends SQLiteModel {
   final List<Tag> tags;
 
   Goal({
-    this.id = -1,
+    required this.id,
     required this.profileId,
     required this.term,
-    this.startDate,
+    required this.startDate,
     required this.endDate,
-    this.reward = 0,
+    required this.reward,
     required this.quantity,
-    this.notes,
+    required this.notes,
     required this.tags,
   });
+
+  Goal.uncommited() : this(
+    id: -1,
+    profileId: -1,
+    term: GoalTerm.daily,
+    startDate: null,
+    endDate: null,
+    reward: 0,
+    quantity: 0,
+    notes: '',
+    tags: <Tag>[]
+  );
 
   static const String tableName = 'meta';
 

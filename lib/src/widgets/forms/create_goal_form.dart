@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 
 class CreateGoalForm extends StatefulWidget {
@@ -20,32 +22,14 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final Goal newGoal = Goal( 
-    term: GoalTerm.daily, 
-    startDate: DateTime.now(), 
-    endDate: DateTime.now(),
-    tags: <Tag>[],
-    profileId: -1,
-    quantity: 0,
-  );
+  final Goal newGoal = Goal.uncommited();
 
-  bool isLoading = false;
-
-  final List<Tag> existingTags = [];
-
-  int tagsLength = 0;
   int notesLength = 0;
 
   int? selectedTerm;
 
   final startDateController = TextEditingController();
   final endDateController = TextEditingController();
-  
-  @override
-  void initState() {
-    super.initState();
-    _getExistingTags(profileId: widget.currentProfileId);
-  }
 
   @override
   void dispose() {
@@ -77,7 +61,9 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
         tag.profileId = widget.currentProfileId;
       }
 
-      int resultado = await SQLiteDB.instance.insert(newGoal);
+      final createGoal = Provider.of<GoalProvider>(context, listen: false).createHydrationGoal;
+
+      int resultado = await createGoal(newGoal);
 
       if (resultado >= 0) {
         if (redirectRoute != null) {
@@ -87,19 +73,6 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
         }
       }
     }
-  }
-
-  /// Obtiene las [Tag] creadas por el usuario anteriormente. 
-  Future<void> _getExistingTags({int profileId = 0}) async {
-    existingTags.clear();
-
-    final tagResults = await SQLiteDB.instance.select<Tag>(
-      Tag.fromMap, 
-      Tag.tableName, 
-      where: [ WhereClause('id_perfil', widget.currentProfileId.toString())]
-    );
-
-    existingTags.addAll(tagResults);
   }
 
   @override
@@ -234,18 +207,10 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
           const SizedBox( height: 16.0, ),
 
-          TextFormField(
-            keyboardType: TextInputType.text,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: 'Etiquetas',
-              helperText: ' ',
-              counterText: '${tagsLength.toString()}/3'
-            ),
-            onChanged: (value) => setState(() {
-              tagsLength = newGoal.parseTags(value, existingTags);
-            }),
-            validator: (value) => Goal.validateTags(value),
+          _TagFormField(
+            initialTagCount: newGoal.tags.length,
+            onTagsChanged: newGoal.parseTags,
+            onValidate: Goal.validateTags,
           ),
 
           const SizedBox( height: 16.0, ),
@@ -297,6 +262,80 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TagFormField extends StatefulWidget {
+
+  const _TagFormField({
+    Key? key,
+    required this.onTagsChanged, 
+    required this.onValidate,
+    this.initialTagCount = 0,
+  }) : super(key: key);
+
+  final int initialTagCount;
+
+  final int Function(String, List<Tag>) onTagsChanged;
+  final String? Function(String?) onValidate;
+  
+  @override
+  State<_TagFormField> createState() => _TagFormFieldState();
+}
+
+class _TagFormFieldState extends State<_TagFormField> {
+
+  int numberOfTags = 0;
+
+  @override
+  void initState() {
+    numberOfTags = widget.initialTagCount;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final goalProvider = Provider.of<GoalProvider>(context);
+
+    return FutureBuilder<List<Tag>>(
+      future: goalProvider.tags,
+      initialData: const <Tag>[],
+      builder: (context, snapshot) {
+
+        if (snapshot.hasData && snapshot.data != null) {
+
+          final existingTags = snapshot.data!;
+
+
+          return TextFormField(
+            keyboardType: TextInputType.text,
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: 'Etiquetas',
+              helperText: ' ',
+              counterText: '${numberOfTags.toString()}/3'
+            ),
+            onChanged: (value) => setState(() {
+               numberOfTags = widget.onTagsChanged(value, existingTags);
+            }),
+            validator: (value) => widget.onValidate(value),
+          );
+        } else {
+          return TextFormField(
+            keyboardType: TextInputType.text,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Etiquetas',
+              helperText: ' ',
+              counterText: '0/3'
+            ),
+            validator: (value) => Goal.validateTags(value),
+          );
+        }
+
+      }
     );
   }
 }

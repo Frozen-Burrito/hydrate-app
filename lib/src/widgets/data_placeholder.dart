@@ -25,11 +25,17 @@ class SliverDataPlaceholder extends StatelessWidget {
   /// Usado por el [Icon] principal.
   final IconData icon;
 
+  final Widget? action;
+
+  final bool hasTopSpacing;
+
   const SliverDataPlaceholder({
     this.isLoading = false,
     this.message = '',
     this.details = '',
     this.icon = Icons.error,
+    this.action,
+    this.hasTopSpacing = true,
     Key? key }) : super(key: key);
 
   @override
@@ -43,14 +49,14 @@ class SliverDataPlaceholder extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: isLoading 
           ? <Widget> [
-            const SizedBox( height: 64.0,),
+            SizedBox( height: hasTopSpacing ? 64.0 : 0.0, ),
             
             const Center(
               child: CircularProgressIndicator()
             ),
           ]
           : <Widget>[
-            const SizedBox( height: 64.0,),
+            SizedBox( height: hasTopSpacing ? 64.0 : 0.0,),
 
             Icon(
               icon,
@@ -84,6 +90,10 @@ class SliverDataPlaceholder extends StatelessWidget {
                 ),
               ),
             ),
+
+            const SizedBox( height: 8.0,),
+
+            (action ?? const SizedBox( height: 0.0, ))
           ],
         ),
       ),
