@@ -84,6 +84,30 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
+  /// Elimina una meta de hidratación existente.
+  Future<int> deleteHydrationGoal(int id) async {
+    
+    try {
+      int result = await SQLiteDB.instance.delete(
+        Goal.tableName,
+        id
+      );
+
+      if (result >= 0) {
+        _shouldRefreshGoals = true;
+        return result;
+      } else {
+        throw Exception('No se pudo eliminar la meta de hidratación.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
+      notifyListeners();
+    }
+  }
+
   Future<List<Tag>> _fetchTags() async {
     try {
       _tags.clear();

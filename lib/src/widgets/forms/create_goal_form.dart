@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
@@ -25,9 +26,9 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   final Goal newGoal = Goal.uncommited();
 
   int notesLength = 0;
-
   int? selectedTerm;
 
+  // Controladores para los campos de fechas.
   final startDateController = TextEditingController();
   final endDateController = TextEditingController();
 
@@ -52,27 +53,71 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   /// Verifica cada campo del formulario. Si no hay errores, inserta la nueva
   /// meta en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
+
     if (_formKey.currentState!.validate()) {
-      // Asociar el perfil del usuario actual con la nueva meta.
-      newGoal.profileId = widget.currentProfileId;
 
-      // Asociar el perfil del usuario actual con las etiquetas de la meta.
-      for (var tag in newGoal.tags) {
-        tag.profileId = widget.currentProfileId;
-      }
+      final goalProvider = Provider.of<GoalProvider>(context, listen: false);
 
-      final createGoal = Provider.of<GoalProvider>(context, listen: false).createHydrationGoal;
+      // Obtener el número de metas creadas.
+      final numOfExistingGoals = (await goalProvider.goals).length;
+      
+      bool hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
 
-      int resultado = await createGoal(newGoal);
+      if (hasReachedGoalLimit) {
+        // Si el usuario ha llegado al límite de metas simultáneas, preguntarle
+        // si desea reemplazar metas existentes usando un Dialog.
+        List<int>? goalIdsToReplace = await showAskGoalReplacemente(context); 
 
-      if (resultado >= 0) {
-        if (redirectRoute != null) {
-          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-        } else {
-          Navigator.of(context).pop();
+        if (goalIdsToReplace != null && goalIdsToReplace.isNotEmpty) {
+          
+          for (var id in goalIdsToReplace) {
+            // Remover todas las metas especificadas por el usuario.
+            int result = await goalProvider.deleteHydrationGoal(id);
+            print('Delete result: $result');
+
+            if (hasReachedGoalLimit && result >= 0) {
+              // Si se había llegado al límite de metas, pero se removió al menos 
+              // una de ellas, si debería crear la nueva meta.
+              hasReachedGoalLimit = false;
+            }
+          }
         }
       }
+
+      if (!hasReachedGoalLimit) {
+        // Asociar el perfil del usuario actual con la nueva meta.
+        newGoal.profileId = widget.currentProfileId;
+
+        // Asociar el perfil del usuario actual con las etiquetas de la meta.
+        for (var tag in newGoal.tags) {
+          tag.profileId = widget.currentProfileId;
+        }
+
+        int resultado = await goalProvider.createHydrationGoal(newGoal);
+
+        if (resultado >= 0) {
+          if (redirectRoute != null) {
+            Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+          } else {
+            Navigator.of(context).pop();
+          }
+        }
+      } else {
+        // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar( 
+            content: Text('Hubo un error al crear la meta'),
+          ),
+        );
+      } 
     }
+  }
+
+  Future<List<int>?> showAskGoalReplacemente(BuildContext context) {
+    return showDialog<List<int>>(
+      context: context,
+      builder: (context) => const ReplaceGoalDialog(),
+    );
   }
 
   @override

@@ -45,6 +45,8 @@ class Goal extends SQLiteModel {
     tags: <Tag>[]
   );
 
+  static const int maxSimultaneousGoals = 3;
+
   static const String tableName = 'meta';
 
   @override

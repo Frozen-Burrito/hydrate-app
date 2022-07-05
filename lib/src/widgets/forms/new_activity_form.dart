@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
+import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -126,24 +127,11 @@ class NewActivityForm extends StatelessWidget {
 
   Future<bool?> showAskIfRoutineDialog(BuildContext context, int numOfSimilarActivities) {
 
-    final content = '''Hay $numOfSimilarActivities registros de actividad en la semana pasada que son similares a la actividad que estás registrando. ¿Deseas crear una rutina con ellas?''';
-
     return showDialog<bool>(
       context: context, 
-      builder: (context) => AlertDialog(
-        title: const Text('¿Quieres crear una rutina?'),
-        content: Text(content),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(context, false), 
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), 
-            child: const Text('Sí, crear rutina'),
-          ),
-        ],
-      ),
+      builder: (context) => SuggestRoutineDialog(
+        similarActivityCount: numOfSimilarActivities,
+      )
     );
   }
 
