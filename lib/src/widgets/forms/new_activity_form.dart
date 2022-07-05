@@ -79,7 +79,7 @@ class NewActivityForm extends StatelessWidget {
         final baseActivity = similarActivities.first;
 
         // Crear nueva rutina a partir de actividades previas.
-        final newRoutine = RoutineActivity(
+        final newRoutine = Routine(
           activityId: baseActivity.id, 
           daysOfWeek: uniqueRoutineDays, 
           timeOfDay: baseActivity.date.onlyTime, 

@@ -4,9 +4,10 @@ import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/utils/activities_with_routines.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
-/// Maneja el estado para los __[ActivityRecords]__, __[RoutineActivity]__ y 
+/// Maneja el estado para los __[ActivityRecords]__, __[Routine]__ y 
 /// __[ActivityTypes]__ asociados al perfil de usuario activo.
 /// 
 /// También permite sincronizar la información, ya sea de forma local en la BD o 
@@ -16,10 +17,15 @@ class ActivityProvider extends ChangeNotifier {
   final List<ActivityRecord> _activityRecords = [];
   final List<ActivityType> _activityTypes = [];
 
+  final RoutineActivities _routineActivities = RoutineActivities.empty();
+
   final Map<DateTime, List<ActivityRecord>> _activitiesByDay = {};
 
   bool _shouldRefreshActivities = true;
   bool _activitiesLoading = false;
+
+  bool _shouldRefreshRoutines = true;
+  bool _areRoutinesLoading = false;
 
   bool _areActTypesLoading = false;
   bool _shouldRefreshTypes = true;
@@ -61,6 +67,20 @@ class ActivityProvider extends ChangeNotifier {
     }
 
     return Future.value(_getActivitiesFromPastWeek());
+  }
+
+  Future<RoutineActivities> get routineActivities async {
+    if (_shouldRefreshActivities) {
+      final activities = await _queryActivityRecords();
+      _routineActivities.activities = activities;
+    }
+
+    if (_shouldRefreshRoutines) {
+      final routines = await _queryRoutines();
+      _routineActivities.routines = routines;
+    }
+
+    return _routineActivities;
   }
 
   /// El número máximo de actividades por día que otorgan una recompensa al 
@@ -182,8 +202,34 @@ class ActivityProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Routine>> _queryRoutines() async {
+    try {
+      _areRoutinesLoading = true;
+
+      final queryResults = await SQLiteDB.instance.select<Routine>(
+        Routine.fromMap, 
+        Routine.tableName, 
+        includeOneToMany: false,
+      );
+
+      List<Routine> routines = [];
+      routines.addAll(queryResults);
+
+      _shouldRefreshRoutines = false;
+
+      return routines;
+
+    } on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
+      _areRoutinesLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Agrega una nueva rutina de actividad física.
-  Future<int> createRoutine(RoutineActivity newRoutine) async {
+  Future<int> createRoutine(Routine newRoutine) async {
     
     try {
       int result = await SQLiteDB.instance.insert(newRoutine);

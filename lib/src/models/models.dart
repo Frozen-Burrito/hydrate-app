@@ -9,4 +9,4 @@ export 'package:hydrate_app/src/models/tag.dart';
 export 'package:hydrate_app/src/models/environment.dart';
 export 'package:hydrate_app/src/models/activity_record.dart';
 export 'package:hydrate_app/src/models/activity_type.dart';
-export 'package:hydrate_app/src/models/routine_activity.dart';
+export 'package:hydrate_app/src/models/routine.dart';

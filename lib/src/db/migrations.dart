@@ -83,11 +83,11 @@ class SQLiteMigrator {
     16: [
       '${SQLiteKeywords.dropTableIfExists} ${ActivityRecord.tableName}',
       '${SQLiteKeywords.dropTableIfExists} ${ActivityType.tableName}',
-      '${SQLiteKeywords.dropTableIfExists} ${RoutineActivity.tableName}',
+      '${SQLiteKeywords.dropTableIfExists} ${Routine.tableName}',
 
       ActivityRecord.createTableQuery,
       ActivityType.createTableQuery,
-      RoutineActivity.createTableQuery,
+      Routine.createTableQuery,
 
       // Insertar todos los tipos de actividad con modelos actualizados.
       '''INSERT INTO ${ActivityType.tableName} VALUES (0, 5.0, 4.3);''',
