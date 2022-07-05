@@ -9,24 +9,34 @@ class Routine extends SQLiteModel {
 
   int id;
   int activityId;
-  Iterable<int> daysOfWeek;
+  Iterable<int> _daysOfWeek;
   TimeOfDay timeOfDay;
   int profileId;
 
-  Routine({
+  List<int> daysOfWeekList;
+
+  Routine(this._daysOfWeek, {
     this.id = -1,
     required this.activityId,
-    required this.daysOfWeek,
     required this.timeOfDay,
     required this.profileId,
-  });
+  }) : daysOfWeekList = _daysOfWeek.toList();
 
   Routine.uncommited() : this(
+    <int>[],
     activityId: -1,
-    daysOfWeek: <int>[],
     timeOfDay: const TimeOfDay(hour: 0, minute: 0),
     profileId: -1,
   );
+
+  Iterable<int> get daysOfweek => _daysOfWeek;
+
+  set daysOfWeek (Iterable<int> weekdays) {
+    _daysOfWeek = weekdays;
+    daysOfWeekList = _daysOfWeek.toList();
+  } 
+
+  bool get hasWeekdays => _daysOfWeek.isNotEmpty;
 
   static const String tableName = 'registro_rutina';
 
@@ -53,7 +63,7 @@ class Routine extends SQLiteModel {
   Map<String, Object?> toMap() {
 
     final Map<String, Object?> map = {
-      'dias': 0x00.setDayBits(daysOfWeek),
+      'dias': 0x00.setDayBits(_daysOfWeek),
       'hora': timeOfDay.toString(), 
       'id_actividad': activityId,
       'id_perfil': profileId
@@ -73,11 +83,37 @@ class Routine extends SQLiteModel {
     final minutes = int.tryParse(timeParts.last) ?? 0;
 
     return Routine(
+      dayBits.toWeekdays,
       id: int.tryParse(map['id'].toString()) ?? -1,
-      daysOfWeek: dayBits.toWeekdays,
       timeOfDay: TimeOfDay(hour: hours, minute: minutes),
       activityId: int.tryParse(map['id_actividad'].toString()) ?? -1,
       profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
     );
+  }
+
+  /// Obtiene la fecha de la siguiente ocurrencia de la rutina, después de 
+  /// [previousDate]. 
+  /// 
+  /// La fecha producida siempre es después (isAfter) que [previousDate] y puede
+  /// tener un weekday diferente, si la rutina sucede en dos o varios días de la 
+  /// semana. 
+  DateTime getNextOccurrence(DateTime previousDate) {
+
+    // Obtener el siguiente índice para el día de la semana de la rutina.
+    final currentDayIdx = daysOfWeekList.indexOf(previousDate.weekday);
+    final nextIdx = (currentDayIdx + 1) % daysOfWeekList.length;
+
+    assert(nextIdx >= 0 && nextIdx < daysOfWeekList.length);
+
+    // Calcular el número de días entre previousDate y la nueva ocurrencia de 
+    // la rutina.
+    final daysToNextDate = DateTime.sunday - (previousDate.weekday - daysOfWeekList[nextIdx]).abs();
+
+    // Obtener la fecha de la siguiente ocurrencia.
+    final nextDate = previousDate.add(Duration( days: daysToNextDate ));
+
+    assert(nextDate.isAfter(previousDate));
+
+    return nextDate;
   }
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/routine_occurrence.dart';
+import 'package:hydrate_app/src/utils/activities_with_routines.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
-
-import '../utils/activities_with_routines.dart';
 
 class ActivitySliverList extends StatelessWidget {
   const ActivitySliverList({ Key? key }) : super(key: key);
@@ -46,10 +46,10 @@ class ActivitySliverList extends StatelessWidget {
 
                           final routineActivities = snapshot.data;
 
-                          final activityCount = routineActivities?.length ?? 0;
+                          final activityCount = routineActivities?.activitiesWithRoutines.length ?? 0;
                           final activites = routineActivities != null
-                            ? routineActivities.allActivities.toList()
-                            : List<ActivityRecord>.empty();
+                            ? routineActivities.activitiesWithRoutines
+                            : List<RoutineOccurrence>.empty();
 
                           if (activites.isNotEmpty) {
                             
@@ -59,7 +59,8 @@ class ActivitySliverList extends StatelessWidget {
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int i) {
                                   return _ActivityCard(
-                                    activity: activites[i],
+                                    activityRecord: activites[i],
+                                    message: 'Hey',
                                   );
                                 },
                                 childCount: activityCount
@@ -101,163 +102,141 @@ class ActivitySliverList extends StatelessWidget {
 
 class _ActivityCard extends StatelessWidget {
 
-  //TODO: Hacer esto non-nullable otra vez.
-  final ActivityRecord? activity;
+  final RoutineOccurrence activityRecord;
 
-  const _ActivityCard({ required this.activity, Key? key }) : super(key: key);
+  final String message;
+
+  const _ActivityCard({ required this.activityRecord, required this.message, Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    final int activityTypeIdx = activity?.activityType.id ?? -1;
-    final activityTypeLabel = DropdownLabels.activityLabels(context)[activityTypeIdx];
-
-    final activityRecord = activity;
+    final activity = activityRecord.activity;
+    
+    final activityTypeLabel = DropdownLabels.activityLabels(context)[activity.activityType.id];
 
     return Card(
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.all( 16.0 ),
-        child: (activityRecord != null) 
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  SizedBox( 
-                    width: MediaQuery.of(context).size.width * 0.7,
-                    child: Text(
-                      activityRecord.title,
-                      style: Theme.of(context).textTheme.headline6,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),                
-
-                  SizedBox( 
-                    width: MediaQuery.of(context).size.width * 0.14,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-
-                        (activityRecord.isRoutine)
-                        ? Container(
-                            width: 24.0,
-                            margin: const EdgeInsets.only(right: 4.0),
-                            child: const Icon(
-                              Icons.alarm, 
-                              color: Colors.blue,
-                              size: 22.0,
-                            ),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.blue.shade300.withOpacity(0.3),
-                            ),
-                          )
-                        : const SizedBox(),
-
-                        (activityRecord.isIntense)
-                        ? Container(
-                            width: 24.0,
-                            child: const Icon(
-                              Icons.directions_walk, 
-                              color: Colors.yellow,
-                              size: 22.0,
-                            ),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.yellow[300]?.withOpacity(0.3),
-                            ),
-                          )
-                        : const SizedBox(),
-                      ],
-                    )
-                  ),
-                ],
-              ),
-
-
-              const SizedBox( height: 8.0 ),
-
-              Text(
-                activityRecord.formattedDate,
-                style: Theme.of(context).textTheme.bodyText2?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.start,
-              ),
-
-              const SizedBox( height: 8.0 ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Icon(activityTypeLabel.icon),
-
-                  const SizedBox( width: 8.0 ),
-
-                  Text(
-                    activityTypeLabel.label,
-                    style: Theme.of(context).textTheme.bodyText2,
-                    maxLines: 3,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                SizedBox( 
+                  width: MediaQuery.of(context).size.width * 0.7,
+                  child: Text(
+                    activity.title,
+                    style: Theme.of(context).textTheme.headline6,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                ),                
+
+                SizedBox( 
+                  width: MediaQuery.of(context).size.width * 0.14,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+
+                      (activity.isRoutine && activityRecord.routine != null)
+                      ? Container(
+                          width: 24.0,
+                          margin: const EdgeInsets.only(right: 4.0),
+                          child: const Icon(
+                            Icons.alarm, 
+                            color: Colors.blue,
+                            size: 22.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue.shade300.withOpacity(0.3),
+                          ),
+                        )
+                      : const SizedBox(),
+
+                      (activity.isIntense)
+                      ? Container(
+                          width: 24.0,
+                          child: const Icon(
+                            Icons.directions_walk, 
+                            color: Colors.yellow,
+                            size: 22.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.yellow[300]?.withOpacity(0.3),
+                          ),
+                        )
+                      : const SizedBox(),
+                    ],
+                  )
+                ),
+              ],
+            ),
+
+
+            const SizedBox( height: 8.0 ),
+
+            Text(
+              activityRecord.date.toLocalizedReadable,
+              style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
               ),
+              textAlign: TextAlign.start,
+            ),
 
-              const SizedBox( height: 16.0 ),
+            const SizedBox( height: 8.0 ),
 
-              IconTheme(
-                data: Theme.of(context).iconTheme.copyWith(
-                  size: 24.0,
-                  color: Theme.of(context).colorScheme.onSurface
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Icon(activityTypeLabel.icon),
+
+                const SizedBox( width: 8.0 ),
+
+                Text(
+                  activityTypeLabel.label,
+                  style: Theme.of(context).textTheme.bodyText2,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    _ActivityCardStatIcon(
-                      statLabel: activityRecord.formattedDistance,
-                      icon: Icons.directions_run
-                    ),
-                    _ActivityCardStatIcon(
-                      statLabel: activityRecord.formattedDuration,
-                      icon: Icons.schedule
-                    ),
-                    _ActivityCardStatIcon(
-                      statLabel: activityRecord.formattedKcal,
-                      icon: Icons.bolt
-                    ),
-                  ],
-                ),
-              )
-            ],
-          )
-        : Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+              ],
+            ),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox( height: 16.0 ),
+
+            IconTheme(
+              data: Theme.of(context).iconTheme.copyWith(
+                size: 24.0,
+                color: Theme.of(context).colorScheme.onSurface
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  SizedBox( 
-                    width: MediaQuery.of(context).size.width * 0.7,
-                    child: Text(
-                      'Actividad no encontrada',
-                      style: Theme.of(context).textTheme.headline6,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ), 
-                ]
+                  _ActivityCardStatIcon(
+                    statLabel: activity.formattedDistance,
+                    icon: Icons.directions_run
+                  ),
+                  _ActivityCardStatIcon(
+                    statLabel: activity.formattedDuration,
+                    icon: Icons.schedule
+                  ),
+                  _ActivityCardStatIcon(
+                    statLabel: activity.formattedKcal,
+                    icon: Icons.bolt
+                  ),
+                ],
               ),
-            ]
-          )
+            )
+          ],
+        ),
       ),
     );
   }

@@ -220,20 +220,6 @@ class ActivityRecord extends SQLiteModel {
 
   String get formattedKcal => '${kiloCaloriesBurned.toString()} kCal';
 
-  //TODO: Localizar el formato de la fecha.
-  static const meses = <String>[
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
-  String get formattedDate {
-    String dateStr = '${date.day} de ${meses[date.month -1]} de ${date.year}';
-    String minuteStr = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
-    String hour = 'a la${date.hour > 1 ? 's' : ''} ${date.hour}:$minuteStr';
-
-    return '$dateStr, $hour';
-  }
-
   String get hourAndMinuteDuration { 
     int hours = duration ~/ 60;
     int minutes = duration % 60;

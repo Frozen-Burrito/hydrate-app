@@ -2,7 +2,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+
 extension DateTimeExtensions on DateTime {
+
+  //TODO: Localizar el formato de la fecha.
+  static const meses = <String>[
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
 
   /// Retorna un [DateTime] que solo tiene asignados el año, mes
   /// y día de esta fecha. Por esto, la hora, minuto y demás partes 
@@ -11,9 +18,20 @@ extension DateTimeExtensions on DateTime {
     return DateTime(year, month, day);
   }
 
-  /// Retorna la hora y minuto de esta fecha. 
+  /// Retorna la [hour] y [minute] de esta fecha. 
   TimeOfDay get onlyTime {
     return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  /// Produce un string legible por humanos, localizado a la región y zona horaria
+  /// del usuario.
+  String get toLocalizedReadable {
+
+    String dateStr = '$day de ${meses[month -1]} de $year';
+    String minuteStr = minute < 10 ? '0$minute' : minute.toString();
+    String hourStr = 'a la ${hour > 1 ? 's' : ''} $hour:$minuteStr';
+
+    return '$dateStr, $hourStr';
   }
 }
 

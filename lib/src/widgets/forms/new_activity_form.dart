@@ -80,8 +80,8 @@ class NewActivityForm extends StatelessWidget {
 
         // Crear nueva rutina a partir de actividades previas.
         final newRoutine = Routine(
-          activityId: baseActivity.id, 
-          daysOfWeek: uniqueRoutineDays, 
+          uniqueRoutineDays,
+          activityId: baseActivity.id,
           timeOfDay: baseActivity.date.onlyTime, 
           profileId: currentProfileId
         );
@@ -340,7 +340,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                   newActivityTime.minute,
                 );
     
-                dateController.text = newActivityRecord.formattedDate;
+                dateController.text = newActivityRecord.date.toLocalizedReadable;
               }
               
             },
