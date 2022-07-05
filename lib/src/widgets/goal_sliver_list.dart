@@ -33,10 +33,34 @@ class GoalSliverList extends StatelessWidget {
             final goals = snapshot.data;
 
             if (goals != null && goals.isNotEmpty) {
+
+              final mainGoalIdx = goals.indexWhere((goal) => goal.isMainGoal);
+              final mainGoal = goals.removeAt(mainGoalIdx);
+
+              goals.insert(0, mainGoal);
+
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int i) {
-                    return _GoalCard(goal: goals[i],);
+                    return goals[i].isMainGoal 
+                      ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: double.maxFinite,
+                            margin: const EdgeInsets.only( bottom: 8.0, left: 8.0 ),
+                            child: Text(
+                              'Tu Meta Principal', 
+                              style: Theme.of(context).textTheme.headline5,
+                            )
+                          ),
+
+                          _GoalCard(goal: goals[i],),
+
+                          const Divider( thickness: 1.0, height: 24.0, ),
+                        ],
+                      ) 
+                      : _GoalCard(goal: goals[i],);
                   },
                   childCount: goals.length,
                 ),
@@ -91,6 +115,8 @@ class _GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final setMainGoal = Provider.of<GoalProvider>(context).setMainGoal;
+
     final startDateStr = goal.startDate != null 
       ? 'Desde ${goal.startDate?.toLocalizedDate}'
       : '';
@@ -110,7 +136,17 @@ class _GoalCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.7,
+                  width: MediaQuery.of(context).size.width * 0.075,
+                  child: IconButton(
+                    icon: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
+                    onPressed: () => setMainGoal(goal.id),
+                  )
+                ),
+
+                const SizedBox( width: 8.0 ),
+
+                SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.6,
                   child: Text(
                     goal.notes ?? 'Meta', 
                     style: Theme.of(context).textTheme.headline6,
@@ -119,7 +155,7 @@ class _GoalCard extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox( width: 8.0 ),
+                const SizedBox( width: 4.0 ),
 
                 Column(
                   children: <Widget> [

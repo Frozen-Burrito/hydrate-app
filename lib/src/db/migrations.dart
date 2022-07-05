@@ -99,6 +99,9 @@ class SQLiteMigrator {
       '''INSERT INTO ${ActivityType.tableName} VALUES (6, 0.0, 4.0);''',
       '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8);''',
       '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3);''',
+    ],
+    17: [
+      'ALTER TABLE ${Goal.tableName} ADD COLUMN es_principal ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType} DEFAULT 0'
     ]
   };
 

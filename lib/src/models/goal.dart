@@ -18,6 +18,7 @@ class Goal extends SQLiteModel {
   DateTime? endDate;
   int reward;
   int quantity;
+  bool isMainGoal;
   String? notes;
   final List<Tag> tags;
 
@@ -29,6 +30,7 @@ class Goal extends SQLiteModel {
     required this.endDate,
     required this.reward,
     required this.quantity,
+    required this.isMainGoal,
     required this.notes,
     required this.tags,
   });
@@ -41,6 +43,7 @@ class Goal extends SQLiteModel {
     endDate: null,
     reward: 0,
     quantity: 0,
+    isMainGoal: false,
     notes: '',
     tags: <Tag>[]
   );
@@ -60,6 +63,7 @@ class Goal extends SQLiteModel {
       fecha_final ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
       recompensa ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      es_principal ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       notas ${SQLiteKeywords.textType},
       id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
@@ -89,6 +93,7 @@ class Goal extends SQLiteModel {
       endDate: DateTime.parse(map['fecha_final'].toString()),
       reward: (map['recompensa'] is int ? map['recompensa'] as int : -1),
       quantity: (map['cantidad'] is int ? map['cantidad'] as int : -1),
+      isMainGoal: (int.tryParse(map['es_principal'].toString()) ?? 0) != 0,
       notes: map['notas'].toString(),
       tags: tagList,
       profileId: valProfileId
@@ -105,6 +110,7 @@ class Goal extends SQLiteModel {
       'fecha_final': endDate?.toIso8601String(),
       'recompensa': reward,
       'cantidad': quantity,
+      'es_principal': isMainGoal ? 1 : 0, 
       'notas': notes,
       'etiquetas': tags,
       'id_${UserProfile.tableName}': profileId,

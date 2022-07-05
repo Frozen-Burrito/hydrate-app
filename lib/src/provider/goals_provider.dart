@@ -5,6 +5,7 @@ import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/habits.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 
+/// Maneja el estado para los [Goal], [Tag] y [Habits].
 class GoalProvider extends ChangeNotifier {
 
   final List<Goal> _goals = <Goal>[];
@@ -21,6 +22,7 @@ class GoalProvider extends ChangeNotifier {
 
   set activeProfileId (int profileId) => _profileId = profileId;
 
+  /// Obtiene todos los [Goal] de hidratación.
   Future<List<Goal>> get goals {
     if (_shouldRefreshGoals && !_areGoalsLoading) {
       return _fetchGoals();
@@ -29,6 +31,7 @@ class GoalProvider extends ChangeNotifier {
     return Future.value(_goals);
   }
 
+  /// Obtiene todos los [Tag] disponibles.
   Future<List<Tag>> get tags {
     if (_shouldRefreshTags && !_areTagsLoading) {
       return _fetchTags();
@@ -74,6 +77,79 @@ class GoalProvider extends ChangeNotifier {
         return result;
       } else {
         throw Exception('No se pudo crear la meta de hidratación.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Cambia la meta principal a la meta en donde su ID sea [newMainGoalId].
+  Future<int> setMainGoal(int newMainGoalId) async {
+    try {
+      // Obtener la meta principal y la meta que tenga un ID que coincida con 
+      // newMainGoalId (puede que sean la misma meta).
+      final queryResults = await SQLiteDB.instance.select<Goal>(
+        Goal.fromMap, 
+        Goal.tableName,
+        where: [
+          WhereClause('es_principal', '1' ),
+          WhereClause('id', newMainGoalId.toString() )
+        ],
+        whereUnions: [ 'OR' ]
+      );
+
+      // Transformar los resultados a una lista.
+      final queryList = queryResults.toList();
+
+      Goal? currentMainGoal;
+      Goal? newMainGoal;
+
+      switch(queryList.length) {
+        case 1:
+          if (queryList.first.isMainGoal) {
+            currentMainGoal = queryList.first;
+          }
+
+          newMainGoal = queryList.first;
+          break;
+        case 2:
+          int mainGoalIdx = queryList.indexWhere((goal) => goal.isMainGoal);
+          currentMainGoal = queryList.removeAt(mainGoalIdx);
+          newMainGoal = queryList.first;
+          break;
+      }
+
+      if (currentMainGoal != null) {
+        // Convertir la meta principal actual en una meta normal.
+        currentMainGoal.isMainGoal = false;
+        int result = await SQLiteDB.instance.update(currentMainGoal);
+
+        if (result <= 0) {
+          throw Exception('No se pudo modificar la meta principal de hidratación.');
+        }
+      }
+
+      if (newMainGoal != null) {
+        // Convertir la meta seleccionada en la meta principal.
+        newMainGoal.isMainGoal = !newMainGoal.isMainGoal;
+        int result = await SQLiteDB.instance.update(newMainGoal);
+
+        if (result >= 0) {
+          _shouldRefreshGoals = true;
+          return result;
+        } else {
+          throw Exception('No se pudo modificar la meta principal de hidratación.');
+        }
+      } else {
+        throw ArgumentError.value(
+          newMainGoalId, 
+          'newMainGoalId', 
+          'No se encontró un Goal con este ID.'
+        );
       }
     }
     on Exception catch (e) {
