@@ -3,17 +3,21 @@ import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 class Environment extends SQLiteModel {
 
-  int id;
+  final int id;
   final String imagePath;
-  int price;
+  final int price;
 
   Environment({
-    this.id = -1, 
-    // this.imagePath = 'assets/img/placeholder.png', 
-    //TODO: Prueba, correjir el path por defecto de los entornos.
-    this.imagePath = 'assets/img/entorno_1_agua.png', 
-    this.price = 0 
+    required this.id, 
+    required this.imagePath, 
+    required this.price
   });
+
+  Environment.uncommited() : this(
+    id: -1,
+    imagePath: 'assets/img/entorno_1_agua.png',
+    price: 999,
+  );
 
   static const String tableName = 'entorno';
 

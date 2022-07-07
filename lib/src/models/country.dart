@@ -3,8 +3,8 @@ import 'package:hydrate_app/src/db/sqlite_model.dart';
 
 class Country extends SQLiteModel {
   
-  int id;
-  String code;
+  final int id;
+  final String code;
 
   Country({ this.id = -1, this.code = '--' });
 
@@ -36,6 +36,24 @@ class Country extends SQLiteModel {
 
     return map;
   } 
+
+  @override
+  bool operator ==(Object? other) {
+
+    if (other is! Country) {
+      return false;
+    } 
+
+    final otherCountry = other;
+
+    final areIdsEqual = id == otherCountry.id;
+    bool areCodesEqual = code == otherCountry.code;
+
+    return areIdsEqual && areCodesEqual;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([ id, code ]);
 
   /// Verifica que [inputCode] no sea nulo, tenga exactamente dos caracteres.
   static String? validateCountryCode(String? inputCode) {

@@ -60,43 +60,41 @@ class _SignupFormState extends State<SignupForm> {
       final res = await API.post(signupApiUrl, userCredentials.toMap());
 
       final resBody = json.decode(res.body);
+      final token = resBody[UserCredentials.jwtPropIdentifier];
 
-      print('Respuesta (${res.statusCode}): $resBody');
-
-      if (res.statusCode == 200 && resBody['token'] is String) {
+      if (res.statusCode == HttpStatus.ok && token is String) {
         // El registro y la autenticación fueron exitosos.
-        String jwt = resBody['token'];
 
         // Guardar el token JWT.
-        settingsProvider.authToken = jwt;
+        settingsProvider.authToken = token;
 
-        final tokenClaims = parseJWT(jwt);
-
-        print('Claims: $tokenClaims');
+        // Obtener el ID de la cuenta de usuario desde el token.
+        final tokenClaims = parseJWT(token);
 
         String newAccountID = tokenClaims['id'];
 
-        if (profileProvider.profile.userAccountID.isNotEmpty) {
+        if (profileProvider.linkedAccountId.isNotEmpty) {
           // Si el perfil actual ya tiene asociada una cuenta de usuario,
           // crear un nuevo perfil con el ID de la nueva cuenta.
-          profileProvider.newDefaultProfile(accountID: newAccountID);
+          profileProvider.newDefaultProfile(existingAccountId: newAccountID);
 
           // Se registró la nueva cuenta, asociada con un nuevo perfil. Redirigir
           // al formulario inicial para que el usuario pueda configurar su nuevo
           // perfil.
-          Navigator.of(context).popAndPushNamed(RouteNames.initialForm, result: resBody['token']);
-        } else {
+          Navigator.of(context).popAndPushNamed(RouteNames.initialForm, result: token);
+
+        } else if (profileProvider.profileChanges != null) {
           // Si el perfil de usuario no esta asociado con una cuenta de usuario, 
           // asociar el perfil con la cuenta creada.
-          profileProvider.profileChanges.userAccountID = newAccountID;
+          profileProvider.profileChanges!.userAccountID = newAccountID;
 
           profileProvider.saveProfileChanges(restrictModifications: false);
 
           // Se registró la nueva cuenta y se asoció por defecto al perfil local.
-          Navigator.of(context).popAndPushNamed(RouteNames.home, result: resBody['token']);
+          Navigator.of(context).popAndPushNamed(RouteNames.home, result: token);
         }
 
-      } else if (res.statusCode >= 400) {
+      } else if (res.statusCode >= HttpStatus.badRequest) {
         // Existe un error en las credenciales del usuario.
         final error = AuthError.values[resBody['tipo'] ?? 1];
 
@@ -105,7 +103,7 @@ class _SignupFormState extends State<SignupForm> {
           hasError = true;
           authError = error;
         });
-      } else if (res.statusCode >= 500) {
+      } else if (res.statusCode >= HttpStatus.internalServerError) {
         // Hubo un error en el servidor.
         setState(() {
           isLoading = false;

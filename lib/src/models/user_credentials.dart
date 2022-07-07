@@ -11,6 +11,8 @@ class UserCredentials {
     this.password = ''
   }); 
 
+  static const jwtPropIdentifier = 'token';
+
   static UserCredentials fromMap(Map<String, String> map) {
     
     return UserCredentials(

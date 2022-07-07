@@ -2,266 +2,293 @@ import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
-import 'package:hydrate_app/src/models/country.dart';
-import 'package:hydrate_app/src/models/medical_data.dart';
-import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/provider/cache_state.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
-class ProfileProvider extends ChangeNotifier
-{
-  UserProfile _profile = UserProfile(
-    country: Country(id: 0),
-    unlockedEnvironments: []
+class ProfileProvider extends ChangeNotifier {
+
+  /// El ID del perfil local del usuario.
+  int _profileId;
+
+  /// El UUID de la cuenta de usuario del servicio web asociada con el 
+  /// perfil. 
+  String? _accountId;
+  
+  /// Crea una instancia de [ProfileProvider] que es inicializada con el 
+  /// [UserProfile] por defecto.
+  ProfileProvider()
+    : _profileId = UserProfile.defaultProfileId;
+
+  /// Crea una instancia de [ProfileProvider] que es inicializada con un 
+  /// [UserProfile]. 
+  /// 
+  /// Si [profileId] se omite, el [UserProfile] inicial será aquel identificado
+  /// con [UserProfile.defaultProfileId].
+  /// 
+  /// Si se incluye un [authToken] que no esté vacío y sea válido, el [UserProfile]
+  /// inicial deberá tener un [UserProfile.userAccountId] igual al ID de cuenta 
+  /// incluido en el token. 
+  ProfileProvider.withProfile({ 
+    int profileId = UserProfile.defaultProfileId, 
+    String authToken = '', 
+  }): _profileId = profileId,
+      _accountId = authToken.isNotEmpty ? parseJWT(authToken)['id'] : null;
+
+  /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
+  /// actual. Esta instancia de [UserProfile] es modificable.
+  UserProfile? _profileChanges;
+
+  /// Un contenedor para el [UserProfile] del usuario actual.
+  late final CacheState<UserProfile?> _profileCache = CacheState(
+    fetchData: _fetchUserProfile,
+    onDataRefreshed: (UserProfile? profile) {
+      // Actualizar el modelo de cambios a perfil, con el perfil actual.
+      _profileChanges = profile != null 
+        ? UserProfile.modifiableCopyOf(profile)
+        : null;
+
+      notifyListeners();
+    },
   );
 
-  UserProfile _profileChanges = UserProfile(
-    country: Country(id: 0),
-    unlockedEnvironments: []
+  late final CacheState<List<Country>> _countriesCache = CacheState(
+    fetchData: _fetchCountries,
+    onDataRefreshed: (_) => notifyListeners(),
   );
 
-  final List<Country> countries = [];
+  late final CacheState<List<Environment>> _environmentsCache = CacheState(
+    fetchData: _fetchAllEnvironments,
+    onDataRefreshed: (_) => notifyListeners(),
+  );
 
-  bool _profileLoading = true;
-  bool _profileError = false;
+  bool get hasProfileData => _profileCache.hasData;
 
-  bool _countriesLoading = true;
+  int get profileId => _profileId;
+  String get linkedAccountId => _accountId ?? '';
 
-  bool get isProfileLoading => _profileLoading;
-  bool get hasError => _profileError;
+  /// Retorna una instancia de solo lectura del [UserProfile] del usuario actual.
+  Future<UserProfile?> get profile => _profileCache.data;
 
-  bool get areCountriesLoading => _countriesLoading;
+  UserProfile? get profileChanges => _profileChanges;
 
-  UserProfile get profile => _profile;
-  UserProfile get profileChanges => _profileChanges;
+  bool get hasCountriesData => _countriesCache.hasData;
+  Future<List<Country>?> get countries => _countriesCache.data;
 
-  ProfileProvider({ int profileId = 0, String authToken = '' }) {
+  bool get hasEnvironmentsData => _environmentsCache.hasData;
+  Future<List<Environment>?> get environments => _environmentsCache.data;
 
-    String? accountId;
+  Future<UserProfile?> _fetchUserProfile() async {
+    // Query a la BD.
+    final whereQuery = [ WhereClause('id', _profileId.toString()), ];
+    final unions = <String>[];
 
-    if (authToken.isNotEmpty) {
-      final tokenClaims = parseJWT(authToken);
-
-      print('Claims: $tokenClaims');
-
-      accountId = tokenClaims['id'];
+    if (_accountId != null) {
+      // Si hay un usuario autenticado, obtener el perfil que tenga el id
+      // de perfil Y el id de la cuenta de usuario.
+      whereQuery.add(WhereClause('id_usuario', _accountId!));
+      unions.add('OR');
     }
 
-    loadCountries();
-    loadUserProfile(
-      profileId: profileId,
-      accountId: accountId
+    final queryResults = await SQLiteDB.instance.select<UserProfile>(
+      UserProfile.fromMap,
+      UserProfile.tableName,
+      where: whereQuery,
+      whereUnions: unions,
+      includeOneToMany: true,
+      queryManyToMany: true,
+      limit: 1
     );
+
+    UserProfile? profile;
+
+    if (queryResults.isNotEmpty)
+    {
+      profile = queryResults.first;
+      assert(profile.id == _profileId);
+    }
+
+    return Future.value(profile);
   }
 
-  Future<void> loadUserProfile({ int profileId = 0, String? accountId }) async {
-    _profileLoading = true;
-    _profileError = false;
+  Future<List<Environment>> _fetchAllEnvironments() async {
+    // Query a BD.
+    final queryResults = await SQLiteDB.instance.select<Environment>(
+      Environment.fromMap, 
+      Environment.tableName,
+    );
 
-    try {
-      final whereQuery = [ WhereClause('id', profileId.toString()), ];
-      final unions = <String>[];
+    return Future.value(queryResults.toList());
+  }
 
-      if (accountId != null) {
-        // Si hay un usuario autenticado, obtener el perfil que tenga el id
-        // de perfil Y el id de la cuenta de usuario.
-        whereQuery.add(WhereClause('id_usuario', accountId));
-        unions.add('OR');
-      }
+  Future<List<Country>> _fetchCountries() async {
+    // Query a BD.
+    final queryResults = await SQLiteDB.instance.select<Country>(
+      Country.fromMap, 
+      Country.tableName,
+    );
 
-      final queryResults = await SQLiteDB.instance.select<UserProfile>(
-        UserProfile.fromMap,
-        UserProfile.tableName,
-        where: whereQuery,
-        whereUnions: unions,
-        includeOneToMany: true,
-        queryManyToMany: true,
-        limit: 1
-      );
+    return Future.value(queryResults.toList());
+  }
 
-      if (queryResults.isNotEmpty)
-      {
-        _profile = queryResults.first;
-        _profileChanges = UserProfile.copyOf(_profile);
-        
-        assert(_profile.id == profileId);
-
-      } else {
-        _profileError = true;
-      }
+  /// Guarda un nuevo [UserProfile] en la BD, a partir de los cambios en 
+  /// profileChanges. 
+  Future<int> saveNewProfile() async {
     
-    } on Exception catch (_) {
-      _profileError = true;
-      print('No fue posible obtener perfil desde la BD.');
+    try {
+      final profileChanges = _profileChanges;
+
+      if (profileChanges == null) {
+        throw StateError('profileChanges es nulo. Esto no debería ser posible.');
+      }
+
+      int result = await SQLiteDB.instance.insert(profileChanges);
+
+      if (result >= 0) {
+        _profileCache.shouldRefresh();
+        return result;
+      } else {
+        throw Exception('No se pudo crear el nuevo perfil.');
+      }
     }
-    finally {
-      _profileLoading = false;
+    on Exception catch (e) {
+      return Future.error(e);
+
+    } finally {
       notifyListeners();
     }
   }
 
-  Future<void> loadCountries() async {
+  void changeSelectedEnv(Environment environment) {
 
-    _countriesLoading = true;
-    countries.clear();
-    notifyListeners();
+    final isEnvUnlocked = profileChanges?.hasUnlockedEnv(environment.id) ?? false;
 
-    try {
-      final results = await SQLiteDB.instance.select<Country>(
-        Country.fromMap, 
-        Country.tableName
-      );
-
-      countries.addAll(results);
-
-    } on Exception catch (_) {
-      _profileError = true;
-      print('No fue posible obtener los paises desde la BD.');
-    } finally {
-      _countriesLoading = false;
+    if (isEnvUnlocked) {
+      profileChanges?.selectedEnvId = environment.id;
       notifyListeners();
     }
+  }
+
+  /// Desbloquea un nuevo [Environment] para el [profile] activo. 
+  /// 
+  /// Retorna [true] si el usuario tenía monedas suficientes y el [environment]
+  /// fue agregado a [profileChanges.unlockedEnvironments].
+  /// 
+  /// Este cambio solo es reflejado cuando el usuario confirma los cambios
+  /// a su [UserProfile], cuando se llama [ProfileProvider.saveProfileChanges()].
+  Future<bool> purchaseEnvironment(Environment environment) async {
+
+    final profile = await _profileCache.data;
+
+    if (profile != null && !profile.hasUnlockedEnv(environment.id)) {
+      /// Desbloquear el entorno de forma no confirmada, usando profileChanges.
+      profileChanges?.giveOrTakeCoins(-environment.price);
+
+      profileChanges?.unlockedEnvironments.add(environment);
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void changeProfile(int newProfileId, { String? userAccountId }) {
+
+    _profileId = newProfileId;
+    _accountId = userAccountId;
+
+    _profileCache.shouldRefresh();
   }
 
   /// Crea un nuevo perfil de usuario, con datos por defecto.
-  Future<int> newDefaultProfile({ String? accountID }) async {
-    _profileLoading = true;
-    _profileError = false;
-    notifyListeners();
+  Future<int> newDefaultProfile({ String? existingAccountId }) async {
 
-    int result = -1;
+    final countries = (await _countriesCache.data);
+    final environments = (await _environmentsCache.data);
 
-    try {
-      final defaultProfile = UserProfile(country: Country(), unlockedEnvironments: []);
-      defaultProfile.userAccountID = accountID ?? '';
+    if (countries != null && environments != null) {
 
-      result = await SQLiteDB.instance.insert(defaultProfile);
+      // Obtener el pais y el entorno por defecto (deberian ser accesibles para
+      // todos los usuarios, desde el inicio de la app).
+      final defaultCountry = countries.where((country) => country.id == 0).single;
+      final defaultEnv = environments.where((env) => env.id == 0).single;
 
-      if (result < 0) throw Exception('El perfil de usuario por default no fue creado.');
-    
-    } on Exception catch (e) {
-      _profileError = true;
-      print(e);
+      final defaultProfile = UserProfile.uncommited(
+        defaultCountry, 
+        defaultEnv,
+        existingAccountId ?? '',
+      );
 
-    } finally {
-      _profileLoading = false;
-      notifyListeners();
+      final result = await SQLiteDB.instance.insert(defaultProfile);
+
+      if (result > 0) {
+        _profileId = result;
+        _accountId = defaultProfile.userAccountID;
+
+        return Future.value(result);
+      }
     }
 
-    return result;
+    return Future.value(-1);
   }
 
   Future<void> saveProfileChanges({bool restrictModifications = true}) async {
-    _profileLoading = true;
-    _profileError = false;
 
-    try {
-      if (restrictModifications) {
-        if (profileChanges.modificationCount >= 3) {
-          throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
-        }
+    final activeProfile = await _profileCache.data;
+    final profileChanges = _profileChanges;
 
-        profileChanges.modificationCount++;
+    // No hay cambios que guardar. 
+    if (activeProfile == profileChanges) return;
+
+    if (profileChanges == null) {
+      throw StateError('profileChanges es nulo. Esto no debería ser posible.');
+    }
+
+    if (restrictModifications) {
+      // Los cambios deben ser restringidos por el numero de modificaciones en el
+      // perfil.
+      if (profileChanges.modificationCount >= 3) {
+        throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
       }
 
-      int result = await SQLiteDB.instance.update(profileChanges);
-
-      if (result < 1) throw Exception('El perfil de usuario no fue modificado.');
-
-      _profile = _profileChanges;
-    
-    } on Exception catch (e) {
-      _profileError = true;
-      print('Error actualizando el perfil de usuario: $e');
-
-    } finally {
-      _profileLoading = false;
-      notifyListeners();
+      profileChanges.recordModification();
     }
+
+    int result = await SQLiteDB.instance.update(profileChanges);
+
+    if (result < 1) throw Exception('El perfil de usuario no fue modificado.');
+
+    _profileCache.shouldRefresh();
   }
 
   /// Busca un perfil local con id_usuario == accountId.
   /// Si lo encuentra, retorna el id del perfil de usuario.
   /// Si no, retorna -1.
-  Future<int> findAndSetProfileLinkedToAccount(String accountId) async {
-    try {
-      final whereQuery = [ WhereClause('id_usuario', accountId), ];
+  Future<int> findProfileLinkedToAccount(String accountId) async {
 
-      final queryResults = await SQLiteDB.instance.select<UserProfile>(
-        UserProfile.fromMap,
-        UserProfile.tableName,
-        where: whereQuery,
-        limit: 1
-      );
+    final whereQuery = [ WhereClause('id_usuario', accountId), ];
 
-      //TODO: Buscar si el servicio web tiene un perfil de usuario para la cuenta.
+    final queryResults = await SQLiteDB.instance.select<UserProfile>(
+      UserProfile.fromMap,
+      UserProfile.tableName,
+      where: whereQuery,
+      limit: 1
+    );
 
-      if (queryResults.isNotEmpty) {
-        final UserProfile profileFound = queryResults.first;
+    //TODO: Buscar si el servicio web tiene un perfil de usuario para la cuenta.
 
-        _profile = profileFound;
-        _profileChanges = UserProfile.copyOf(profileFound);
+    final profileFound = queryResults.length == 1 ? queryResults.single : null;
 
-        return profileFound.id;
-      } else {
-        return -1;
-      }
-    } on Exception catch (_) {
+    if (profileFound != null) {
+
+      _profileId = profileFound.id;
+      _accountId = profileFound.userAccountID;
+
+      _profileCache.shouldRefresh();
+
+      return profileFound.id;
+    } else {
       return -1;
-    }
-  }
-
-  int indexOfCountry(Country country) {
-
-    if (countries.isEmpty) return 0;
-
-    return countries.indexWhere((c) => c.id == country.id && c.code == country.code);
-  }
-
-  set firstName(String newFirstName) {
-    if (newFirstName != _profile.firstName) {
-      _profileChanges.firstName = newFirstName;
-    }
-  }
-
-  set lastName(String newLastName) {
-    if (newLastName != _profile.lastName) {
-      _profileChanges.lastName = newLastName;
-    }
-  }
-
-  set dateOfBirth(DateTime? newDateOfBirth) {
-    if (newDateOfBirth != _profile.birthDate) {
-      _profileChanges.birthDate = newDateOfBirth;
-    }
-  }
-
-  set userSex(UserSex newUserSex) {
-    if (newUserSex != _profile.sex) {
-      _profileChanges.sex = newUserSex;
-    }
-  }
-
-  set height(double newHeight) {
-    if (newHeight != _profile.height) {
-      _profileChanges.height = newHeight;
-    }
-  }
-
-  set weight(double newWeight) {
-    if (newWeight != _profile.weight) {
-      _profileChanges.weight = newWeight;
-    }
-  }
-
-  set occupation(Occupation newOccupation) {
-    if (newOccupation != _profile.occupation) {
-      _profileChanges.occupation = newOccupation;
-    }
-  }
-
-  set medicalCondition(MedicalCondition newMedicalCondition) {
-    if (newMedicalCondition != _profile.medicalCondition) {
-      _profileChanges.medicalCondition = newMedicalCondition;
     }
   }
 }

@@ -9,41 +9,69 @@ import 'medical_data.dart';
 
 class UserProfile extends SQLiteModel {
 
-  int id;
-  String firstName;
-  String lastName;
-  DateTime? birthDate;
-  UserSex sex;
-  double height;
-  double weight;
-  MedicalCondition medicalCondition;
-  Occupation occupation;
-  Country country;
-  String userAccountID;
-  int coins;
-  int modificationCount;
-  int selectedEnvId;
-  List<Environment> unlockedEnvironments;
+  final int _id;
+  String _firstName;
+  String _lastName;
+  DateTime? _birthDate;
+  UserSex _sex;
+  double _height;
+  double _weight;
+  MedicalCondition _medicalCondition;
+  Occupation _occupation;
+  Country _country;
+  String _userAccountID;
+  int _coins;
+  int _modificationCount;
+  int _selectedEnvId;
+  final List<Environment> _unlockedEnvironments;
 
+  final bool isReadonly;
+
+  static const defaultProfileId = 0;
   static const maxCoins = 9999;
 
-  UserProfile({
-    this.id = -1,
-    this.firstName = '',
-    this.lastName = '',
-    this.birthDate,
-    this.sex = UserSex.notSpecified,
-    this.height = 0.0,
-    this.weight = 0.0,
-    this.medicalCondition = MedicalCondition.notSpecified,
-    this.occupation = Occupation.notSpecified,
-    this.userAccountID = '',
-    this.selectedEnvId = 0,
-    this.coins = 0,
-    this.modificationCount = 0,
-    required this.country,
-    required this.unlockedEnvironments,
-  });
+  UserProfile.unmodifiable(
+    this._id,
+    this._firstName,
+    this._lastName,
+    this. _birthDate,
+    this._sex,
+    this._height,
+    this._weight,
+    this._medicalCondition,
+    this._occupation,
+    this._userAccountID,
+    this._coins,
+    this._modificationCount,
+    this._selectedEnvId,
+    this._country,
+    this._unlockedEnvironments,
+  ): isReadonly = true;
+
+  UserProfile.uncommited(Country defaultCountry, Environment defaultEnv, String userAccountId) 
+  : this.unmodifiable(
+    -1, '', '', null, UserSex.notSpecified, 0.0, 0.0, 
+    MedicalCondition.notSpecified, Occupation.notSpecified, userAccountId, 0, 0, 0, 
+    defaultCountry, <Environment>[ defaultEnv ],
+  );
+
+  UserProfile.modifiableCopyOf(UserProfile other)
+    : isReadonly = false,
+      _id = other._id ,
+      _firstName = other._firstName ,
+      _lastName = other._lastName ,
+      _birthDate = other._birthDate ,
+      _sex = other._sex ,
+      _height = other._height ,
+      _weight = other._weight ,
+      _medicalCondition = other._medicalCondition ,
+      _occupation = other._occupation ,
+      _userAccountID = other._userAccountID ,
+      _coins = other._coins ,
+      _modificationCount = other._modificationCount ,
+      _selectedEnvId = other._selectedEnvId ,
+      _country = other._country ,
+      _unlockedEnvironments = List.from(other._unlockedEnvironments);
 
   static const String tableName = 'perfil';
 
@@ -72,29 +100,6 @@ class UserProfile extends SQLiteModel {
     )
   ''';
 
-  static UserProfile copyOf(UserProfile originalProfile) {
-    return UserProfile(
-      id: originalProfile.id,
-      firstName: originalProfile.firstName,
-      lastName: originalProfile.lastName,
-      birthDate: originalProfile.birthDate,
-      sex: originalProfile.sex,
-      height: originalProfile.height,
-      weight: originalProfile.weight,
-      medicalCondition: originalProfile.medicalCondition,
-      occupation: originalProfile.occupation,
-      userAccountID: originalProfile.userAccountID,
-      selectedEnvId: originalProfile.selectedEnvId,
-      coins: originalProfile.coins,
-      modificationCount: originalProfile.modificationCount,
-      country: Country(
-        id: originalProfile.country.id, 
-        code: originalProfile.country.code
-      ),
-      unlockedEnvironments: List.from(originalProfile.unlockedEnvironments)
-    );
-  }
-
   static UserProfile fromMap(Map<String, Object?> map) {
     
     final country = Country.fromMap(
@@ -114,22 +119,22 @@ class UserProfile extends SQLiteModel {
       envList = environments.map((environment) => Environment.fromMap(environment)).toList();
     }
 
-    return UserProfile(
-      id: int.tryParse(map['id'].toString()) ?? -1,
-      firstName: map['nombre'].toString(),
-      lastName: map['apellido'].toString(),
-      birthDate: DateTime.tryParse(map['fecha_nacimiento'].toString()),
-      sex: UserSex.values[idxUserSex],
-      height: double.tryParse(map['estatura'].toString()) ?? 0.0,
-      weight: double.tryParse(map['peso'].toString()) ?? 0.0,
-      medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
-      occupation: Occupation.values[idxOccupation],
-      userAccountID: map['id_usuario'].toString(),
-      selectedEnvId: int.tryParse(map['entorno_sel'].toString()) ?? 0,
-      coins: int.tryParse(map['monedas'].toString()) ?? 0,
-      modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
-      country: country,
-      unlockedEnvironments: envList
+    return UserProfile.unmodifiable(
+      int.tryParse(map['id'].toString()) ?? -1,
+      map['nombre'].toString(),
+      map['apellido'].toString(),
+      DateTime.tryParse(map['fecha_nacimiento'].toString()),
+      UserSex.values[idxUserSex],
+      double.tryParse(map['estatura'].toString()) ?? 0.0,
+      double.tryParse(map['peso'].toString()) ?? 0.0,
+      MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
+      Occupation.values[idxOccupation],
+      map['id_usuario'].toString(),
+      int.tryParse(map['entorno_sel'].toString()) ?? 0,
+      int.tryParse(map['monedas'].toString()) ?? 0,
+      int.tryParse(map['num_modificaciones'].toString()) ?? 0,
+      country,
+      envList
     );
   } 
 
@@ -157,9 +162,43 @@ class UserProfile extends SQLiteModel {
     return map;
   }
 
+  int get id => _id;
+  String get firstName => _firstName;
+  String get lastName => _lastName;
+  DateTime? get birthDate => _birthDate;
+  UserSex get sex => _sex;
+  double get height => _height;
+  double get weight => _weight;
+  MedicalCondition get medicalCondition => _medicalCondition;
+  Occupation get occupation => _occupation;
+  Country get country => _country;
+  String get userAccountID => _userAccountID;
+  int get coins => _coins;
+  int get modificationCount => _modificationCount;
+  int get selectedEnvId => _selectedEnvId;
+  List<Environment> get unlockedEnvironments => isReadonly
+    ? List.unmodifiable( _unlockedEnvironments)
+    : _unlockedEnvironments;
+
+  // Setters, solo si este [UserProfile] no [isReadonly].
+  set firstName(String newFirstName)  => isReadonly ? null : _firstName = newFirstName;
+  set lastName(String newLastName) => isReadonly ? null : _lastName = newLastName;
+  set birthDate(DateTime? newBirthDate) => isReadonly ? null : _birthDate = newBirthDate;
+  set sex(UserSex newSex) => isReadonly ? null : _sex = newSex;
+  set height(double newHeight) => isReadonly ? null : _height = newHeight;
+  set weight(double newWeight) => isReadonly ? null : _weight = newWeight;
+  set medicalCondition(MedicalCondition newCondition) => isReadonly ? null : _medicalCondition = newCondition;
+  set occupation(Occupation newOccupation) => isReadonly ? null : _occupation = newOccupation;
+  set country(Country newCountry) => isReadonly ? null : _country = newCountry;
+  set userAccountID(String newAccountId) => isReadonly ? null : _userAccountID = newAccountId;
+  set selectedEnvId(int newSelectedEnvId) => isReadonly ? null : _selectedEnvId = newSelectedEnvId;
+
   Environment get selectedEnvironment => unlockedEnvironments.isNotEmpty
       ? unlockedEnvironments.firstWhere((env) => env.id == selectedEnvId)
-      : Environment();
+      : Environment.uncommited();
+
+  bool hasUnlockedEnv(int envId) => unlockedEnvironments
+      .where((e) => e.id == envId).isNotEmpty;
 
   String get fullName => '$firstName $lastName';
 
@@ -185,8 +224,49 @@ class UserProfile extends SQLiteModel {
       throw RangeError.range(newCoinCount, 0, maxCoins, 'amount');
     }
 
-    coins = amount;
+    _coins = amount;
   }
+
+  /// Registra una modificación a los datos sensibles de [UserProfile].
+  /// Debería ser invocado cada vez que se guardan cambios para el perfil.
+  void recordModification() {
+    _modificationCount++;
+  }
+
+  @override
+  bool operator ==(Object? other) {
+
+    if (other is! UserProfile) {
+      return false;
+    } 
+
+    final otherProfile = other;
+
+    final isIdEqual = id == otherProfile.id;
+    final isNameEqual = fullName == otherProfile.fullName;
+    final isBirthDateEqual = birthDate?.isAtSameMomentAs(otherProfile.birthDate ?? DateTime.now()) ?? false;
+    final areFeaturesEqual = sex == otherProfile.sex &&
+      medicalCondition == otherProfile.medicalCondition &&
+      occupation == otherProfile.occupation;
+    final isWeightEqual = (weight - otherProfile.weight).abs() < 0.001;
+    final isHeightEqual = (height - otherProfile.height).abs() < 0.001;
+    final isAccountEqual = userAccountID == otherProfile.userAccountID;
+    final areCoinsEqual = coins == otherProfile.coins;
+    final isSelectedEnvEqual = selectedEnvId == otherProfile.selectedEnvId;
+    final isCountryEqual = country == otherProfile.country;
+    final areUnlockedEnvsEqual = unlockedEnvironments.length == otherProfile.unlockedEnvironments.length;
+
+    return isIdEqual && isNameEqual && isBirthDateEqual && areFeaturesEqual
+      && isWeightEqual && isHeightEqual && isAccountEqual && areCoinsEqual
+      && isSelectedEnvEqual && isCountryEqual && areUnlockedEnvsEqual;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([ 
+    id, firstName, lastName, birthDate, sex, height, weight, 
+    medicalCondition, occupation, userAccountID, selectedEnvId, 
+    coins, modificationCount, country, unlockedEnvironments 
+  ]);
 
   /// Verifica que [inputName] sea un string con longitud menor a 50.
   static String? validateFirstName(String? inputName) {

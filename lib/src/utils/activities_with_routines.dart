@@ -33,20 +33,16 @@ class RoutineActivities {
     _activities.clear();
     _activities.addAll(activityRecords);
 
-    if (_routines.isNotEmpty) {
-      _routineOccurrences.clear();
-      _routineOccurrences.addAll(_groupRoutineActivities());
-    }
+    _routineOccurrences.clear();
+    _routineOccurrences.addAll(_groupRoutineActivities());
   }
 
   set routines (Iterable<Routine> routines) {
     _routines.clear();
     _routines.addAll(routines);
-
-    if (_activities.isNotEmpty) {
-      _routineOccurrences.clear();
-      _routineOccurrences.addAll(_groupRoutineActivities());
-    }
+    
+    _routineOccurrences.clear();
+    _routineOccurrences.addAll(_groupRoutineActivities());
   }
 
   /// Busca un [ActivityRecord] que tenga un [activity.id] igual a [id] y lo 

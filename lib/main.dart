@@ -47,7 +47,7 @@ class HydrateApp extends StatelessWidget {
                 create: (_) => GoalProvider(),
               ),
               ChangeNotifierProvider<ProfileProvider>(
-                create: (_) => ProfileProvider(
+                create: (_) => ProfileProvider.withProfile(
                   profileId: settingsProvider.currentProfileId,
                   authToken: settingsProvider.authToken
                 ),

@@ -55,46 +55,56 @@ class _LoginFormState extends State<LoginForm> {
       final res = await API.post(loginApiUrl, userCredentials.toMap());
 
       final resBody = json.decode(res.body);
+      final token = resBody[UserCredentials.jwtPropIdentifier];
 
-      print('Respuesta (${res.statusCode}): $resBody');
+      if (res.statusCode == HttpStatus.ok && token is String) {
 
-      if (res.statusCode == 200 && resBody['token'] is String) {
+        // La autenticación fue exitosa. Guardar el token JWT.
+        settingsProvider.authToken = token;
 
-        // La autenticación fue exitosa.
-        String jwt = resBody['token'];
-
-        // Guardar el token JWT.
-        settingsProvider.authToken = jwt;
-
-        final tokenClaims = parseJWT(jwt);
-
-        print('Claims: $tokenClaims');
+        // Obtener el ID de la cuenta de usuario desde los claims del token.
+        final tokenClaims = parseJWT(token);
 
         String accountId = tokenClaims['id'];
 
-        if (profileProvider.profile.userAccountID.isNotEmpty) {
-          int profileLinkedToAccount = await profileProvider.findAndSetProfileLinkedToAccount(accountId);
+        if (profileProvider.linkedAccountId.isNotEmpty) {
+          int profileLinkedToAccount = await profileProvider.findProfileLinkedToAccount(accountId);
 
           if (profileLinkedToAccount < 0) {
             // Aun no existe un perfil asociado con la cuenta. Crear uno nuevo.
-            profileProvider.newDefaultProfile(accountID: accountId);
+            profileProvider.newDefaultProfile(existingAccountId: accountId);
 
-            Navigator.of(context).popAndPushNamed(RouteNames.authentication, result: resBody['token']);
+            Navigator.of(context).popAndPushNamed(RouteNames.authentication, result: token);
+            
           } else {
             // Ya existe un perfil para esta cuenta.
-            profileProvider.loadUserProfile(profileId: profileLinkedToAccount, accountId: accountId);
+            profileProvider.changeProfile(profileLinkedToAccount, userAccountId: accountId);
 
-            Navigator.of(context).popAndPushNamed(RouteNames.home, result: resBody['token']);
+            Navigator.of(context).popAndPushNamed(RouteNames.home, result: token);
           }
-        } else {
+        } else if (profileProvider.profileChanges != null) {
           // Asociar el perfil actual con la cuenta autenticada.
-          profileProvider.profileChanges.userAccountID = accountId;
+          profileProvider.profileChanges!.userAccountID = accountId;
 
           profileProvider.saveProfileChanges(restrictModifications: false);
 
-          Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
-        }     
-      } else if (res.statusCode >= 400) {
+          Navigator.of(context).popAndPushNamed('/', result: token);
+        } else {
+          setState(() {
+            isLoading = false;
+            hasError = true;
+            authError = AuthError.serviceUnavailable;
+          });
+        }    
+      } else if (res.statusCode >= HttpStatus.internalServerError) {
+        // Hubo un error en el servidor.
+        setState(() {
+          isLoading = false;
+          hasError = true;
+          authError = AuthError.serviceUnavailable;
+        });
+
+      } else if (res.statusCode >= HttpStatus.badRequest) {
         // Existe un error en las credenciales del usuario.
         final error = AuthError.values[resBody['tipo'] ?? 1];
 
@@ -103,16 +113,11 @@ class _LoginFormState extends State<LoginForm> {
           hasError = true;
           authError = error;
         });
-      } else if (res.statusCode >= 500) {
-        // Hubo un error en el servidor.
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          authError = AuthError.serviceUnavailable;
-        });
       }
 
     } on SocketException {
+      // La conexión a internet fue interrumpida, o hubo algún otro error de 
+      // conexión.
       setState(() {
         isLoading = false;
         hasError = true;
