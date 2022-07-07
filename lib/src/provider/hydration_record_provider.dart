@@ -3,37 +3,37 @@ import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
+import 'package:hydrate_app/src/provider/cache_state.dart';
 
 class HydrationRecordProvider extends ChangeNotifier {
 
-  final List<HydrationRecord> _hydrationRecords = [];
+  late final CacheState<List<HydrationRecord>> _hydrationRecordsCache = CacheState(
+    fetchData: _fetchHydrationRecords,
+    onDataRefreshed: (updatedRecords) {
+
+      _sortRecordsByDay(updatedRecords ?? <HydrationRecord>[]);
+      notifyListeners();
+    }
+  );
 
   final Map<DateTime, List<HydrationRecord>> _dailyHydration = {};
 
-  bool _shouldRefreshHydration = false;
-  bool _isHydrationLoading = false;
+  bool get hasHydrationData => _hydrationRecordsCache.hasData;
 
-  Future<List<HydrationRecord>> get hydrationRecords {
+  Future<List<HydrationRecord>?> get allRecords => _hydrationRecordsCache.data;
 
-    if (!_isHydrationLoading && _shouldRefreshHydration) {
-      return _queryHydrationRecords();
+  Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration async {
+
+    final records = await _hydrationRecordsCache.data;
+
+    if (records != null) {
+      _sortRecordsByDay(records);
     }
 
-    return Future.value(_hydrationRecords);
+    return _dailyHydration;
   }
 
-  Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration {
-
-    if (!_isHydrationLoading && _shouldRefreshHydration) {
-      return _queryHydrationRecords().then((value) => _sortRecordsByDay(value));
-    }
-
-    return Future.value(_dailyHydration);
-  }
-
-  List<int> get weekDailyTotals => _previousSevenDaysTotals();
-
-  bool get isLoading => _isHydrationLoading;
+  List<int> get pastWeekMlTotals => _previousSevenDaysTotals();
 
   //TODO: Quitar esta funcion helper temporal.
   Future<void> insertTestRecords() async {
@@ -72,28 +72,24 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   /// Guarda una coleccion de registros de hidratación en la base de datos.
   Future<List<int>> saveHydrationRecords(List<HydrationRecord> newRecords) async {
-    
-    final results = <int>[];
-
     try {
+      final results = <int>[];
+
       for (var newRecord in newRecords) { 
         int result = await SQLiteDB.instance.insert(newRecord);
 
         if (result < 0) {
-          throw Exception('No se pudo crear el registro de actividad fisica.');
+          throw Exception('No se pudo crear el registro de  hidratacion.');
         } else {
           results.add(result);
         }
       }
       
-      _shouldRefreshHydration = true;
+      _hydrationRecordsCache.shouldRefresh();
       return results;
     }
     on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      notifyListeners();
     }
   }
 
@@ -104,7 +100,7 @@ class HydrationRecordProvider extends ChangeNotifier {
       int result = await SQLiteDB.instance.insert(newRecord);
 
       if (result >= 0) {
-        _shouldRefreshHydration = true;
+        _hydrationRecordsCache.shouldRefresh();
         return result;
       } else {
         throw Exception('No se pudo crear el registro de actividad fisica.');
@@ -112,9 +108,6 @@ class HydrationRecordProvider extends ChangeNotifier {
     }
     on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      notifyListeners();
     }
   }
 
@@ -122,12 +115,10 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// 
   /// Los registros son ordendos cronológicamente por sus fechas, con los más 
   /// recientes primero.
-  Future<List<HydrationRecord>> _queryHydrationRecords() async {
-    _shouldRefreshHydration = false;
-    _isHydrationLoading = true;
-    try {
-      _hydrationRecords.clear();
+  Future<List<HydrationRecord>> _fetchHydrationRecords() async {
 
+    try {
+      // Query a la BD.
       final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
         HydrationRecord.fromMap, 
         HydrationRecord.tableName, 
@@ -135,17 +126,11 @@ class HydrationRecordProvider extends ChangeNotifier {
         orderByAsc: false
       );
 
-      _hydrationRecords.addAll(queryResults);
-
-      return _hydrationRecords;
+      return queryResults.toList();
 
     } on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      _isHydrationLoading = false;
-      notifyListeners();
-    }
+    } 
   }
 
   /// Crea un mapa en donde todos los valores de [_hydrationRecords] son agrupados

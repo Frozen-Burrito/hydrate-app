@@ -29,7 +29,9 @@ class SettingsProvider with ChangeNotifier {
 
   factory SettingsProvider() => SettingsProvider._internal();
 
-  SettingsProvider._internal();
+  SettingsProvider._internal() {
+    ++appStartups;
+  }
 
   /// Inicializa y asigna la instancia de Shared Preferences.
   static Future<void> init() async {
@@ -132,4 +134,8 @@ class SettingsProvider with ChangeNotifier {
   int get currentProfileId => _sharedPreferences?.getInt('perfil_actual') ?? -1;
 
   set currentProfileId(int profileId) => _sharedPreferences?.setInt('perfil_actual', profileId);
+
+  int get appStartups => _sharedPreferences?.getInt('inicios_app') ?? 0;
+
+  set appStartups(int startupCount) => _sharedPreferences?.setInt('inicios_app', startupCount);
 }

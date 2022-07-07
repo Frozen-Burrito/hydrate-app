@@ -1,70 +1,60 @@
 import 'package:flutter/material.dart';
+
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
-import 'package:hydrate_app/src/models/goal.dart';
-import 'package:hydrate_app/src/models/habits.dart';
-import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/provider/cache_state.dart';
 
-/// Maneja el estado para los [Goal], [Tag] y [Habits].
+/// Maneja el estado para los [Goal], [Tag], [Habits] y [MedicalData].
 class GoalProvider extends ChangeNotifier {
 
-  final List<Goal> _goals = <Goal>[];
-  final List<Tag> _tags = <Tag>[];
-  final List<Habits> _periodicReports = <Habits>[];
+  late final CacheState<List<Goal>> _goalCache = CacheState(
+    fetchData: _fetchGoals,
+    onDataRefreshed: (_) => notifyListeners(),
+  );
 
-  bool _shouldRefreshGoals = true;
-  bool _areGoalsLoading = false;
+  late final CacheState<List<Tag>> _tagsCache = CacheState(
+    fetchData: _fetchTags,
+    onDataRefreshed: (_) => notifyListeners()
+  );
 
-  bool _shouldRefreshTags = true;
-  bool _areTagsLoading = false;
+  late final CacheState<List<Habits>> _weeklyDataCache = CacheState(
+    fetchData: _fetchWeeklyReports,
+    onDataRefreshed: (_) => notifyListeners()
+  );
+
+  late final CacheState<List<MedicalData>> _medicalCache = CacheState(
+    fetchData: _fetchMedicalData,
+    onDataRefreshed: (_) => notifyListeners()
+  );
 
   int _profileId = -1;
 
   set activeProfileId (int profileId) => _profileId = profileId;
 
-  /// Obtiene todos los [Goal] de hidratación.
-  Future<List<Goal>> get goals {
-    if (_shouldRefreshGoals && !_areGoalsLoading) {
-      return _fetchGoals();
-    }
+  /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
+  bool get hasGoalData => _goalCache.hasData;
 
-    return Future.value(_goals);
-  }
+  /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
+  Future<List<Goal>?> get goals => _goalCache.data;
 
-  /// Obtiene todos los [Tag] disponibles.
-  Future<List<Tag>> get tags {
-    if (_shouldRefreshTags && !_areTagsLoading) {
-      return _fetchTags();
-    }
+  /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
+  bool get hasTagData => _tagsCache.hasData;
 
-    return Future.value(_tags);
-  }
+  /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
+  Future<List<Tag>?> get tags => _tagsCache.data;
 
-  Future<List<Goal>> _fetchGoals() async {
-    try {
-      _goals.clear();
-      _areGoalsLoading = true;
+  /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
+  bool get hasWeeklyData => _weeklyDataCache.hasData;
 
-      final queryResults = await SQLiteDB.instance.select<Goal>(
-        Goal.fromMap, 
-        Goal.tableName,
-        where: [ WhereClause('id_perfil', _profileId.toString() )]
-      );
+  /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
+  Future<List<Habits>?> get weeklyData => _weeklyDataCache.data;
 
-      _goals.addAll(queryResults);
+  /// Es [true] si hay una lista de datos médicos, aunque esté vacía.
+  bool get hasMedicalData => _medicalCache.hasData;
 
-      _shouldRefreshGoals = false;
-
-      return _goals;
-
-    } on Exception catch (e) {
-      return Future.error(e);
-
-    } finally {
-      _areGoalsLoading = false;
-      notifyListeners();
-    }
-  }
+  /// Retorna todos los registros de [MedicalData] disponibles, de forma asíncrona.
+  Future<List<MedicalData>?> get medicalData => _medicalCache.data;
 
   /// Agrega una nueva meta de hidratación.
   Future<int> createHydrationGoal(Goal newGoal) async {
@@ -73,7 +63,7 @@ class GoalProvider extends ChangeNotifier {
       int result = await SQLiteDB.instance.insert(newGoal);
 
       if (result >= 0) {
-        _shouldRefreshGoals = true;
+        _goalCache.shouldRefresh();
         return result;
       } else {
         throw Exception('No se pudo crear la meta de hidratación.');
@@ -139,7 +129,7 @@ class GoalProvider extends ChangeNotifier {
         int result = await SQLiteDB.instance.update(newMainGoal);
 
         if (result >= 0) {
-          _shouldRefreshGoals = true;
+          _goalCache.shouldRefresh();
           return result;
         } else {
           throw Exception('No se pudo modificar la meta principal de hidratación.');
@@ -170,7 +160,7 @@ class GoalProvider extends ChangeNotifier {
       );
 
       if (result >= 0) {
-        _shouldRefreshGoals = true;
+        _goalCache.shouldRefresh();
         return result;
       } else {
         throw Exception('No se pudo eliminar la meta de hidratación.');
@@ -185,28 +175,52 @@ class GoalProvider extends ChangeNotifier {
   }
 
   Future<List<Tag>> _fetchTags() async {
-    try {
-      _tags.clear();
-      _areTagsLoading = true;
+    // Query a la base de datos.
+    final queryResults = await SQLiteDB.instance.select<Tag>(
+      Tag.fromMap, 
+      Tag.tableName,
+      where: [ WhereClause('id_perfil', _profileId.toString() )]
+    );
 
-      final queryResults = await SQLiteDB.instance.select<Tag>(
-        Tag.fromMap, 
-        Tag.tableName,
-        where: [ WhereClause('id_perfil', _profileId.toString() )]
-      );
+    return Future.value(queryResults.toList());
+  }
 
-      _tags.addAll(queryResults);
+  /// Obtener todos los [Goal] de hidratación del perfil de 
+  /// usuario activo, como una [List].
+  Future<List<Goal>> _fetchGoals() async {
+    // Query a la base de datos.
+    final queryResults = await SQLiteDB.instance.select<Goal>(
+      Goal.fromMap,
+      Goal.tableName,
+      where: [ WhereClause('id_perfil', _profileId.toString() )]
+    );
 
-      _shouldRefreshTags = false;
+    return Future.value(queryResults.toList());
+  }
 
-      return _tags;
+  /// Obtener todos los [Habits] de hidratación del perfil de 
+  /// usuario activo, como una [List].
+  Future<List<Habits>> _fetchWeeklyReports() async {
+    // Query a la base de datos.
+    final queryResults = await SQLiteDB.instance.select<Habits>(
+      Habits.fromMap,
+      Habits.tableName,
+      where: [ WhereClause('id_perfil', _profileId.toString() )]
+    );
 
-    } on Exception catch (e) {
-      return Future.error(e);
+    return Future.value(queryResults.toList());
+  }
 
-    } finally {
-      _areTagsLoading = false;
-      notifyListeners();
-    }
+  /// Obtener todos los registros de reportes de [MedicalData] del perfil de 
+  /// usuario activo, como una [List].
+  Future<List<MedicalData>> _fetchMedicalData() async {
+    // Query a la base de datos.
+    final queryResults = await SQLiteDB.instance.select<MedicalData>(
+      MedicalData.fromMap,
+      MedicalData.tableName,
+      where: [ WhereClause('id_perfil', _profileId.toString() )]
+    );
+
+    return Future.value(queryResults.toList());
   }
 }

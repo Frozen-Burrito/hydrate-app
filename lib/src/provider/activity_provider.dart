@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/models/activity_record.dart';
-import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/provider/cache_state.dart';
 import 'package:hydrate_app/src/utils/activities_with_routines.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
@@ -14,46 +13,48 @@ import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 /// externa con el servicio web, cuando sea necesario.
 class ActivityProvider extends ChangeNotifier {
 
-  final List<ActivityRecord> _activityRecords = [];
-  final List<ActivityType> _activityTypes = [];
+  late final CacheState<List<ActivityRecord>> _activitiesCache = CacheState(
+    fetchData: _queryActivityRecords,
+    onDataRefreshed: (updatedRecords) {
+      
+      if (updatedRecords != null) {
+        _joinDailyRecords(updatedRecords);
+        _routineActivities.activities = updatedRecords;
+      }
+      notifyListeners();
+    }
+  );
+
+  late final CacheState<List<ActivityType>> _activityTypesCache = CacheState(
+    fetchData: _queryActivityTypes,
+    onDataRefreshed: (_) => notifyListeners(),
+  );
+
+  late final CacheState<List<Routine>> _routinesCache = CacheState(
+    fetchData: _queryRoutines,
+    onDataRefreshed: (updatedRoutines) {
+
+      if (updatedRoutines != null) {
+        _routineActivities.routines = updatedRoutines;
+      }
+      notifyListeners();
+    }
+  );
 
   final RoutineActivities _routineActivities = RoutineActivities.empty();
 
   final Map<DateTime, List<ActivityRecord>> _activitiesByDay = {};
 
-  bool _shouldRefreshActivities = true;
-  bool _activitiesLoading = false;
-
-  bool _shouldRefreshRoutines = true;
-  bool _areRoutinesLoading = false;
-
-  bool _areActTypesLoading = false;
-  bool _shouldRefreshTypes = true;
-
   /// Es [true] si el provider está cargando los [ActivityRecords].
-  bool get areActivitiesLoading => _activitiesLoading;
+  bool get hasActivityData => _activitiesCache.hasData;
 
   /// Retorna una colección con todos los [ActivityRecord] disponibles.
   /// Solo hace un query a la BD si ha habido modificaciones a los registros.
-  Future<List<ActivityRecord>> get activityRecords {
-
-    if (_shouldRefreshActivities && !areActivitiesLoading) {
-      return _queryActivityRecords();
-    }
-
-    return Future.value(_activityRecords);
-  }
+  Future<List<ActivityRecord>?> get activityRecords => _activitiesCache.data;
 
   /// Retorna una colección con todos los [ActivityType] disponibles.
   /// Solo hace un query a la BD si ha habido modificaciones a los datos.
-  Future<List<ActivityType>> get activityTypes {
-
-    if (_shouldRefreshTypes && !_areActTypesLoading) {
-      return _queryActivityTypes();
-    }
-
-    return Future.value(_activityTypes);
-  }
+  Future<List<ActivityType>?> get activityTypes => _activityTypesCache.data;
 
   /// Obtiene todos los [ActivityRecord], agrupados por día, con los registros 
   /// más recientes primero.
@@ -62,25 +63,14 @@ class ActivityProvider extends ChangeNotifier {
   /// Obtiene todos los [ActivityRecord] de los 7 días más recientes, agrupados 
   /// por día, con los registros más recientes primero. 
   Future<Map<DateTime, List<ActivityRecord>>> get activitiesFromPastWeek async {
-    if (_shouldRefreshActivities) {
-      await _queryActivityRecords();
-    }
-
     return Future.value(_getActivitiesFromPastWeek());
   }
 
   Future<RoutineActivities> get routineActivities async {
-    if (_shouldRefreshActivities) {
-      final activities = await _queryActivityRecords();
-      _routineActivities.activities = activities;
-    }
+    await _activitiesCache.data;
+    await _routinesCache.data;
 
-    if (_shouldRefreshRoutines) {
-      final routines = await _queryRoutines();
-      _routineActivities.routines = routines;
-    }
-
-    return _routineActivities;
+    return Future.value(_routineActivities);
   }
 
   /// El número máximo de actividades por día que otorgan una recompensa al 
@@ -153,9 +143,7 @@ class ActivityProvider extends ChangeNotifier {
 
   Future<List<ActivityRecord>> _queryActivityRecords() async {
     try {
-      _activityRecords.clear();
-      _activitiesLoading = true;
-
+      // Query a la BD, ordenando resultados por fecha y orden descendiente.
       final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
         ActivityRecord.fromMap, 
         ActivityRecord.tableName, 
@@ -164,20 +152,10 @@ class ActivityProvider extends ChangeNotifier {
         includeOneToMany: true,
       );
 
-      _activityRecords.addAll(queryResults);
-
-      _joinDailyRecords();
-
-      _shouldRefreshActivities = false;
-
-      return _activityRecords;
+      return queryResults.toList();
 
     } on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      _activitiesLoading = false;
-      notifyListeners();
     }
   }
 
@@ -188,7 +166,7 @@ class ActivityProvider extends ChangeNotifier {
       int result = await SQLiteDB.instance.insert(newRecord);
 
       if (result >= 0) {
-        _shouldRefreshActivities = true;
+        _activitiesCache.shouldRefresh();
         return result;
       } else {
         throw Exception('No se pudo crear el registro de actividad fisica.');
@@ -196,35 +174,21 @@ class ActivityProvider extends ChangeNotifier {
     }
     on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      notifyListeners();
     }
   }
 
   Future<List<Routine>> _queryRoutines() async {
     try {
-      _areRoutinesLoading = true;
-
       final queryResults = await SQLiteDB.instance.select<Routine>(
         Routine.fromMap, 
         Routine.tableName, 
         includeOneToMany: false,
       );
 
-      List<Routine> routines = [];
-      routines.addAll(queryResults);
-
-      _shouldRefreshRoutines = false;
-
-      return routines;
+      return queryResults.toList();
 
     } on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      _areRoutinesLoading = false;
-      notifyListeners();
     }
   }
 
@@ -235,7 +199,7 @@ class ActivityProvider extends ChangeNotifier {
       int result = await SQLiteDB.instance.insert(newRoutine);
 
       if (result >= 0) {
-        _shouldRefreshActivities = true;
+        _routinesCache.shouldRefresh();
         return result;
       } else {
         throw Exception('No se pudo crear la nueva rutina.');
@@ -243,43 +207,30 @@ class ActivityProvider extends ChangeNotifier {
     }
     on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      notifyListeners();
     }
   }
 
   Future<List<ActivityType>> _queryActivityTypes() async {
     try {
-      _activityTypes.clear();
-      _areActTypesLoading = true;
-
       final queryResults = await SQLiteDB.instance.select<ActivityType>(
         ActivityType.fromMap, 
         ActivityType.tableName, 
       );
-
-      _activityTypes.addAll(queryResults);
-
-      _shouldRefreshTypes = false;
       
-      return _activityTypes;
+      return queryResults.toList();
 
     } on Exception catch (e) {
       return Future.error(e);
-    } finally {
-      _areActTypesLoading = false;
-      notifyListeners();
     }
   }
 
   /// Crea un mapa en donde todos los valores de [_activityRecords] son agrupados
   /// por día.
-  void _joinDailyRecords() {
+  void _joinDailyRecords(List<ActivityRecord> allActivities) {
 
     _activitiesByDay.clear();
 
-    for (var hydrationRecord in _activityRecords) {
+    for (var hydrationRecord in allActivities) {
 
       DateTime recordDate = hydrationRecord.date;
       DateTime day = DateTime(recordDate.year, recordDate.month, recordDate.day);

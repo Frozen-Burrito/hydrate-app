@@ -6,47 +6,31 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/article.dart';
+import 'package:hydrate_app/src/provider/cache_state.dart';
 
 class ArticleProvider with ChangeNotifier {
 
-  final List<Article> _allArticles = [];
-  
-  final List<Article> _bookmarkedArticles = [];
+  late final CacheState<List<Article>> _allArticlesCache = CacheState(
+    fetchData: _fetchArticles,
+    onDataRefreshed: _isMounted ? (_) => notifyListeners() : null,
+  );
 
-  bool _shouldRefreshArticles = true;
+  late final CacheState<List<Article>> _bookmarkedArticlesCache = CacheState(
+    fetchData: _fetchBookmarks,
+    onDataRefreshed: _isMounted ? (_) => notifyListeners() : null,
+  );
 
-  bool _shouldRefreshBookmarks = true;
+  bool _isMounted = true;
 
-  bool _mounted = true;
+  bool get hasNetArticlesData => _allArticlesCache.hasData;
 
-  /// La lista de artículos obtenidos desde la API.
-  Future<List<Article>> get articles {
+  /// Retorna todos los [Article] disponibles a través de la API.
+  Future<List<Article>?> get allArticles => _allArticlesCache.data;
 
-    if (_shouldRefreshArticles) {
-      return _fetchArticles();
-    }
+  bool get hasBookmarkedArticlesData => _bookmarkedArticlesCache.hasData;
 
-    return Future.value(_allArticles.map((article) {
-        int bookmarkIdx = _bookmarkedArticles.indexWhere((bookmark) => bookmark.id == article.id);
-        if (bookmarkIdx > -1) {
-          article.isBookmarked = true;
-        }
-
-        return article;
-      }).toList()
-    );
-  }
-
-  /// La lista de artículos marcados y guardados por el usuario.
-  Future<List<Article>> get bookmarks {
-    
-    if (_shouldRefreshBookmarks) {
-      // Solo obtener bookmarks desde BD si hubo un cambio importante.
-      return _refreshBookmarks();
-    }
-
-    return Future.value(_bookmarkedArticles);
-  }
+  /// Retorna todos los [Article] disponibles a través de la API.
+  Future<List<Article>?> get bookmarks => _allArticlesCache.data;
 
   /// Intenta obtener una [List<Article>] desde la API web.
   /// 
@@ -58,21 +42,33 @@ class ArticleProvider with ChangeNotifier {
   /// a [true].
   Future<List<Article>> _fetchArticles() async {
 
-    _allArticles.clear();
-
     try {
-      _shouldRefreshArticles = false;
-
       // Enviar petición GET a /recursos de la api.
       final response = await API.get('/recursos');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == HttpStatus.ok) {
         // La petición fue exitosa. Obtener recursos informativos de su body.
         final jsonCollection = json.decode(response.body);
 
+        // Transformar la respuesta en JSON a una colección de recursos informativos.
         final articles = ArticleCollection.fromJsonCollection(jsonCollection);
 
-        return articles.items;
+        // Obtener bookmarks, si están disponibles.
+        final bookmarks = await _bookmarkedArticlesCache.data;
+
+        return bookmarks == null 
+          ? articles.items
+          : articles.items.map((article) {
+            // Ver si el recurso informativo se encuentra entre los marcadores del usuario.
+            int bookmarkIdx = bookmarks.indexWhere((bookmark) => bookmark.id == article.id);
+
+            // Si existe, el recurso informativo ha sido marcado.
+            if (bookmarkIdx > -1) {
+              article.isBookmarked = true;
+            }
+
+            return article;
+          }).toList();
 
       } else {
         print('Hubo un error obteniendo los recursos informativos.');
@@ -85,32 +81,20 @@ class ArticleProvider with ChangeNotifier {
     } on FormatException catch (e) {
       // Lanzada por http si no logra hacer el parse de la URL solicitada.
       print('Error de formato en url: ${e.message}');
-      
-    } finally {
-      // Evitar que se vuelva a refrescar, indiacar que ya no se están cargando
-      // los artículos.
-      _shouldRefreshArticles = false;
     }
 
     return [];
   }
 
   /// Obtiene de la BD los [Article] marcados para leer más tarde.
-  Future<List<Article>> _refreshBookmarks() async {
+  Future<List<Article>> _fetchBookmarks() async {
 
-    try {
-      _bookmarkedArticles.clear();
-      final articles = await SQLiteDB.instance.select<Article>(Article.fromMap, Article.tableName);
+    final articles = await SQLiteDB.instance.select<Article>(
+      Article.fromMap, 
+      Article.tableName
+    );
 
-      return articles.map((a) {
-        a.isBookmarked = true;
-        return a;
-      }).toList();
-    } finally {
-      // Evitar que se vuelva a refrescar, indiacar que ya no se están cargando
-      // los artículos.
-      _shouldRefreshBookmarks = false;
-    }   
+    return articles.where((article) => article.isBookmarked).toList();
   }
 
   /// Guarda localmente un [Article] para leer más tarde.
@@ -119,45 +103,50 @@ class ArticleProvider with ChangeNotifier {
   /// posible insertar en la BD.
   Future<int> bookmarkArticle(final Article article) async {
 
-    int insertedId = -1;
-
     try {
+      // Marcar el articulo y guardarlo en la BD.
       article.isBookmarked = true;
-      insertedId = await SQLiteDB.instance.insert(article);
-      _bookmarkedArticles.insert(0, article);
-      notifyListeners();
-    } catch (e) {
-      print('Unable to save article.');
-    }
+      int insertedId = await SQLiteDB.instance.insert(article);
 
-    return insertedId;
+      if (insertedId >= 0) {
+        _bookmarkedArticlesCache.shouldRefresh();
+        _allArticlesCache.shouldRefresh();
+        return insertedId;
+
+      } else {
+        throw Exception('No se pudo crear un marcador para el articulo.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+    }
   }
 
   /// Remueve la marca para leer más tarde de un [Article].
   /// 
-  /// Retorna el ID del artículo removido, o -1 si no fue
-  /// posible removerlo.
-  Future<int> removeArticle(final int id) async {
-
-    int resultId = -1;
+  /// Retorna [true] si el bookmark fue removido.
+  Future<bool> removeArticle(final int id) async {
 
     try {
-      resultId = await SQLiteDB.instance.delete('recurso_inf', id);
+      int resultId = await SQLiteDB.instance.delete(Article.tableName, id);
 
-      _allArticles.firstWhere((article) => article.id == id).isBookmarked = false;
-      _bookmarkedArticles.removeWhere((article) => article.id == id);
+      if (resultId > 0) {
+        _bookmarkedArticlesCache.shouldRefresh();
+        _allArticlesCache.shouldRefresh();
 
-      notifyListeners();
-    } on Exception catch (e) {
-      print('Unable to remove article: ${e.toString()}');
+        return true;
+      }
+
+    } on Error catch (e) {
+      print('No fue posible quitar el marcador del articulo: ${e.toString()}');
     }
 
-    return resultId;
+    return false;
   }
 
   @override
   void dispose() {
     super.dispose();
-    _mounted = false;
+    _isMounted = false;
   }
 }
