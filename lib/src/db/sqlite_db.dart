@@ -260,9 +260,12 @@ class SQLiteDB {
   }
 
   /// Elimina de la [table] un registro con el [id] especificado.
+  /// 
+  /// Retorna el número de filas modificadas.
   Future<int> delete(final String table, final int id) async {
+
     final db = await database;
-    final result = await db.delete(table, where: 'id = ?', whereArgs: [id]);
+    final result = await db.delete(table, where: 'id = ?', whereArgs: [ id ]);
 
     return result;
   }
