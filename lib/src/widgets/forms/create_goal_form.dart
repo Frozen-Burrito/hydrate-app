@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/provider/goals_provider.dart';
@@ -11,9 +10,7 @@ import 'package:hydrate_app/src/routes/route_names.dart';
 
 class CreateGoalForm extends StatefulWidget {
 
-  const CreateGoalForm(this.currentProfileId, { Key? key, }) : super(key: key);
-
-  final int currentProfileId;
+  const CreateGoalForm({ Key? key, }) : super(key: key);
 
   @override
   State<CreateGoalForm> createState() => _CreateGoalFormState();
@@ -59,7 +56,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
       final goalProvider = Provider.of<GoalProvider>(context, listen: false);
 
       // Obtener el número de metas creadas.
-      final numOfExistingGoals = (await goalProvider.goals).length;
+      final numOfExistingGoals = (await goalProvider.goals)?.length ?? 0;
       
       bool hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
 
@@ -86,11 +83,13 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
       if (!hasReachedGoalLimit) {
         // Asociar el perfil del usuario actual con la nueva meta.
-        newGoal.profileId = widget.currentProfileId;
+        final profile = await Provider.of<ProfileProvider>(context, listen: false).profile;
+
+        newGoal.profileId = profile?.id ?? -1;
 
         // Asociar el perfil del usuario actual con las etiquetas de la meta.
         for (var tag in newGoal.tags) {
-          tag.profileId = widget.currentProfileId;
+          tag.profileId = profile?.id ?? -1;
         }
 
         int resultado = await goalProvider.createHydrationGoal(newGoal);
@@ -344,42 +343,44 @@ class _TagFormFieldState extends State<_TagFormField> {
 
     final goalProvider = Provider.of<GoalProvider>(context);
 
-    return FutureBuilder<List<Tag>>(
+    return FutureBuilder<List<Tag>?>(
       future: goalProvider.tags,
       initialData: const <Tag>[],
       builder: (context, snapshot) {
 
-        if (snapshot.hasData && snapshot.data != null) {
+        if (snapshot.hasData) {
 
-          final existingTags = snapshot.data!;
+          final existingTags = snapshot.data;
 
+          if (existingTags != null) {
+            
+            return TextFormField(
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                labelText: 'Etiquetas',
+                helperText: ' ',
+                counterText: '${numberOfTags.toString()}/3'
+              ),
+              onChanged: (value) => setState(() {
+                numberOfTags = widget.onTagsChanged(value, existingTags);
+              }),
+              validator: (value) => widget.onValidate(value),
+            );
+          }
 
-          return TextFormField(
-            keyboardType: TextInputType.text,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: 'Etiquetas',
-              helperText: ' ',
-              counterText: '${numberOfTags.toString()}/3'
-            ),
-            onChanged: (value) => setState(() {
-               numberOfTags = widget.onTagsChanged(value, existingTags);
-            }),
-            validator: (value) => widget.onValidate(value),
-          );
-        } else {
-          return TextFormField(
-            keyboardType: TextInputType.text,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Etiquetas',
-              helperText: ' ',
-              counterText: '0/3'
-            ),
-            validator: (value) => Goal.validateTags(value),
-          );
         }
 
+        return TextFormField(
+          keyboardType: TextInputType.text,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Etiquetas',
+            helperText: ' ',
+            counterText: '0/3'
+          ),
+          validator: (value) => Goal.validateTags(value),
+        );
       }
     );
   }

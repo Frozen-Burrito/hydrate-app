@@ -70,14 +70,14 @@ class SettingsPage extends StatelessWidget {
               )
             ),
 
-            FutureBuilder<List<HydrationRecord>>(
-              future: hydrationProvider.hydrationRecords,
+            FutureBuilder<List<HydrationRecord>?>(
+              future: hydrationProvider.allRecords,
               initialData: const [],
               builder: (context, snapshot) {
 
                 String lastBatteryUpdate = 'Nunca'; //TODO: Localizacion de 'nunca'
 
-                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
                   // Determinar actualización más reciente de nivel de batería.
                   lastBatteryUpdate = snapshot.data!.first.date.toString().substring(0,16);
                 } 
@@ -168,11 +168,11 @@ class _BatteryUsageChart extends StatelessWidget {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: 300.0,
-      child: FutureBuilder<List<HydrationRecord>>(
-        future: hydrationProvider.hydrationRecords,
+      child: FutureBuilder<List<HydrationRecord>?>(
+        future: hydrationProvider.allRecords,
         builder: (context, snapshot) {
 
-          if (snapshot.hasData) {
+          if (snapshot.hasData && snapshot.data != null) {
 
             final now = DateTime.now();
 

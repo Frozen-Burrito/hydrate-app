@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 import 'package:provider/provider.dart';
@@ -24,10 +25,24 @@ class CoinDisplay extends StatelessWidget {
   
             Consumer<ProfileProvider>(
               builder: (_, profileProvider, __) {
-                return Text(
-                  profileProvider.profile.coins.toString(),
-                  style: Theme.of(context).textTheme.bodyText2,
-                  textAlign: TextAlign.right,
+                return FutureBuilder<UserProfile?>(
+                  future: profileProvider.profile,
+                  builder: (context, snapshot) {
+
+                    if (snapshot.hasData && snapshot.data != null) {
+                      return Text(
+                        snapshot.data!.coins.toString(),
+                        style: Theme.of(context).textTheme.bodyText2,
+                        textAlign: TextAlign.right,
+                      );
+                    } else {
+                      return Text(
+                        '0',
+                        style: Theme.of(context).textTheme.bodyText2,
+                        textAlign: TextAlign.right,
+                      );
+                    }
+                  }
                 );
               }
             ),

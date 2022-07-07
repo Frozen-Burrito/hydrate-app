@@ -28,11 +28,11 @@ class Routes {
     RouteNames.config: (BuildContext context) => const SettingsPage(),
     RouteNames.bleConnection: (BuildContext context) => const ConnectionPage(),
 
-    RouteNames.newHydrationGoal: (context) => CommonFormPage(
+    RouteNames.newHydrationGoal: (context) => const CommonFormPage(
       formTitle: 'Nueva Meta',
       formLabel: 'Escribe los detalles de tu nueva meta:',
-      formWidget: CreateGoalForm(_currentProfileId),
-      shapeDecoration: const WaveShape(),
+      formWidget: CreateGoalForm(),
+      shapeDecoration: WaveShape(),
     ),
     RouteNames.newActivity: (context) => CommonFormPage(
       formTitle: 'Registra una Actividad', 

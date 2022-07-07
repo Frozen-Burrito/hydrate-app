@@ -1,9 +1,9 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/forms/country_dropdown.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
@@ -34,23 +34,27 @@ class _InitialFormState extends State<InitialForm> {
   /// Verifica cada campo del formulario. Si no hay errores, registra la nueva
   /// información del usuario en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, UserProfile changes, {String? redirectRoute}) async {
+
+    // Revisar si el form está en un estado válido.
     if (_formKey.currentState!.validate()) {
-      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+      // Obtener proveedor de perfiles.
+      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+
       // Actualizar el perfil si el formulario es de edición, de lo contrario
       // crear un nuevo perfil.
-      int resultado = widget.isFormEditing 
-        ? await SQLiteDB.instance.update(changes)
-        : await SQLiteDB.instance.insert(changes);
+      if (widget.isFormEditing) {
+        await profileProvider.saveProfileChanges();
+      } else {
+        // Crear el nuevo perfil de usuario.
+        int newProfileId = await profileProvider.saveNewProfile();
+        // Configurar el ID del perfil por defecto para settings.
+        Provider.of<SettingsProvider>(context, listen: false).currentProfileId = newProfileId;
+      }
 
-      if (resultado >= 0) {
-
-        if (!widget.isFormEditing) settingsProvider.currentProfileId = resultado;
-
-        if (redirectRoute != null) {
-          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-        } else {
-          Navigator.of(context).pop();
-        }
+      if (redirectRoute != null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+      } else {
+        Navigator.of(context).pop();
       }
     }
   }
@@ -63,253 +67,251 @@ class _InitialFormState extends State<InitialForm> {
 
     final localizations = AppLocalizations.of(context)!;
 
-    final profileChanges = profileProvider.profileChanges;
-
-    birthDateController.text = profileProvider.profile.birthDate
-      ?.toString().substring(0, 10) ?? '';
-
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: (profileProvider.isProfileLoading || profileProvider.areCountriesLoading) 
-      ? const SizedBox(
-        height: 248.0,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      )
-      : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          
-          (widget.isFormEditing)
-          ? const SizedBox( height: 0.0 )
-          : TextFormField(
-              keyboardType: TextInputType.text,
-              maxLength: 50,
-              enabled: widget.isFormModifiable,
-              readOnly: !widget.isFormModifiable,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: localizations.firstName,
-                helperText: ' ',
-                counterText: '${profileChanges.firstName.length.toString()}/50'
-              ),
-              onChanged: (value) => profileProvider.firstName = value,
-              validator: (value) => UserProfile.validateFirstName(value),
-            ),
-          
-          SizedBox( height: (widget.isFormEditing ? 0.0 : 16.0 )),
+      child: FutureBuilder<UserProfile?>(
+        future: profileProvider.profile,
+        builder: (context, snapshot) {
 
-          (widget.isFormEditing)
-          ? const SizedBox( height: 0.0 )
-          : TextFormField(
-              keyboardType: TextInputType.text,
-              maxLength: 50,
-              enabled: widget.isFormModifiable,
-              readOnly: !widget.isFormModifiable,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: localizations.lastName,
-                helperText: ' ',
-                counterText: '${profileChanges.lastName.length.toString()}/50'
-              ),
-              onChanged: (value) => profileProvider.lastName = value,
-              validator: (value) => UserProfile.validateLastName(value),
-            ),
-          
-          SizedBox( height: (widget.isFormEditing ? 0.0 : 16.0 )),
+          if (snapshot.hasData) {
 
-          TextFormField(
-            readOnly: true,
-            controller: birthDateController,
-            enabled: widget.isFormModifiable,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: localizations.dateOfBirth,
-              helperText: ' ', // Para evitar cambios en la altura del widget
-              suffixIcon: const Icon(Icons.event_rounded)
-            ),
-            onTap: () async {
-              DateTime? newBirthDate = await showDatePicker(
-                context: context, 
-                initialDate: DateTime(DateTime.now().year - 10), 
-                firstDate: DateTime(1900), 
-                lastDate: DateTime(DateTime.now().year)
-              );
+            final activeProfile = snapshot.data;
+            final profileChanges = profileProvider.profileChanges;
 
-              profileProvider.dateOfBirth = newBirthDate;
+            if (activeProfile != null && profileChanges != null) {
 
-              if (profileChanges.birthDate != null) {
-                birthDateController.text = profileChanges.birthDate.toString().substring(0,10);
-              }
-            },
-          ),                
+              birthDateController.text = activeProfile.birthDate?.toLocalizedDate ?? '';
 
-          const SizedBox( height: 16.0, ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children:  <Widget>[
-              Expanded(
-                child: DropdownButtonFormField(
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: localizations.gender,
-                    helperText: ' ',
-                    hintText: localizations.select
-                  ),
-                  isExpanded: true,
-                  items: DropdownLabels.genderDropdownItems(context),
-                  value: profileChanges.sex.index,
-                  onChanged: (widget.isFormModifiable) 
-                    ? (int? newValue) {
-                        profileProvider.userSex = UserSex.values[newValue ?? 0];
-                      }
-                    : null,
-                ),
-              ),
-
-              const SizedBox( width: 16.0 ,),
-
-              Expanded(
-                child: DropdownButtonFormField(
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: localizations.country,
-                    helperText: ' ',
-                    hintText: localizations.select
-                  ),
-                  isExpanded: true,
-                  items: DropdownLabels
-                            .getCountryDropdownItems(context, profileProvider.countries),
-                  value: profileProvider.indexOfCountry(profileChanges.country),
-                  onChanged: (widget.isFormModifiable)
-                    ? (int? newValue) {
-                        profileChanges.country = profileProvider.countries[min(newValue ?? 0, profileProvider.countries.length)];
-                      }
-                    : null,
-                ),
-              ),
-            ]
-          ),
-        
-          const SizedBox( height: 16.0, ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children:  <Widget>[
-              Expanded(
-                child: TextFormField(
-                  // autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  enabled: widget.isFormModifiable,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: '${localizations.height} (m)',
-                    hintText: '1.70',
-                    helperText: ' ',
-                    suffixIcon: const Icon(Icons.height),
-                  ),
-                  initialValue: profileChanges.height.toStringAsFixed(2),
-                  onChanged: (value) => profileProvider.height = double.tryParse(value) ?? 0,
-                  validator: (value) => UserProfile.validateHeight(value),
-                ),
-              ),
-
-              const SizedBox( width: 16.0, ),
-
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  enabled: widget.isFormModifiable,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: '${localizations.weight} (kg)',
-                    hintText: '60.0',
-                    helperText: ' ',
-                    suffixIcon: const Icon(Icons.monitor_weight_outlined)
-                  ),
-                  initialValue: profileChanges.weight.toString(),
-                  onChanged: (value) => profileProvider.weight = double.tryParse(value) ?? 0,
-                  validator: (value) => UserProfile.validateWeight(value),
-                ),
-              ),
-            ],
-          ),
-        
-          const SizedBox( height: 16.0, ),
-
-          (widget.isFormEditing)
-          ? const SizedBox( height: 0.0, )
-          : DropdownButtonFormField(
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: localizations.occupation,
-                helperText: ' ',
-                hintText: localizations.select
-              ),
-              items: DropdownLabels.occupationDropdownItems(context),
-              value: profileChanges.occupation.index,
-              onChanged: (widget.isFormModifiable) 
-                ? (int? newValue) {
-                    profileProvider.occupation = Occupation.values[newValue ?? 0];
-                  }
-                : null,
-            ),
-
-          const SizedBox( height: 16.0, ),
-
-          DropdownButtonFormField(
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: localizations.medicalCondition,
-              helperText: ' ',
-            ),
-            items: DropdownLabels.conditionDropdownItems(context),
-            value: profileChanges.medicalCondition.index,
-            onChanged: (widget.isFormModifiable) 
-              ? (int? newValue) {
-                  profileProvider.medicalCondition = MedicalCondition.values[newValue ?? 0];
-                }
-              : null,
-          ),
-        
-          (widget.isFormEditing) 
-            ? const SizedBox( height: 48.0 )
-            : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Expanded(
-                  child: ElevatedButton(
-                    child: Text(localizations.skip),
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.grey.shade700,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  
+                  (widget.isFormEditing)
+                  ? const SizedBox( height: 0.0 )
+                  : TextFormField(
+                      keyboardType: TextInputType.text,
+                      maxLength: 50,
+                      enabled: widget.isFormModifiable,
+                      readOnly: !widget.isFormModifiable,
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.firstName,
+                        helperText: ' ',
+                        counterText: '${profileChanges.firstName.length.toString()}/50'
+                      ),
+                      onChanged: (value) => profileChanges.firstName = value,
+                      validator: (value) => UserProfile.validateFirstName(value),
                     ),
-                    onPressed: () async {
-                      int newProfileId = await profileProvider.newDefaultProfile();
-                      settingsProvider.currentProfileId = newProfileId;
+                  
+                  SizedBox( height: (widget.isFormEditing ? 0.0 : 16.0 )),
 
-                      Navigator.pushReplacementNamed(context, RouteNames.home);
+                  (widget.isFormEditing)
+                  ? const SizedBox( height: 0.0 )
+                  : TextFormField(
+                      keyboardType: TextInputType.text,
+                      maxLength: 50,
+                      enabled: widget.isFormModifiable,
+                      readOnly: !widget.isFormModifiable,
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.lastName,
+                        helperText: ' ',
+                        counterText: '${profileChanges.lastName.length.toString()}/50'
+                      ),
+                      onChanged: (value) => profileChanges.lastName = value,
+                      validator: (value) => UserProfile.validateLastName(value),
+                    ),
+                  
+                  SizedBox( height: (widget.isFormEditing ? 0.0 : 16.0 )),
+
+                  TextFormField(
+                    readOnly: true,
+                    controller: birthDateController,
+                    enabled: widget.isFormModifiable,
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: localizations.dateOfBirth,
+                      helperText: ' ', // Para evitar cambios en la altura del widget
+                      suffixIcon: const Icon(Icons.event_rounded)
+                    ),
+                    onTap: () async {
+                      DateTime? newBirthDate = await showDatePicker(
+                        context: context, 
+                        initialDate: DateTime(DateTime.now().year - 10), 
+                        firstDate: DateTime(1900), 
+                        lastDate: DateTime(DateTime.now().year)
+                      );
+
+                      profileChanges.birthDate = newBirthDate;
+
+                      if (profileChanges.birthDate != null) {
+                        birthDateController.text = profileChanges.birthDate.toString().substring(0,10);
+                      }
                     },
+                  ),                
+
+                  const SizedBox( height: 16.0, ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children:  <Widget>[
+                      Expanded(
+                        child: DropdownButtonFormField(
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            labelText: localizations.gender,
+                            helperText: ' ',
+                            hintText: localizations.select
+                          ),
+                          isExpanded: true,
+                          items: DropdownLabels.genderDropdownItems(context),
+                          value: profileChanges.sex.index,
+                          onChanged: (widget.isFormModifiable) 
+                            ? (int? newValue) {
+                                profileChanges.sex = UserSex.values[newValue ?? 0];
+                              }
+                            : null,
+                        ),
+                      ),
+
+                      const SizedBox( width: 16.0 ,),
+
+                      Expanded(
+                        child: CountryDropdown(
+                          isUnmodifiable: !widget.isFormEditing
+                        ),
+                      ),
+                    ]
                   ),
-                ),
-          
-                const SizedBox( width: 16.0, ),
-          
-                Expanded(
-                  child: ElevatedButton(
-                    child: Text(localizations.continueAction),
-                    style: ElevatedButton.styleFrom(
-                      primary: Colors.blue,
+                
+                  const SizedBox( height: 16.0, ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children:  <Widget>[
+                      Expanded(
+                        child: TextFormField(
+                          // autocorrect: false,
+                          keyboardType: TextInputType.number,
+                          enabled: widget.isFormModifiable,
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            labelText: '${localizations.height} (m)',
+                            hintText: '1.70',
+                            helperText: ' ',
+                            suffixIcon: const Icon(Icons.height),
+                          ),
+                          initialValue: profileChanges.height.toStringAsFixed(2),
+                          onChanged: (value) => profileChanges.height = double.tryParse(value) ?? 0,
+                          validator: (value) => UserProfile.validateHeight(value),
+                        ),
+                      ),
+
+                      const SizedBox( width: 16.0, ),
+
+                      Expanded(
+                        child: TextFormField(
+                          autocorrect: false,
+                          keyboardType: TextInputType.number,
+                          enabled: widget.isFormModifiable,
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            labelText: '${localizations.weight} (kg)',
+                            hintText: '60.0',
+                            helperText: ' ',
+                            suffixIcon: const Icon(Icons.monitor_weight_outlined)
+                          ),
+                          initialValue: profileChanges.weight.toString(),
+                          onChanged: (value) => profileChanges.weight = double.tryParse(value) ?? 0,
+                          validator: (value) => UserProfile.validateWeight(value),
+                        ),
+                      ),
+                    ],
+                  ),
+                
+                  const SizedBox( height: 16.0, ),
+
+                  (widget.isFormEditing)
+                  ? const SizedBox( height: 0.0, )
+                  : DropdownButtonFormField(
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.occupation,
+                        helperText: ' ',
+                        hintText: localizations.select
+                      ),
+                      items: DropdownLabels.occupationDropdownItems(context),
+                      value: profileChanges.occupation.index,
+                      onChanged: (widget.isFormModifiable) 
+                        ? (int? newValue) {
+                            profileChanges.occupation = Occupation.values[newValue ?? 0];
+                          }
+                        : null,
                     ),
-                    onPressed: () => _validateAndSave(context, profileProvider.profileChanges)
+
+                  const SizedBox( height: 16.0, ),
+
+                  DropdownButtonFormField(
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      labelText: localizations.medicalCondition,
+                      helperText: ' ',
+                    ),
+                    items: DropdownLabels.conditionDropdownItems(context),
+                    value: profileChanges.medicalCondition.index,
+                    onChanged: (widget.isFormModifiable) 
+                      ? (int? newValue) {
+                          profileChanges.medicalCondition = MedicalCondition.values[newValue ?? 0];
+                        }
+                      : null,
                   ),
-                ),
-              ]
+                
+                  (widget.isFormEditing) 
+                    ? const SizedBox( height: 48.0 )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Expanded(
+                          child: ElevatedButton(
+                            child: Text(localizations.skip),
+                            style: ElevatedButton.styleFrom(
+                              primary: Colors.grey.shade700,
+                            ),
+                            onPressed: () async {
+                              int newProfileId = await profileProvider.newDefaultProfile();
+                              settingsProvider.currentProfileId = newProfileId;
+
+                              Navigator.pushReplacementNamed(context, RouteNames.home);
+                            },
+                          ),
+                        ),
+                  
+                        const SizedBox( width: 16.0, ),
+                  
+                        Expanded(
+                          child: ElevatedButton(
+                            child: Text(localizations.continueAction),
+                            style: ElevatedButton.styleFrom(
+                              primary: Colors.blue,
+                            ),
+                            onPressed: () => _validateAndSave(context, profileChanges)
+                          ),
+                        ),
+                      ]
+                    ),
+                ]
+              );
+            }
+          } 
+
+          return const SizedBox(
+            height: 248.0,
+            child: Center(
+              child: CircularProgressIndicator(),
             ),
-        ]
+          );
+        }
       ),
     );
   }

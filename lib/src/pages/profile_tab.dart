@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/dialogs/environment_select_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -33,14 +34,18 @@ class _ProfileTabState extends State<ProfileTab> {
       physics: const BouncingScrollPhysics(),
       slivers: <Widget>[
         CustomSliverAppBar(
-          title: '',
+          title: 'Perfil',
           leading: const <Widget>[
             CoinDisplay(),
           ],
           actions: <Widget>[
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: Icon( isEditModeActive ? Icons.check : Icons.edit ),
               onPressed: () {
+                if (isEditModeActive) {
+                  profileProvider.saveProfileChanges();
+                }
+
                 setState(() {
                   isEditModeActive = !isEditModeActive;
                 });
@@ -52,42 +57,63 @@ class _ProfileTabState extends State<ProfileTab> {
         ),
   
         SliverToBoxAdapter(
-          child: Stack(
-            children: <Widget>[
-              SizedBox(
-                width: MediaQuery.of(context).size.width,
-                height: MediaQuery.of(context).size.height * 0.3,
-                child: GestureDetector(
-                  //TODO: Dialog para editar el entorno.
-                  onTap: isEditModeActive ? () => print('Editando entorno') : null,
-                    child: ClipPath(
-                    clipper: WaveImageClipper(),
-                    child: FittedBox(
-                      fit: BoxFit.cover,
-                      child: Image( 
-                        image: AssetImage(profileProvider.profile.selectedEnvironment.imagePath),
+          child: FutureBuilder<UserProfile?>(
+            future: profileProvider.profile,
+            builder: (context, snapshot) {
+
+              if (snapshot.hasData) {
+
+                final profile = snapshot.data;
+
+                if (profile != null) {
+                  return Stack(
+                    children: <Widget>[
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width,
+                        height: MediaQuery.of(context).size.height * 0.3,
+                        child: GestureDetector(
+                          onTap:  isEditModeActive 
+                            ? () => showDialog(
+                                context: context, 
+                                builder: (context) => const EnvironmentSelectDialog(), 
+                              )
+                            : null,
+                            child: ClipPath(
+                            clipper: WaveImageClipper(),
+                            child: FittedBox(
+                              fit: BoxFit.cover,
+                              child: Image( 
+                                image: AssetImage(profile.selectedEnvironment.imagePath),
+                              ),
+                            ),
+                          ), 
+                        ),
                       ),
-                    ),
-                  ), 
-                ),
-              ),
-              
-              Positioned(
-                top: MediaQuery.of(context).size.height * 0.10,
-                left: MediaQuery.of(context).size.width * 0.5 - 50.0,
-                child: CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                  radius: 64.0,
-                  child: Text(
-                    profileProvider.profile.initials,
-                    style: Theme.of(context).textTheme.headline3!.copyWith(
-                      fontSize: 48.0,
-                      color: Theme.of(context).colorScheme.onSecondary
-                    ),
-                  ),
-                ),
-              )
-            ]
+                      
+                      Positioned(
+                        top: MediaQuery.of(context).size.height * 0.10,
+                        left: MediaQuery.of(context).size.width * 0.5 - 50.0,
+                        child: CircleAvatar(
+                          backgroundColor: Theme.of(context).colorScheme.secondary,
+                          radius: 64.0,
+                          child: Text(
+                            profile.initials,
+                            style: Theme.of(context).textTheme.headline3!.copyWith(
+                              fontSize: 48.0,
+                              color: Theme.of(context).colorScheme.onSecondary
+                            ),
+                          ),
+                        ),
+                      )
+                    ]
+                  );
+                }
+              }
+
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
           ),
         ),
   
@@ -98,7 +124,7 @@ class _ProfileTabState extends State<ProfileTab> {
   
               const SizedBox( height: 32.0 ,),
   
-              ActivityTimeBrief(profileProvider.profile.id),
+              ActivityTimeBrief(profileProvider.profileId),
   
               const SizedBox( height: 32.0 ,),
   
@@ -133,90 +159,105 @@ class _FullnameDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final profileProvider = Provider.of<ProfileProvider>(context);
     final localizations = AppLocalizations.of(context)!;
 
-    return Consumer<ProfileProvider>(
-      builder: (_, provider, __) {
+    return FutureBuilder<UserProfile?>(
+      future: profileProvider.profile,
+      builder: (context, snapshot) {
 
-        if (isEditing) {
-          return Column(
-            children: <Widget>[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget> [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.4,
-                    child: TextFormField(
-                      keyboardType: TextInputType.text,
-                      maxLength: 50,
+        if (snapshot.hasData) {
+          // Obtener datos de perfil.
+          final profile = snapshot.data;
+          final profileChanges = profileProvider.profileChanges;
+
+          if (profile != null && profileChanges != null) {
+            if (isEditing) {
+
+              return Column(
+                children: <Widget>[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget> [
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.4,
+                        child: TextFormField(
+                          keyboardType: TextInputType.text,
+                          maxLength: 50,
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            labelText: localizations.firstName,
+                            helperText: ' ',
+                            counterText: '${profileChanges.firstName.length.toString()}/50'
+                          ),
+                          initialValue: profile.firstName,
+                          onChanged: (value) => profileChanges.firstName = value,
+                          validator: (value) => UserProfile.validateFirstName(value),
+                        ),
+                      ),
+
+                      const SizedBox( width: 8.0, ),
+
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.4,
+                        child: TextFormField(
+                          keyboardType: TextInputType.text,
+                          maxLength: 50,
+                          decoration: InputDecoration(
+                            border: const OutlineInputBorder(),
+                            labelText: localizations.lastName,
+                            helperText: ' ',
+                            counterText: '${profileChanges.lastName.length.toString()}/50'
+                          ),
+                          initialValue: profile.lastName,
+                          onChanged: (value) => profileChanges.lastName = value,
+                          validator: (value) => UserProfile.validateLastName(value),
+                        ),
+                      )
+                    ],
+                  ),
+                
+                  const SizedBox( height: 16.0 ,),
+
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 48.0),
+                    child: DropdownButtonFormField(
                       decoration: InputDecoration(
                         border: const OutlineInputBorder(),
-                        labelText: localizations.firstName,
+                        labelText: localizations.occupation,
                         helperText: ' ',
-                        counterText: '${provider.profileChanges.firstName.length.toString()}/50'
+                        hintText: 'Selecciona' 
                       ),
-                      initialValue: provider.profile.firstName,
-                      onChanged: (value) => provider.firstName = value,
-                      validator: (value) => UserProfile.validateFirstName(value),
+                      items: DropdownLabels.occupationDropdownItems(context),
+                      value: profileChanges.occupation.index,
+                      onChanged: (int? value) => profileChanges.occupation = Occupation.values[value ?? 0],
                     ),
                   ),
-
-                  const SizedBox( width: 8.0, ),
-
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.4,
-                    child: TextFormField(
-                      keyboardType: TextInputType.text,
-                      maxLength: 50,
-                      decoration: InputDecoration(
-                        border: const OutlineInputBorder(),
-                        labelText: localizations.lastName,
-                        helperText: ' ',
-                        counterText: '${provider.profileChanges.lastName.length.toString()}/50'
-                      ),
-                      initialValue: provider.profile.lastName,
-                      onChanged: (value) => provider.lastName = value,
-                      validator: (value) => UserProfile.validateLastName(value),
-                    ),
-                  )
                 ],
-              ),
-            
-              const SizedBox( height: 16.0 ,),
-
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 48.0),
-                child: DropdownButtonFormField(
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: localizations.occupation,
-                    helperText: ' ',
-                    hintText: 'Selecciona' 
+              );
+            } else {
+              return Column(
+                children: <Widget>[
+                  Text(
+                    profile.fullName,
+                    style: Theme.of(context).textTheme.headline4,
                   ),
-                  items: DropdownLabels.occupationDropdownItems(context),
-                  value: provider.profileChanges.occupation.index,
-                  onChanged: (int? value) => provider.occupation = Occupation.values[value ?? 0],
-                ),
-              ),
-            ],
-          );
-        } else {
-          return Column(
-            children: <Widget>[
-              Text(
-                provider.profile.fullName,
-                style: Theme.of(context).textTheme.headline4,
-              ),
 
-              const SizedBox( height: 16.0 ,),
+                  const SizedBox( height: 16.0 ,),
 
-              Text(
-                DropdownLabels.occupationLabels(context)[provider.profile.occupation.index],
-                style: Theme.of(context).textTheme.headline6,
-              ),
-            ]
-          );
+                  Text(
+                    DropdownLabels.occupationLabels(context)[profile.occupation.index],
+                    style: Theme.of(context).textTheme.headline6,
+                  ),
+                ]
+              );
+            }
+          }
         }
+
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
       } 
     ); 
   }

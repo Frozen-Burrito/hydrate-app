@@ -17,14 +17,14 @@ class GoalSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileID = Provider.of<ProfileProvider>(context).profile.id;
+    final profileId = Provider.of<ProfileProvider>(context).profileId;
     final goalsProvider = Provider.of<GoalProvider>(context);
 
-    goalsProvider.activeProfileId = profileID;
+    goalsProvider.activeProfileId = profileId;
 
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
-      sliver: FutureBuilder<List<Goal>>(
+      sliver: FutureBuilder<List<Goal>?>(
         future: goalsProvider.goals,
         builder: (context, snapshot) {
           

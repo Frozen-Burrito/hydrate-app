@@ -23,7 +23,7 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
 
     return AlertDialog(
       title: const Text('¿Reemplazar una meta?'),
-      content: FutureBuilder<List<Goal>>(
+      content: FutureBuilder<List<Goal>?>(
         future: goalsProvider.goals,
         builder: (context, snapshot) {
 

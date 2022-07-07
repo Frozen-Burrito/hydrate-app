@@ -10,12 +10,12 @@ import 'package:provider/provider.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
-  final Future<List<Article>> articles;
+  final Future<List<Article>?> articleSource;
 
   final bool isBookmarks;
 
   const ArticleSliverList({ 
-    required this.articles, 
+    required this.articleSource, 
     required this.isBookmarks,
     Key? key 
     }) : super(key: key);
@@ -38,11 +38,11 @@ class ArticleSliverList extends StatelessWidget {
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(8.0),
-                sliver: FutureBuilder(
-                  future: articles,
-                  builder: (context, AsyncSnapshot<List<Article>> snapshot) {
+                sliver: FutureBuilder<List<Article>?>(
+                  future: articleSource,
+                  builder: (context, snapshot) {
 
-                    if (snapshot.hasData) {
+                    if (snapshot.hasData && snapshot.data != null) {
                       // El Future tiene datos.
                       if (snapshot.data!.isNotEmpty) {
                         // Retornar lista de articulos, si los hay.
@@ -110,8 +110,10 @@ class _ArticleCard extends StatelessWidget {
 
     if (article.isBookmarked) {
       // Si está marcado, quitar marca.
-      int id = await provider.removeArticle(article.id);
-      snackMsg = id > -1 ? localizations.resourceRemoved : localizations.resourceNotRemoved;
+      bool wasBookmarkRemoved = await provider.removeArticle(article.id);
+      snackMsg = wasBookmarkRemoved 
+        ? localizations.resourceRemoved 
+        : localizations.resourceNotRemoved;
 
     } else {
       // Si no está marcado, marcar y guardar el recurso informativo.

@@ -27,14 +27,18 @@ class NewActivityForm extends StatelessWidget {
 
     // Obtener instancias de providers, usando el context.
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+
     final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
 
     if (newActivity.activityType.id < 0) {
       final activityTypes = await activityProvider.activityTypes;
 
-      int actTypeIndex = activityTypes.indexWhere((t) => t.id == 0);
+      if (activityTypes != null) {
+        int actTypeIndex = activityTypes.indexWhere((t) => t.id == 0);
 
-      newActivity.activityType = activityTypes[actTypeIndex];
+        newActivity.activityType = activityTypes[actTypeIndex];
+      }
+
     }
 
     assert(newActivity.activityType.id >= 0);
@@ -44,14 +48,19 @@ class NewActivityForm extends StatelessWidget {
     final today = DateTime.now().onlyDate;
     final activitiesToday = pastWeekActivities[today]?.length ?? 0;
 
-    // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
-    // el día de hoy.
-    await giveActivityReward(
-      activitiesToday, 
-      newActivity, 
-      profileProvider.profileChanges.giveOrTakeCoins,
-      profileProvider.saveProfileChanges
-    );
+    final giveOrTakeCoins = profileProvider.profileChanges?.giveOrTakeCoins;
+    final saveProfileChanges = profileProvider.saveProfileChanges;
+    
+    if (giveOrTakeCoins != null) {
+      // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
+      // el día de hoy.
+      await giveActivityReward(
+        activitiesToday, 
+        newActivity, 
+        giveOrTakeCoins,
+        profileProvider.saveProfileChanges
+      );
+    }
 
     // Obtener todos los registros de actividades de la semana pasada que sean 
     // similares a newActivity.
@@ -217,6 +226,8 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
 
   final newActivityRecord = ActivityRecord.uncommited();
 
+  double userWeight = 0.0;
+
   int titleLength = 0;
   int notesLength = 0;
 
@@ -227,6 +238,12 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
   
   @override
   void initState() {
+
+    // Obtener el peso registrado del usuario.
+    Provider.of<ProfileProvider>(context, listen: false).profile.then((profile) {
+      userWeight = profile?.weight ?? 0.0; 
+    });
+
     super.initState();
   }
 
@@ -252,8 +269,6 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
 
   @override
   Widget build(BuildContext context) {
-
-    final userWeight = Provider.of<ProfileProvider>(context).profile.weight;
 
     final localizations = AppLocalizations.of(context)!;
 
@@ -503,7 +518,7 @@ class _ActivityTypeDropdown extends StatelessWidget {
     final localizations = AppLocalizations.of(context)!;
     final activityProvider = Provider.of<ActivityProvider>(context);
 
-    return FutureBuilder<List<ActivityType>>(
+    return FutureBuilder<List<ActivityType>?>(
       future: activityProvider.activityTypes,
       initialData: const [],
       builder: (context, snapshot) {

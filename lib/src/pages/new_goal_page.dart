@@ -40,7 +40,7 @@ class NewGoalPage extends StatelessWidget {
                 Center(
                   child: Consumer<ProfileProvider>(
                     builder: (_, provider, __) {
-                      return CreateGoalForm(provider.profile.id);
+                      return const CreateGoalForm();
                     },
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -40,8 +41,25 @@ class HomeTab extends StatelessWidget {
           SliverToBoxAdapter(
             child: Consumer<ProfileProvider>(
               builder: (_, provider, __) {
-                return Image( 
-                  image: AssetImage(provider.profile.selectedEnvironment.imagePath),
+                return FutureBuilder<UserProfile?>(
+                  future: provider.profile,
+                  builder: (context, snapshot) {
+
+                    if (snapshot.hasData) { 
+
+                      final profile = snapshot.data;
+
+                      if (profile != null) {
+                        return Image( 
+                          image: AssetImage(profile.selectedEnvironment.imagePath),
+                        );
+                      }
+                    }
+
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
                 );
               }
             )
