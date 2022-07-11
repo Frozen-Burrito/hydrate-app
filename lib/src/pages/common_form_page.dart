@@ -38,14 +38,13 @@ class CommonFormPage extends StatelessWidget {
         slivers: <Widget>[
           CustomSliverAppBar(
             title: formTitle,
-            leading: <Widget>[
-              (displayBackAction) 
-              ? IconButton(
-                icon: const Icon(Icons.arrow_back), 
-                onPressed: () => Navigator.pop(context),
-              )
-              : const SizedBox(width: 0.0,),
-            ],
+            leading: (displayBackAction) 
+              ? <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.arrow_back), 
+                  onPressed: () => Navigator.pop(context),
+                )
+              ] : null,
             actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.help),

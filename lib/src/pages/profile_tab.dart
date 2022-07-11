@@ -120,17 +120,20 @@ class _ProfileTabState extends State<ProfileTab> {
         SliverToBoxAdapter(
           child: Column(
             children: <Widget>[
-              _FullnameDisplay(isEditing: isEditModeActive),
-  
-              const SizedBox( height: 32.0 ,),
-  
-              ActivityTimeBrief(profileProvider.profileId),
-  
-              const SizedBox( height: 32.0 ,),
-  
-              const _IdealHydrationLabel(2.54),
-  
-              const SizedBox( height: 16.0 ,),
+              Container(
+                margin: const EdgeInsets.only( bottom: 32.0 ),
+                child: _FullnameDisplay(isEditing: isEditModeActive)
+              ),
+
+              Container(
+                margin: const EdgeInsets.only( bottom: 32.0 ),
+                child: const ActivityTimeBrief(),
+              ),
+
+              Container(
+                margin: const EdgeInsets.only( bottom: 16.0 ),
+                child: const _IdealHydrationLabel(2.54),
+              ),
               
               SizedBox(
                 width: MediaQuery.of(context).size.width * 0.9,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:provider/provider.dart';
+
 import 'package:hydrate_app/src/models/habits.dart';
+import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 
 class WeeklyForm extends StatefulWidget {
@@ -14,15 +16,19 @@ class _WeeklyFormState extends State<WeeklyForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final Habits _userHabits = Habits( date: DateTime.now() );
+  final Habits _userHabits = Habits.uncommitted();
 
   final List<double> _hourTotals = <double>[0.0,0.0,0.0];
   
   /// Verifica cada campo del formulario. Si no hay errores, registra la nueva
   /// información del usuario en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
+    // Asegurar que el Form está en un estado válido.
     if (_formKey.currentState!.validate()) {
-      int resultado = await SQLiteDB.instance.insert(_userHabits);
+
+      final saveReport = Provider.of<GoalProvider>(context).saveWeeklyReport;
+
+      int resultado = await saveReport(_userHabits);
 
       if (resultado >= 0) {
         if (redirectRoute != null) {
@@ -30,6 +36,12 @@ class _WeeklyFormState extends State<WeeklyForm> {
         } else {
           Navigator.of(context).pop();
         }
+      } else {
+        // Si el reporte no fue guardado, mantener la app en la vista actual y 
+        // notificar al usuario.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No fue posible guardar el reporte.')),
+        );
       }
     }
   }

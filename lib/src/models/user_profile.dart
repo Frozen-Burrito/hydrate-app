@@ -200,6 +200,10 @@ class UserProfile extends SQLiteModel {
   bool hasUnlockedEnv(int envId) => unlockedEnvironments
       .where((e) => e.id == envId).isNotEmpty;
 
+  bool get hasRenalInsufficiency => medicalCondition == MedicalCondition.renalInsufficiency;
+
+  bool get hasNephroticSyndrome => medicalCondition == MedicalCondition.nephroticSyndrome;
+
   String get fullName => '$firstName $lastName';
 
   /// Obtiene las iniciales del usuario, en mayúsculas.

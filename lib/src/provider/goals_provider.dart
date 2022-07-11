@@ -30,7 +30,13 @@ class GoalProvider extends ChangeNotifier {
 
   int _profileId = -1;
 
-  set activeProfileId (int profileId) => _profileId = profileId;
+  set activeProfileId(int profileId) => _profileId = profileId;
+
+  bool _hasAskedForPeriodicalData = false;
+  bool _hasAskedForMedicalData = false;
+
+  set hasAppAskedForPeriodicalData(bool hasAppAsked) => _hasAskedForPeriodicalData;
+  set hasAppAskedForMedicalData(bool hasAppAsked) => _hasAskedForMedicalData;
 
   /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
   bool get hasGoalData => _goalCache.hasData;
@@ -50,11 +56,72 @@ class GoalProvider extends ChangeNotifier {
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
   Future<List<Habits>?> get weeklyData => _weeklyDataCache.data;
 
+  /// Retorna el reporte semanal de hábitos más reciente del usuario.
+  Future<Habits?> get lastPeriodicReport async {
+
+    final weeklyReportData = await _weeklyDataCache.data;
+
+    Habits? lastReport;
+    
+    if (weeklyReportData != null && weeklyReportData.isNotEmpty) {
+      // Asegurar que los datos de reportes son ordenados por fecha descendiente.
+      weeklyReportData.sort((a, b) => b.date.compareTo(a.date));
+
+      // Obtener el reporte mas reciente.
+      lastReport = weeklyReportData.first;
+    }
+
+    return Future.value(lastReport);
+  }
+
+  /// Retorna el [DateTime] del reporte semanal de hábitos más reciente.
+  Future<DateTime?> get lastWeeklyReportDate async => (await lastPeriodicReport)?.date;
+
+  /// Es [true] si ha pasado más de una semana desde el último reporte con 
+  /// [Habits].
+  Future<bool> get isWeeklyReportAvailable async {
+    final lastReportDate = await lastWeeklyReportDate;
+
+    final aWeekAgo = DateTime.now().subtract(const Duration( days: 7 ));
+
+    return (!_hasAskedForPeriodicalData && (lastReportDate?.isBefore(aWeekAgo) ?? true));
+  }
+
   /// Es [true] si hay una lista de datos médicos, aunque esté vacía.
   bool get hasMedicalData => _medicalCache.hasData;
 
   /// Retorna todos los registros de [MedicalData] disponibles, de forma asíncrona.
   Future<List<MedicalData>?> get medicalData => _medicalCache.data;
+
+  /// Retorna el reporte de [MedicalData] más reciente del usuario.
+  Future<MedicalData?> get lastMedicalReport async {
+
+    final medicalReportData = await _medicalCache.data;
+
+    MedicalData? lastReport;
+    
+    if (medicalReportData != null && medicalReportData.isNotEmpty) {
+      // Asegurar que los datos de reportes son ordenados por fecha descendiente.
+      medicalReportData.sort((a, b) => b.nextAppointment.compareTo(a.nextAppointment));
+
+      // Obtener el reporte mas reciente.
+      lastReport = medicalReportData.first;
+    }
+
+    return Future.value(lastReport);
+  }
+
+  /// Es [true] si ha pasado más de una semana desde el último reporte con 
+  /// [MedicalData].
+  Future<bool> get isMedicalReportAvailable async {
+
+    final lastReportDate = (await lastMedicalReport)?.nextAppointment;
+
+    final nextAppointmentHasPassed = lastReportDate?.isBefore(DateTime.now()) ?? true;
+
+    return (!_hasAskedForMedicalData && nextAppointmentHasPassed);
+  }
+      
 
   /// Agrega una nueva meta de hidratación.
   Future<int> createHydrationGoal(Goal newGoal) async {
@@ -71,10 +138,7 @@ class GoalProvider extends ChangeNotifier {
     }
     on Exception catch (e) {
       return Future.error(e);
-
-    } finally {
-      notifyListeners();
-    }
+    } 
   }
 
   /// Cambia la meta principal a la meta en donde su ID sea [newMainGoalId].
@@ -174,6 +238,46 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
+  /// Crea un nuevo reporte semanal con [Habits].
+  /// 
+  /// Retorna el ID del reporte guardado localmente.
+  Future<int> saveWeeklyReport(Habits newReport) async {
+    
+    try {
+      int result = await SQLiteDB.instance.insert(newReport);
+
+      if (result >= 0) {
+        _weeklyDataCache.shouldRefresh();
+        return result;
+      } else {
+        throw Exception('No se pudo registrar el reporte semanal.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+    } 
+  }
+
+  /// Crea un nuevo reporte de [MedicalData].
+  /// 
+  /// Retorna el ID del reporte guardado localmente.
+  Future<int> saveMedicalReport(MedicalData newReport) async {
+    
+    try {
+      int result = await SQLiteDB.instance.insert(newReport);
+
+      if (result >= 0) {
+        _weeklyDataCache.shouldRefresh();
+        return result;
+      } else {
+        throw Exception('No se pudo registrar el reporte semanal.');
+      }
+    }
+    on Exception catch (e) {
+      return Future.error(e);
+    } 
+  }
+
   Future<List<Tag>> _fetchTags() async {
     // Query a la base de datos.
     final queryResults = await SQLiteDB.instance.select<Tag>(
@@ -205,7 +309,9 @@ class GoalProvider extends ChangeNotifier {
     final queryResults = await SQLiteDB.instance.select<Habits>(
       Habits.fromMap,
       Habits.tableName,
-      where: [ WhereClause('id_perfil', _profileId.toString() )]
+      where: [ WhereClause('id_perfil', _profileId.toString() )],
+      orderByColumn: 'fecha',
+      orderByAsc: false,
     );
 
     return Future.value(queryResults.toList());

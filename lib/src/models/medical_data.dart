@@ -6,7 +6,7 @@ enum MedicalCondition {
   notSpecified,
   none,
   renalInsufficiency,
-  nefroticSyndrome,
+  nephroticSyndrome,
   other,
 }
 
@@ -20,19 +20,31 @@ class MedicalData extends SQLiteModel {
   double normovolemia;
   double recommendedGain;
   double actualGain;
-  DateTime? nextAppointment;
+  DateTime nextAppointment;
 
   MedicalData({
-    this.id = -1,
-    this.profileId = -1,
-    this.hypervolemia = 0.0,
-    this.postDialysisWeight = 0.0,
-    this.extracellularWater = 0.0,
-    this.normovolemia = 0.0,
-    this.recommendedGain = 0.0,
-    this.actualGain = 0.0,
-    this.nextAppointment
-  });
+    required this.id,
+    required this.profileId,
+    required this.hypervolemia,
+    required this.postDialysisWeight,
+    required this.extracellularWater,
+    required this.normovolemia,
+    required this.recommendedGain,
+    required this.actualGain,
+    required this.nextAppointment
+  });  
+  
+  MedicalData.uncommitted() : this(
+    id: -1,    
+    profileId: -1,    
+    hypervolemia: 0.0,
+    postDialysisWeight: 0.0,
+    extracellularWater: 0.0,
+    normovolemia: 0.0,
+    recommendedGain: 0.0,
+    actualGain: 0.0,
+    nextAppointment: DateTime.now().add(const Duration( days: 7 )),
+  );
 
   static const String tableName = 'datos_medicos';
 
@@ -56,27 +68,32 @@ class MedicalData extends SQLiteModel {
     )
   ''';
 
+  /// Transforma un mapa con los valores en una nueva instancia de [MedicalData].
+  /// 
+  /// Si [map['fecha_prox_cita']] es nulo, este método lanza un [FormatException].
   static MedicalData fromMap(Map<String, Object?> map) => MedicalData(
     id: int.tryParse(map['id'].toString()) ?? -1,
+    profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
     hypervolemia: double.tryParse(map['hipervolemia'].toString()) ?? 0.0,
     postDialysisWeight: double.tryParse(map['peso_post_dial'].toString()) ?? 0.0,
     extracellularWater: double.tryParse(map['agua_extracel'].toString()) ?? 0.0,
     normovolemia: double.tryParse(map['normovolemia'].toString()) ?? 0.0,
     recommendedGain: double.tryParse(map['ganancia_rec'].toString()) ?? 0.0,
     actualGain: double.tryParse(map['ganancia_real'].toString()) ?? 0.0,
-    nextAppointment: DateTime.tryParse(map['fecha_prox_cita'].toString()),
+    nextAppointment: DateTime.parse(map['fecha_prox_cita'].toString()),
   );
 
   @override
   Map<String, Object?> toMap() {
     final Map<String, Object?> map = {
+      'id_perfil': profileId,
       'hipervolemia': hypervolemia,
       'peso_post_dial': postDialysisWeight,
       'agua_extracel': extracellularWater,
       'normovolemia': normovolemia,
       'ganancia_rec': recommendedGain,
       'ganancia_real': actualGain,
-      'fecha_prox_cita': nextAppointment?.toIso8601String() ?? '',
+      'fecha_prox_cita': nextAppointment.toIso8601String(),
     };
 
     if (id >= 0) map['id'] = id;

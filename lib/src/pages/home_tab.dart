@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
@@ -12,13 +11,12 @@ import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 
 class HomeTab extends StatelessWidget {
+
   const HomeTab({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    SQLiteDB.instance;
-    
     return SafeArea(
       top: false,
       bottom: false,

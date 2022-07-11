@@ -9,18 +9,28 @@ class Habits extends SQLiteModel {
   double hoursOfActivity;
   double hoursOfOccupation;
   double maxTemperature;
-  DateTime? date;
+  DateTime date;
   int profileId;
 
   Habits({
-    this.id = -1,
-    this.hoursOfSleep = 0,
-    this.hoursOfActivity = 0,
-    this.hoursOfOccupation = 0,
-    this.maxTemperature = 0,
-    this.date,
-    this.profileId = -1
+    required this.id,
+    required this.hoursOfSleep,
+    required this.hoursOfActivity,
+    required this.hoursOfOccupation,
+    required this.maxTemperature,
+    required this.date,
+    required this.profileId
   });
+
+  Habits.uncommitted() : this(
+    id: -1,
+    hoursOfSleep: 0,
+    hoursOfActivity: 0,
+    hoursOfOccupation: 0,
+    maxTemperature: 0,
+    date: DateTime.now(),
+    profileId: -1
+  );
 
   static const String tableName = 'reporte_habitos';
 
@@ -42,6 +52,9 @@ class Habits extends SQLiteModel {
     )
   ''';
 
+  /// Transforma un mapa con los valores en una nueva instancia de [Habits].
+  /// 
+  /// Si [map['fecha']] es nulo, este método lanza un [FormatException].
   static Habits fromMap(Map<String, Object?> map) {
 
     return Habits(
@@ -50,7 +63,7 @@ class Habits extends SQLiteModel {
       hoursOfActivity: double.tryParse(map['horas_act_fisica'].toString()) ?? 0.0,
       hoursOfOccupation: double.tryParse(map['horas_ocupacion'].toString()) ?? 0.0,
       maxTemperature: double.tryParse(map['temperatura_max'].toString()) ?? 0.0,
-      date: DateTime.tryParse(map['fecha'].toString()),
+      date: DateTime.parse(map['fecha'].toString()),
       profileId: int.tryParse(map['id_perfil'].toString()) ?? -1
     );
   }
@@ -62,7 +75,7 @@ class Habits extends SQLiteModel {
       'horas_act_fisica': hoursOfActivity,
       'horas_ocupacion': hoursOfOccupation,
       'temperatura_max': maxTemperature,
-      'fecha': date?.toIso8601String(),
+      'fecha': date.toIso8601String(),
       'id_perfil': profileId
     };
 
