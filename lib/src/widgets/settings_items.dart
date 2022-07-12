@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/api.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
+import 'package:hydrate_app/src/utils/background_tasks.dart';
+import 'package:provider/provider.dart';
+import 'package:workmanager/workmanager.dart';
 
 class SettingsItems extends StatefulWidget {
 
@@ -25,8 +30,9 @@ class _SettingsItemsState extends State<SettingsItems> {
   NotificationSettings _selectedNotifications = NotificationSettings.disabled;
   NotificationSettings _originalNotifications = NotificationSettings.disabled;
 
-  bool _contributeData = false; 
-  bool _originalContributeData = false; 
+  bool _shouldContributeData = false; 
+  bool _originalContributeData = false;
+  String _userAccountId = ""; 
 
   bool _weeklyForms = false; 
   bool _originalWeeklyForms = false; 
@@ -43,7 +49,7 @@ class _SettingsItemsState extends State<SettingsItems> {
     _originalWeeklyForms = widget.settingsProvider.areWeeklyFormsEnabled;
 
     _selectedThemeMode = _originalThemeMode;
-    _contributeData = _originalContributeData;
+    _shouldContributeData = _originalContributeData;
     _selectedNotifications = _originalNotifications;
     _weeklyForms = _originalWeeklyForms;
   }
@@ -52,14 +58,17 @@ class _SettingsItemsState extends State<SettingsItems> {
   /// muestra un [SnackBar] para confirmar los cambios.
   void compareChanges(BuildContext context) {
     
+    // Determinar si hay campos que han sido modificados por el usuario.
     bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
-    bool hasDataContributionChanged = _originalContributeData != _contributeData;
+    bool hasDataContributionChanged = _originalContributeData != _shouldContributeData;
     bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
     bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
 
     bool settingsChanged = hasThemeChanged || hasDataContributionChanged || hasNotificationsChanged || hasWeeklyFormsChanged;
 
     if (!_isSnackbarActive && settingsChanged) {
+      // Si no hay ya un Snackbar de confirmación de cambios y el usuario 
+      // realizó cambios, mostrar el snackbar.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.unsavedChanges),
@@ -67,7 +76,7 @@ class _SettingsItemsState extends State<SettingsItems> {
           action: SnackBarAction(
             label: AppLocalizations.of(context)!.save, 
             onPressed: () {
-              saveChanges();
+              saveChanges( userAccountId: _userAccountId );
               _isSnackbarActive = false;
             },
           ),
@@ -81,13 +90,12 @@ class _SettingsItemsState extends State<SettingsItems> {
   /// Guarda los cambios de ajustes en SharedPreferences usando [SettingsProvider].
   /// 
   /// Solo guarda las modificaciones necesarias.
-  void saveChanges() {
+  void saveChanges({ String? userAccountId }) {
 
     bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
-    bool hasDataContributionChanged = _originalContributeData != _contributeData;
+    bool hasDataContributionChanged = _originalContributeData != _shouldContributeData;
     bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
     bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
-
 
     if (hasThemeChanged) {
       widget.settingsProvider.appThemeMode = _selectedThemeMode;
@@ -95,8 +103,29 @@ class _SettingsItemsState extends State<SettingsItems> {
     }
 
     if (hasDataContributionChanged) {
-      widget.settingsProvider.isSharingData = _contributeData;
-      _originalContributeData = _contributeData;
+      widget.settingsProvider.isSharingData = _shouldContributeData;
+      _originalContributeData = _shouldContributeData;
+
+      // Registrar o eliminar la tarea periodica para aportar datos 
+      // estadísticos a la API web.
+      if (_shouldContributeData) {
+        // Registrar tarea para aportar datos cada semana.
+        Workmanager().registerPeriodicTask(
+          BackgroundTasks.sendStatsData.uniqueName,
+          BackgroundTasks.sendStatsData.taskName,
+          frequency: BackgroundTasks.sendStatsData.frequency,
+          initialDelay: BackgroundTasks.sendStatsData.initialDelay,
+          constraints: BackgroundTasks.sendStatsData.constraints,
+          inputData: <String, dynamic>{
+            BackgroundTasks.taskInputProfileId: widget.settingsProvider.currentProfileId,
+            BackgroundTasks.taskInputAccountId: userAccountId,
+          },
+        );
+
+      } else {
+        // Cancelar tarea que aporta datos.
+        Workmanager().cancelByUniqueName(BackgroundTasks.sendStatsDataTaskName);
+      }
     }
 
     if (hasNotificationsChanged) {
@@ -186,22 +215,40 @@ class _SettingsItemsState extends State<SettingsItems> {
           ),
     
           const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: SwitchListTile(
-              secondary: const Icon(
-                Icons.bar_chart, 
-                size: 24.0, 
-              ),
-              title: Text(localizations.contributeData),
-              value: _contributeData,
-              onChanged: (bool value) {
-                setState(() {
-                  _contributeData = value;
-                  compareChanges(context);
-                });
-              },
-            ),
+          
+          FutureBuilder<UserProfile?>(
+            future: Provider.of<ProfileProvider>(context).profile,
+            builder: (context, snapshot) {
+
+              final userAccountId = snapshot.data?.userAccountID ?? ""; 
+
+              return Tooltip(
+                message: userAccountId.isNotEmpty 
+                  ? "Envía datos estadísticos semanalmente"
+                  : "Necesitas una cuenta de usuario para aportar datos",
+                child: Padding(
+                  padding: const EdgeInsets.symmetric( vertical: 16.0, ),
+                  child: SwitchListTile(
+                    secondary: const Icon(
+                      Icons.bar_chart, 
+                      size: 24.0, 
+                    ),
+                    title: Text(localizations.contributeData),
+                    
+                    value: _shouldContributeData,
+                    onChanged: userAccountId.isNotEmpty
+                    ? (bool value) {
+                        setState(() {
+                          _shouldContributeData = value;
+                          _userAccountId = userAccountId;
+                          compareChanges(context);
+                        });
+                      }
+                    : null,
+                  ),
+                ),
+              );
+            }
           ),
     
           const Divider( height: 1.0, ),

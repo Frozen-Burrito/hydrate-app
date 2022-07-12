@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/routes/routes.dart';
 import 'package:hydrate_app/src/theme/app_themes.dart';
+import 'package:hydrate_app/src/utils/background_tasks.dart';
 
 /// El punto de entrada de [HydrateApp]
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializar internamente a SettingsProvider.
   await SettingsProvider.init();
+
+  // Incrementar el número de veces que ha sido abierta la app.
+  ++SettingsProvider().appStartups;
+
+  // Inicializar la instancia de workmanager.
+  Workmanager().initialize(
+    BackgroundTasks.callbackDispatcher,
+    isInDebugMode: true,
+  );
 
   runApp(const HydrateApp());
 }

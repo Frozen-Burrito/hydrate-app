@@ -29,9 +29,7 @@ class SettingsProvider with ChangeNotifier {
 
   factory SettingsProvider() => SettingsProvider._internal();
 
-  SettingsProvider._internal() {
-    ++appStartups;
-  }
+  SettingsProvider._internal();
 
   /// Inicializa y asigna la instancia de Shared Preferences.
   static Future<void> init() async {
