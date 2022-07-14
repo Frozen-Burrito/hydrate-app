@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/routine_occurrence.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
 import 'package:provider/provider.dart';
@@ -49,7 +50,6 @@ class NewActivityForm extends StatelessWidget {
     final activitiesToday = pastWeekActivities[today]?.length ?? 0;
 
     final giveOrTakeCoins = profileProvider.profileChanges?.giveOrTakeCoins;
-    final saveProfileChanges = profileProvider.saveProfileChanges;
     
     if (giveOrTakeCoins != null) {
       // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
@@ -64,7 +64,7 @@ class NewActivityForm extends StatelessWidget {
 
     // Obtener todos los registros de actividades de la semana pasada que sean 
     // similares a newActivity.
-    final similarActivities = activityProvider
+    final similarActivities = await activityProvider
         .isActivitySimilarToPrevious(newActivity, onlyPastWeek: true);
 
     int resultadoDeSave = -1;
@@ -150,7 +150,7 @@ class NewActivityForm extends StatelessWidget {
     final activityProvider = Provider.of<ActivityProvider>(context);
     final localizations = AppLocalizations.of(context)!;
 
-    return FutureBuilder<Map<DateTime, List<ActivityRecord>>>(
+    return FutureBuilder<Map<DateTime, List<RoutineOccurrence>>>(
       future: activityProvider.activitiesFromPastWeek,
       initialData: const {},
       builder: (context, snapshot) {

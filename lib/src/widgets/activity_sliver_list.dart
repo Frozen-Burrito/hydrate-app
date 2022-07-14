@@ -30,7 +30,6 @@ class ActivitySliverList extends StatelessWidget {
 
                   SliverToBoxAdapter(
                     child: WeekTotalsChart(
-                      isLoading: !provider.hasActivityData,
                       dailyTotals: provider.prevWeekKcalTotals,
                       yUnit: 'kCal',
                     ),
@@ -60,7 +59,6 @@ class ActivitySliverList extends StatelessWidget {
                                 (BuildContext context, int i) {
                                   return _ActivityCard(
                                     activityRecord: activites[i],
-                                    message: 'Hey',
                                   );
                                 },
                                 childCount: activityCount
@@ -104,9 +102,10 @@ class _ActivityCard extends StatelessWidget {
 
   final RoutineOccurrence activityRecord;
 
-  final String message;
-
-  const _ActivityCard({ required this.activityRecord, required this.message, Key? key }) : super(key: key);
+  const _ActivityCard({ 
+    required this.activityRecord, 
+    Key? key 
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

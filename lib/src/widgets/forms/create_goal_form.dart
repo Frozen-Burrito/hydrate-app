@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/provider/goals_provider.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 
 class CreateGoalForm extends StatefulWidget {
 
@@ -36,7 +37,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     super.dispose();
   }
 
-  final _termDropdownItems = GoalTerm.values
+  final _termDropdownItems = TimeTerm.values
     .map((e) {
 
       const termLabels = <String>['Diario','Semanal','Mensual'];
@@ -139,7 +140,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             value: selectedTerm,
             validator: (int? value) => Goal.validateTerm(value),
             onChanged: (int? newValue) {
-              newGoal.term = GoalTerm.values[newValue ?? 0];
+              newGoal.term = TimeTerm.values[newValue ?? 0];
               setState(() {
                 selectedTerm = newValue ?? 0;
               });

@@ -27,8 +27,7 @@ class HydrationSliverList extends StatelessWidget {
 
                   SliverToBoxAdapter(
                     child: WeekTotalsChart(
-                      isLoading: !provider.hasHydrationData,
-                      dailyTotals: provider.pastWeekMlTotals,
+                      dailyTotals: Future.value(provider.pastWeekMlTotals),
                       yUnit: 'ml',
                     ),
                   ),

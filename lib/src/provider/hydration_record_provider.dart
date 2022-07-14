@@ -2,8 +2,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/models/enums/time_term.dart';
+import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/provider/cache_state.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
 class HydrationRecordProvider extends ChangeNotifier {
 
@@ -33,7 +36,7 @@ class HydrationRecordProvider extends ChangeNotifier {
     return _dailyHydration;
   }
 
-  List<int> get pastWeekMlTotals => _previousSevenDaysTotals();
+  List<int> get pastWeekMlTotals => _totalsFromPrevDaysInMl(7);
 
   //TODO: Quitar esta funcion helper temporal.
   Future<void> insertTestRecords() async {
@@ -55,7 +58,7 @@ class HydrationRecordProvider extends ChangeNotifier {
     final newRecords = <HydrationRecord>[];
 
     // Crear registros de hidratacion aleatorios para pruebas.
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 20; i++) {
       lastDate = lastDate.subtract(Duration(hours: 8 - rand.nextInt(3)));
 
       final randRecord = HydrationRecord(
@@ -152,36 +155,106 @@ class HydrationRecordProvider extends ChangeNotifier {
     return _dailyHydration;
   }
 
-  /// Retorna una lista con la cantidad total en ml diaria de consumo de agua de los 
-  /// 7 días más recientes.
-  List<int> _previousSevenDaysTotals() {
+  /// Calcula el progreso de varios [Goal], invocando [getGoalProgressInMl()] 
+  /// para obtener el progreso de cada meta.
+  /// 
+  /// La longitud de la lista resultante será igual a [goals.length].
+  List<int> getGoalsProgressValuesInMl(List<Goal> goals) {
 
-    final List<int> recentTotals = [];
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
+    final List<int> progressValues = List.filled(goals.length, 0, growable: false);
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < goals.length; i++) {
+      // Obtener el progreso hacia la meta y asignarlo a la lista de totales.
+      progressValues[i] = getGoalProgressInMl(goals[i],);
+    }
 
-      final DateTime previousDay = today.subtract(Duration( days: i));
+    assert(progressValues.length == goals.length);
+
+    print(progressValues);
+
+    return progressValues;
+  }
+
+  /// Obtiene el consumo total de agua diario para __[numberOfDays]__ días anteriores 
+  /// al día de hoy. 
+  /// 
+  /// La longitud de la lista retornada será __igual__ a __[numberOfDays]__.
+  /// 
+  /// Por ejemplo, si el día actual es martes y __[numberOfDays]__ = 3, este método
+  /// retornará una lista con tres elementos, en la que el primer elemento es el
+  /// total del día actual (martes) y el último es el total del domingo pasado.
+  /// 
+  /// Si el usuario no consumió agua en uno de los días incluidos en el rango, 
+  /// el elemento de la lista que corresponde a ese día tendrá un valor de 0.
+  /// 
+  /// Si __[daysOffset]__ es mayor a 0, en vez de comenzar por el día actual, los
+  /// totales comenzarán en la fecha del día de hoy menos __[daysOffset]__ días.  
+  List<int> _totalsFromPrevDaysInMl(int numberOfDays, { int daysOffset = 0 }) {
+
+    // Comprobar que [daysOffset] no sea negativo.
+    assert(daysOffset >= 0);
+
+    // Obtener la fecha de inicio de selección de totales.
+    final DateTime startDate = DateTime.now().onlyDate
+      .subtract(Duration( days: daysOffset ));
+
+    // Inicializar la lista con los totales.
+    final List<int> recentTotals = List.filled(numberOfDays, 0, growable: false);
+
+    for (int i = 0; i < numberOfDays; i++) {
+
+      final DateTime previousDay = startDate.subtract(Duration( days: i));
 
       if (_dailyHydration[previousDay] != null) {
-        // Existen registros de hidratación para el día.
-        int totalMililiters = 0;
+        // Existen registros de hidratación para el día. 
+        // Obtener las cantidades de los registros de hidratacion y agregarlas. 
+        int totalMililiters = _dailyHydration[previousDay]!
+            .map((registroHidratacion) => registroHidratacion.amount)
+            .reduce((total, cantidadConsumida) => total += cantidadConsumida);
 
-        for (var record in _dailyHydration[previousDay]!) {
-          totalMililiters += record.amount;
-        }
-        // _dailyHydration[previousDay].reduce((total, registro) => total + registro);
-
-        recentTotals.add(totalMililiters);
-      } else {
-        // No hubo consumo registrado, agregar 0 por default.
-        recentTotals.add(0);
+        // Asignar el consumo total para el día i.
+        recentTotals[i] = totalMililiters;
       }
     }
 
-    assert(recentTotals.length == 7);
+    // Asegurar que la lista de totales tenga un elemento por cada día.
+    assert(recentTotals.length == numberOfDays);
 
-    return recentTotals.reversed.toList();
+    return recentTotals;
+  }
+
+  /// Calcula el progreso de una [Goal] de hidratación, según su plazo temporal,
+  /// cantidad objetivo en mililitros, y los [HydrationRecords].
+  /// 
+  /// Si ya se ha calculado el progreso de una meta anterior con un plazo menor, 
+  /// se puede especificar el total para el número de días de la meta anterior.
+  /// Así, si una meta previa diaria lleva 70 ml de progreso en 1 día, una fecha
+  /// semanal puede usar ese total para su primer día. 
+  int getGoalProgressInMl(Goal goal, { int? previousTotal, int dayOffset = 0 }) {
+
+    // Determinar el número de días de registros necesarios (segun plazo, fecha
+    // de inicio de la meta y la fecha de hoy).
+    final DateTime today = DateTime.now();
+    final DateTime goalStartDate = goal.startDate!;
+    final diffBetweenDates = today.difference(goalStartDate);
+    
+    // El número de días de registros de hidratación necesarios para calcular 
+    // el progreso.
+    int daysOfRecords = max(diffBetweenDates.inDays, goal.term.inDays);
+
+    // Obtener los totales de registros de hidratación con la antiguedad para 
+    // la meta.
+    final totals = _totalsFromPrevDaysInMl(daysOfRecords, daysOffset: dayOffset);
+
+    // Agregar los totales diarios.
+    int currentProgressMl = totals.reduce((value, dayTotal) => value + dayTotal);
+
+    if (previousTotal != null) {
+      // Si hay un total ya calculado, agregarlo a currentProgressMl.
+      currentProgressMl += previousTotal;
+    }
+
+    // Retornar el progreso del usuario hacia la meta, en mililitros.
+    return currentProgressMl;
   }
 }
