@@ -1,3 +1,5 @@
+import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import "package:workmanager/workmanager.dart";
 
 import 'package:hydrate_app/src/models/activity_record.dart';
@@ -56,7 +58,9 @@ class BackgroundTasks {
           // Obtener las credenciales del usuario desde los inputs para 
           // esta task.
           final profileId = inputData[taskInputProfileId];
-          final userAccountId = inputData[taskInputAccountId];
+
+          final prefs = await SharedPreferences.getInstance();
+          final jwt = prefs.getString("jwt") ?? "";
 
           // Obtener los registros con los datos estadísticos.
           final hydrationData = await _fetchHydrationFromPastWeek(profileId);
@@ -65,7 +69,7 @@ class BackgroundTasks {
           // Enviar datos aportados por el usuario.
           bool result = await _sendStatisticalData(
             profileId, 
-            userAccountId, 
+            jwt, 
             hydrationData, 
             activityData
           );
@@ -136,22 +140,39 @@ class BackgroundTasks {
   /// Retorna [true] si los datos fueron enviados con éxito.
   static Future<bool> _sendStatisticalData (
     int profileId,
-    String accountId, 
+    String jwt, 
     Iterable<HydrationRecord> hydrationData,
     Iterable<ActivityRecord> activityData
   ) async {
 
-    final urlContributeHydration = API.uriFor("aportarDatos/hidr");
-    final urlContributeActivity = API.uriFor("aportarDatos/act");
+    const jsonMapOptions = MapOptions(
+      useCamelCasePropNames: true,
+      includeCompleteSubEntities: false,
+      useIntBooleanValues: true,
+    );
 
-    final hydrRecordsAsMaps = hydrationData.map((hr) => hr.toMap());
-    final actRecordsAsMaps = activityData.map((ar) => ar.toMap());
+    final hydrRecordsAsMaps = hydrationData
+      .map((hr) => hr.toMap(options: jsonMapOptions));
 
-    // Enviar petición POST a API con los datos aportados.
-    final sendHydrationRequest = API.postJson(urlContributeHydration, hydrRecordsAsMaps);
-    final sendActivitiesRequest = API.postJson(urlContributeActivity, actRecordsAsMaps);
+    final actRecordsAsMaps = activityData
+      .map((ar) => ar.toMap(options: jsonMapOptions));
 
-    // Hacer todas las peticiones para aportar datos.
+    // Enviar peticiones POST a API con los datos contribuidos.
+    final sendHydrationRequest = API.post(
+      "aportarDatos/hidr", 
+      hydrRecordsAsMaps, 
+      authorization: jwt,
+      authType: ApiAuthType.bearerToken,
+    );
+
+    final sendActivitiesRequest = API.post(
+      "aportarDatos/act", 
+      actRecordsAsMaps, 
+      authorization: jwt,
+      authType: ApiAuthType.bearerToken,
+    );
+
+    // Esperar a completar todas las peticiones para aportar datos.
     final contributionResults = await Future.wait(
       [ sendHydrationRequest, sendActivitiesRequest], 
       eagerError: true
