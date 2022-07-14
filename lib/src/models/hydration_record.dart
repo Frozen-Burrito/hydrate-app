@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
@@ -20,6 +22,16 @@ class HydrationRecord extends SQLiteModel {
     required this.date,
     this.profileId = -1
   });
+
+  //TODO: Quitar este constructor, es solo temporal para pruebas.
+  HydrationRecord.random(Random rand, DateTime lastDate, int profileId) : this(
+    id: -1,
+    amount: rand.nextInt(200), 
+    batteryPercentage: rand.nextInt(100), 
+    date: lastDate,
+    temperature: rand.nextDouble() * 50,
+    profileId: profileId
+  );
 
   static const String tableName = 'consumo';
 

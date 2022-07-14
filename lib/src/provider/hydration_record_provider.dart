@@ -27,20 +27,15 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration async {
 
-    final records = await _hydrationRecordsCache.data;
-
-    if (records != null) {
-      _sortRecordsByDay(records);
-    }
+    await _hydrationRecordsCache.data;
 
     return _dailyHydration;
   }
 
-  List<int> get pastWeekMlTotals => _totalsFromPrevDaysInMl(7);
+  Future<List<int>> get pastWeekMlTotals => _totalsFromPrevDaysInMl(7, isSortByDateAscending: false);
 
   //TODO: Quitar esta funcion helper temporal.
   Future<void> insertTestRecords() async {
-    final rand = Random();
 
     final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
         HydrationRecord.fromMap,
@@ -57,15 +52,14 @@ class HydrationRecordProvider extends ChangeNotifier {
 
     final newRecords = <HydrationRecord>[];
 
+    final rand = Random();
+
     // Crear registros de hidratacion aleatorios para pruebas.
     for (var i = 0; i < 20; i++) {
+
       lastDate = lastDate.subtract(Duration(hours: 8 - rand.nextInt(3)));
 
-      final randRecord = HydrationRecord(
-        amount: rand.nextInt(200), 
-        batteryPercentage: rand.nextInt(100), 
-        date: lastDate
-      );
+      final randRecord = HydrationRecord.random(rand, lastDate, 0);
 
       newRecords.add(randRecord);
     }
@@ -79,7 +73,7 @@ class HydrationRecordProvider extends ChangeNotifier {
       final results = <int>[];
 
       for (var newRecord in newRecords) { 
-        int result = await SQLiteDB.instance.insert(newRecord);
+        int result = await saveHydrationRecord(newRecord, refreshImmediately: false);
 
         if (result < 0) {
           throw Exception('No se pudo crear el registro de  hidratacion.');
@@ -88,7 +82,7 @@ class HydrationRecordProvider extends ChangeNotifier {
         }
       }
       
-      _hydrationRecordsCache.shouldRefresh();
+      _hydrationRecordsCache.refresh();
       return results;
     }
     on Exception catch (e) {
@@ -97,19 +91,30 @@ class HydrationRecordProvider extends ChangeNotifier {
   }
 
   /// Guarda un nuevo registro de hidratación en la base de datos.
-  Future<int> saveHydrationRecord(HydrationRecord newRecord) async {
+  Future<int> saveHydrationRecord(
+    HydrationRecord newRecord, 
+    { refreshImmediately = true }
+  ) async {
     
     try {
       int result = await SQLiteDB.instance.insert(newRecord);
 
       if (result >= 0) {
-        _hydrationRecordsCache.shouldRefresh();
+        if (refreshImmediately) {
+          // Si se solicita, refrescar el cache inmediatamente.
+          _hydrationRecordsCache.refresh();
+        } else {
+          // Si no, usar refresh perezozo.
+          _hydrationRecordsCache.shouldRefresh();
+        }
+        
         return result;
       } else {
         throw Exception('No se pudo crear el registro de actividad fisica.');
       }
     }
     on Exception catch (e) {
+      print(e);
       return Future.error(e);
     }
   }
@@ -159,20 +164,20 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// para obtener el progreso de cada meta.
   /// 
   /// La longitud de la lista resultante será igual a [goals.length].
-  List<int> getGoalsProgressValuesInMl(List<Goal> goals) {
+  Future<Map<Goal, int>> getGoalsProgressValuesInMl(List<Goal> goals) async {
 
-    final List<int> progressValues = List.filled(goals.length, 0, growable: false);
+    final Map<Goal, int> progressForGoals = <Goal, int>{};
 
-    for (int i = 0; i < goals.length; i++) {
+    for (final goal in goals) {
       // Obtener el progreso hacia la meta y asignarlo a la lista de totales.
-      progressValues[i] = getGoalProgressInMl(goals[i],);
+      progressForGoals[goal] = await getGoalProgressInMl(goal);
     }
 
-    assert(progressValues.length == goals.length);
+    assert(progressForGoals.length == goals.length);
 
-    print(progressValues);
+    print("Progress towards goals: " + progressForGoals.toString());
 
-    return progressValues;
+    return progressForGoals;
   }
 
   /// Obtiene el consumo total de agua diario para __[numberOfDays]__ días anteriores 
@@ -189,7 +194,11 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// 
   /// Si __[daysOffset]__ es mayor a 0, en vez de comenzar por el día actual, los
   /// totales comenzarán en la fecha del día de hoy menos __[daysOffset]__ días.  
-  List<int> _totalsFromPrevDaysInMl(int numberOfDays, { int daysOffset = 0 }) {
+  Future<List<int>> _totalsFromPrevDaysInMl(
+    int numberOfDays, { 
+      int daysOffset = 0, 
+      bool isSortByDateAscending = true, 
+  }) async {
 
     // Comprobar que [daysOffset] no sea negativo.
     assert(daysOffset >= 0);
@@ -201,14 +210,17 @@ class HydrationRecordProvider extends ChangeNotifier {
     // Inicializar la lista con los totales.
     final List<int> recentTotals = List.filled(numberOfDays, 0, growable: false);
 
+    // Obtener registros de hidratación, ordenados por día.
+    final hydrationPerDay = await dailyHidration; 
+
     for (int i = 0; i < numberOfDays; i++) {
 
       final DateTime previousDay = startDate.subtract(Duration( days: i));
 
-      if (_dailyHydration[previousDay] != null) {
+      if (hydrationPerDay[previousDay] != null) {
         // Existen registros de hidratación para el día. 
         // Obtener las cantidades de los registros de hidratacion y agregarlas. 
-        int totalMililiters = _dailyHydration[previousDay]!
+        int totalMililiters = hydrationPerDay[previousDay]!
             .map((registroHidratacion) => registroHidratacion.amount)
             .reduce((total, cantidadConsumida) => total += cantidadConsumida);
 
@@ -220,7 +232,11 @@ class HydrationRecordProvider extends ChangeNotifier {
     // Asegurar que la lista de totales tenga un elemento por cada día.
     assert(recentTotals.length == numberOfDays);
 
-    return recentTotals;
+    // Retornar los totales, ordenados con fecha ascendiente o descendiente, según
+    // isSortByDateDescending.
+    return isSortByDateAscending 
+      ? recentTotals
+      : recentTotals.reversed.toList(); 
   }
 
   /// Calcula el progreso de una [Goal] de hidratación, según su plazo temporal,
@@ -230,7 +246,7 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// se puede especificar el total para el número de días de la meta anterior.
   /// Así, si una meta previa diaria lleva 70 ml de progreso en 1 día, una fecha
   /// semanal puede usar ese total para su primer día. 
-  int getGoalProgressInMl(Goal goal, { int? previousTotal, int dayOffset = 0 }) {
+  Future<int> getGoalProgressInMl(Goal goal, { int? previousTotal, int dayOffset = 0 }) async {
 
     // Determinar el número de días de registros necesarios (segun plazo, fecha
     // de inicio de la meta y la fecha de hoy).
@@ -240,11 +256,11 @@ class HydrationRecordProvider extends ChangeNotifier {
     
     // El número de días de registros de hidratación necesarios para calcular 
     // el progreso.
-    int daysOfRecords = max(diffBetweenDates.inDays, goal.term.inDays);
+    int daysOfRecords = min(diffBetweenDates.inDays, goal.term.inDays);
 
     // Obtener los totales de registros de hidratación con la antiguedad para 
     // la meta.
-    final totals = _totalsFromPrevDaysInMl(daysOfRecords, daysOffset: dayOffset);
+    final totals = await _totalsFromPrevDaysInMl(daysOfRecords, daysOffset: dayOffset);
 
     // Agregar los totales diarios.
     int currentProgressMl = totals.reduce((value, dayTotal) => value + dayTotal);

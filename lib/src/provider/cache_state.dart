@@ -95,22 +95,8 @@ class CacheState<T> {
 
       // Obtener datos actualizados, si los datos son viejos o si le indicaron 
       // al CacheState que debe refrescar sus datos.
-      if (isDataOutdated || _shouldRefresh && !_alreadyLoading) {
-        // Indicar que ya hay un proceso de carga de la información.
-        _alreadyLoading = true;
-
-        // Obtener los datos.
-        _data = await _fetchData();
-
-        // Actualizar la información de estado de los datos.
-        _lastFetchTimestamp = DateTime.now();
-        _alreadyLoading = false;
-        _shouldRefresh = false;
-
-        // Enviar callback con _onDataRefreshed, si se específico para este cache.
-        if (_onDataRefreshed != null) {
-          _onDataRefreshed!(_data);
-        }
+      if (isDataOutdated || _shouldRefresh) {
+        refresh();
       }
 
       return Future.value(_data);
@@ -122,6 +108,27 @@ class CacheState<T> {
 
       return Future.error(e);
     } 
+  }
+
+  Future<void> refresh() async {
+    // Solo se puede hacer que el cache se refresque si no se está refrescando ya.
+    if (!_alreadyLoading) {
+      // Indicar que ya hay un proceso de carga de la información.
+      _alreadyLoading = true;
+
+      // Obtener los datos.
+      _data = await _fetchData();
+
+      // Actualizar la información de estado de los datos.
+      _lastFetchTimestamp = DateTime.now();
+      _alreadyLoading = false;
+      _shouldRefresh = false;
+
+      // Enviar callback con _onDataRefreshed, si se específico para este cache.
+      if (_onDataRefreshed != null) {
+        _onDataRefreshed!(_data);
+      }
+    }
   }
 
   /// Le indica a este [CacheState<T>] que debería actualizar sus datos internos.

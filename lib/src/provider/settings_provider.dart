@@ -36,6 +36,8 @@ class SettingsProvider with ChangeNotifier {
     _sharedPreferences = await SharedPreferences.getInstance();
   }
 
+  final String versionName = "1.0.0-beta+0";
+
   // SharedPreferences Get/Set
 
   /// Obtiene el [ThemeMode] de la app desde Shared Preferences.

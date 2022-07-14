@@ -223,6 +223,7 @@ class _SettingsItemsState extends State<SettingsItems> {
               final userAccountId = snapshot.data?.userAccountID ?? ""; 
 
               return Tooltip(
+                //TODO: Agregar i18n.
                 message: userAccountId.isNotEmpty 
                   ? "Envía datos estadísticos semanalmente"
                   : "Necesitas una cuenta de usuario para aportar datos",
@@ -330,7 +331,7 @@ class _SettingsItemsState extends State<SettingsItems> {
           Padding(
             padding: const EdgeInsets.symmetric( horizontal: 24.0, vertical: 8.0,),
             child: Text(
-              '${localizations.version}: 0.2.1+0',
+              '${localizations.version}: ${widget.settingsProvider.versionName}',
               style: const TextStyle(color: Colors.grey),
             ),
           )

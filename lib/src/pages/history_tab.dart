@@ -1,4 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/hydration_record.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -21,6 +25,8 @@ class HistoryTab extends StatelessWidget {
     final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
     final createTestRecords = hydrationProvider.insertTestRecords;
 
+    final profileId = Provider.of<ProfileProvider>(context).profileId;
+
     final localizations = AppLocalizations.of(context)!;
 
     return ChangeNotifierProvider(
@@ -36,7 +42,13 @@ class HistoryTab extends StatelessWidget {
                 leading: <Widget>[
                   IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: createTestRecords,
+                    onPressed: createTestRecords
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => hydrationProvider.saveHydrationRecord(
+                      HydrationRecord.random(Random(), DateTime.now(), profileId)
+                    ),
                   ),
                 ],
                 bottom: PreferredSize(
