@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 
 class HydrationRecord extends SQLiteModel {
@@ -51,7 +52,7 @@ class HydrationRecord extends SQLiteModel {
   } 
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'cantidad': amount, 
       'porcentaje_bateria': batteryPercentage,

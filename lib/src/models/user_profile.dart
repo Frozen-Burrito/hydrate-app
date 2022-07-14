@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/environment.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 
 import 'country.dart';
 import 'medical_data.dart';
@@ -139,7 +140,7 @@ class UserProfile extends SQLiteModel {
   } 
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'nombre': firstName,
       'apellido': lastName,

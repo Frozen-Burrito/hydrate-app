@@ -1,19 +1,15 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/enums/time_term.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
-
-enum GoalTerm {
-  daily,
-  weekly,
-  monthly,
-}
 
 class Goal extends SQLiteModel {
 
   int id;
   int profileId;
-  GoalTerm term;
+  TimeTerm term;
   DateTime? startDate;
   DateTime? endDate;
   int reward;
@@ -38,7 +34,7 @@ class Goal extends SQLiteModel {
   Goal.uncommited() : this(
     id: -1,
     profileId: -1,
-    term: GoalTerm.daily,
+    term: TimeTerm.daily,
     startDate: null,
     endDate: null,
     reward: 0,
@@ -88,7 +84,7 @@ class Goal extends SQLiteModel {
 
     final goal = Goal(
       id: (map['id'] is int ? map['id'] as int : -1),
-      term: GoalTerm.values[indexPlazo],
+      term: TimeTerm.values[indexPlazo],
       startDate: DateTime.parse(map['fecha_inicio'].toString()),
       endDate: DateTime.parse(map['fecha_final'].toString()),
       reward: (map['recompensa'] is int ? map['recompensa'] as int : -1),
@@ -103,7 +99,7 @@ class Goal extends SQLiteModel {
   } 
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'plazo': term.index,
       'fecha_inicio': startDate?.toIso8601String(), 
@@ -169,7 +165,7 @@ class Goal extends SQLiteModel {
 
     if (termIndex == null) return 'Selecciona un plazo para la meta.';
 
-    return (termIndex >= 0 && termIndex < GoalTerm.values.length) 
+    return (termIndex >= 0 && termIndex < TimeTerm.values.length) 
         ? null
         : 'Plazo para meta no válido';
   }

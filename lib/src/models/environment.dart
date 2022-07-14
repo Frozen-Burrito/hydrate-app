@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 
 class Environment extends SQLiteModel {
 
@@ -42,7 +43,7 @@ class Environment extends SQLiteModel {
   }
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'archivo_img': imagePath,
       'precio': price

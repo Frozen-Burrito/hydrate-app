@@ -16,9 +16,11 @@ class API {
 
   static const String apiUrl = '$baseUrl/api/v1';
 
+  static const String authorizationHeader = 'Authorization';
   static const String contentTypeHeader = 'content-type';
 
   static const String acceptJson = 'application/json';
+  static const String bearerToken = 'Bearer ';
 
   /// Asocia nombres de rutas del servicio web con sus URIs específicas, 
   /// que llevan a cada recurso si se realiza una petición a ellas.
@@ -64,29 +66,31 @@ class API {
   /// 
   /// Agrega el [endpoint] al final de [API.apiUrl], para luego hacer
   /// la petición a ese recurso usando [API.defaultHeaders]. 
-  static Future<http.Response> post(String endpoint, Map<String, Object?> body) {
-
-    final parsedUrl = Uri.parse(apiUrl + endpoint);
+  /// 
+  /// Si [authorization] no está vacío y [authType] no es nulo, incluye el 
+  /// header [API.authorizationHeader] en la petición, usando el valor de 
+  /// [authorization] como credenciales.
+  static Future<http.Response> post(
+    String endpoint, 
+    dynamic body,
+    { String authorization = '', ApiAuthType? authType }
+  ) {
+    final parsedUrl = uriFor(endpoint);
 
     final jsonBody = json.encode(body);
 
-    return http.post(parsedUrl, body: jsonBody, headers: defaultHeaders);
-  }
+    final reqHeaders = Map<String, String>.from(defaultHeaders);
 
-  /// Envía una petición POST al [endpoint] especificado. Serializa [requestBody] 
-  /// a JSON y lo incluye como el cuerpo de la petición.
-  /// 
-  /// Este método no valida el objeto dinámico que recibe como [requestBody], 
-  /// por lo que la petición fallará si este objeto no tiene el formato requerido
-  /// por la API web para el endpoint.
-  /// 
-  /// Envía la petición con [API.defaultHeaders].
-  static Future<http.Response> postJson(Uri endpoint, dynamic requestBody) {
+    if (authorization.isNotEmpty && authType != null) {
+      // Si recibe opciones de autenticación, incluirlas en la petición.
+      final authCredential = authType == ApiAuthType.bearerToken 
+        ? bearerToken + authorization
+        : authorization;
 
-    final jsonStr = json.encode(requestBody);
+      reqHeaders[authorizationHeader] = authCredential;
+    }
 
-    // Enviar un POST con datos JSON libres, usando una Uri.
-    return http.post(endpoint, body: jsonStr, headers: defaultHeaders);
+    return http.post(parsedUrl, body: jsonBody, headers: reqHeaders);
   }
 
   /// Envía una petición PUT al [endpoint] especificado. Serializa [body] 
@@ -117,4 +121,10 @@ extension HttpResponseExtensions on http.Response {
   /// Retorna [true] si esta respuesta tiene un código de estatus __HTTP
   /// 200__ (OK, Creado, NoContent, etc.).
   bool get isOk => statusCode >= 200 && statusCode < 300; 
+}
+
+enum ApiAuthType {
+  bearerToken,
+  paramsApiKey,
+  pathApiKey,
 }

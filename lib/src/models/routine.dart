@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
@@ -60,7 +61,7 @@ class Routine extends SQLiteModel {
   ''';
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
 
     final Map<String, Object?> map = {
       'dias': 0x00.setDayBits(_daysOfWeek),

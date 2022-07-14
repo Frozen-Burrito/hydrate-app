@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 
 class ActivityType extends SQLiteModel {
 
@@ -42,7 +43,7 @@ class ActivityType extends SQLiteModel {
   } 
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'vel_promedio_kmh': averageSpeedKmH, 
       'mets': mets

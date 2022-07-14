@@ -1,3 +1,4 @@
+import 'package:hydrate_app/src/utils/string_utils.dart';
 
 /// Contiene opciones para especificar la forma en que una clase debería 
 /// convertirse a un [Map] y viceversa, así como el formato de los nombres de 
@@ -25,4 +26,42 @@ class MapOptions {
     this.includeCompleteSubEntities = true, 
     this.useIntBooleanValues = false
   });
+
+  /// Aplica las opciones de formato de [options] a la colección de [baseAttributes].
+  /// 
+  /// Permite adaptar los atributos de una entidad a diferentes formatos, como
+  /// usar camelCase o usar enteros para representar [bool].
+  static Map<String, String> mapAttributeNames(
+    Iterable<String> baseAttributes,
+    MapOptions options
+  ) {
+    // Aplicar las opciones de formato de [options] a los atributos de la entidad.
+    final mappedNames = Map<String, String>.unmodifiable(
+      baseAttributes
+      .toList()
+      .asMap()
+      .map((i, value) => _applyMapOptions(value, options))
+    );
+
+    return mappedNames;
+  }
+
+  /// Aplica todas las [options] especificadas al [attribute].
+  static MapEntry<String, String> _applyMapOptions(
+    String attribute, 
+    MapOptions options
+  ) {
+
+    String transformedAttribute = attribute;
+
+    if (options.includeCompleteSubEntities) {
+      transformedAttribute = transformedAttribute.replaceFirst("id_", "");
+    }
+
+    if (options.useCamelCasePropNames) {
+      transformedAttribute = transformedAttribute.toCamelCase();
+    }
+
+    return MapEntry(attribute, transformedAttribute);
+  }
 }

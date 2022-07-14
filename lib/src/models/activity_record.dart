@@ -1,7 +1,8 @@
-import 'package:hydrate_app/src/db/sqlite_keywords.dart';
-import 'package:hydrate_app/src/db/sqlite_model.dart';
-import 'package:hydrate_app/src/models/activity_type.dart';
-import 'package:hydrate_app/src/models/user_profile.dart';
+import "package:hydrate_app/src/db/sqlite_keywords.dart";
+import "package:hydrate_app/src/db/sqlite_model.dart";
+import "package:hydrate_app/src/models/activity_type.dart";
+import 'package:hydrate_app/src/models/map_options.dart';
+import "package:hydrate_app/src/models/user_profile.dart";
 
 class ActivityRecord extends SQLiteModel {
 
@@ -33,81 +34,163 @@ class ActivityRecord extends SQLiteModel {
   /// Puede ser usado en formularios de creación, para almacenar los datos de los
   /// campos antes de insertarlo en la BD.
   ActivityRecord.uncommited() : this(
-    title: '', 
+    title: "", 
     date: DateTime.now(), 
     duration: 0, 
     activityType: ActivityType.uncommited(),
     profileId: -1
   );
 
-  static const String tableName = 'actividad';
+  static const String tableName = "actividad";
+
+  static const String idPropName = "id";
+  static const String titlePropName = "titulo";
+  static const String datePropName = "fecha";
+  static const String durationPropName = "duracion";
+  static const String distancePropName = "distancia";
+  static const String kcalPropName = "kilocalorias_quemadas";
+  static const String outdoorsPropName = "al_aire_libre";
+  static const String isRoutinePropName = "es_rutina";
+  static const String actTypeIdPropName = "id_${ActivityType.tableName}";
+  static const String profileIdPropName = "id_${UserProfile.tableName}";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idPropName,
+    titlePropName,
+    datePropName,
+    durationPropName,
+    distancePropName,
+    kcalPropName,
+    outdoorsPropName,
+    isRoutinePropName,
+    profileIdPropName,
+    actTypeIdPropName,
+  ];
 
   /// El nombre de la tabla, usado en SQLite.
   @override
   String get table => tableName;
 
-  static const String createTableQuery = '''
+  static const String createTableQuery = """
     CREATE TABLE ${ActivityRecord.tableName} (
-      id ${SQLiteKeywords.idType},
-      titulo ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      fecha ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      duracion ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      distancia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      kilocalorias_quemadas ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      al_aire_libre ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      es_rutina ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idPropName ${SQLiteKeywords.idType},
+      $titlePropName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $datePropName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $durationPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $distancePropName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $kcalPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $outdoorsPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $isRoutinePropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      id_${ActivityType.tableName} ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      id_${UserProfile.tableName} ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $actTypeIdPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $profileIdPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteKeywords.fk} (id_${ActivityType.tableName}) ${SQLiteKeywords.references} ${ActivityType.tableName} (id)
+      ${SQLiteKeywords.fk} ($actTypeIdPropName) ${SQLiteKeywords.references} ${ActivityType.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction},
 
-      ${SQLiteKeywords.fk} (id_${UserProfile.tableName}) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+      ${SQLiteKeywords.fk} ($profileIdPropName) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
-  ''';
+  """;
 
-  static ActivityRecord fromMap(Map<String, Object?> map) {
+  /// Crea una nueva instancia de [ActivityRecord] a partir del [map] con sus 
+  /// atributos.
+  /// 
+  /// En el [Map], cada llave es el nombre de un atributo de [ActivityRecord] y 
+  /// su valor es el valor que tendrá esa propiedad en la nueva instancia.
+  /// 
+  /// Si se incluye [options], se puede controlar la forma en que [map] es 
+  /// interpretado. 
+  static ActivityRecord fromMap(
+    Map<String, Object?> map, 
+    { MapOptions options = const MapOptions(), }
+  ) {
 
+    // Asignar nombres para entradas de entidades anidadas, revisando si [map]
+    // contiene la entidad completa o solo su ID.
+    final actTypePropName = options.includeCompleteSubEntities 
+      ? actTypeIdPropName.replaceFirst("id_", "")
+      : actTypeIdPropName;
+
+    // Obtener datos de entidades anidadas desde [map].
     final type = ActivityType.fromMap(
-      (map[ActivityType.tableName] is Map<String, Object?>) 
-        ? map[ActivityType.tableName] as Map<String, Object?> 
-        : {}
+      (map[actTypePropName] is Map<String, Object?>) 
+        ? map[actTypePropName] as Map<String, Object?> 
+        : { "id": map[actTypePropName] }
     );
 
     return ActivityRecord(
-      id: int.tryParse(map['id'].toString()) ?? -1,
-      title: map['titulo'].toString(),
-      date: DateTime.tryParse(map['fecha'].toString()) ?? DateTime.now(),
-      duration: int.tryParse(map['duracion'].toString()) ?? 0,
-      distance: double.tryParse(map['distancia'].toString()) ?? 0.0,
-      kiloCaloriesBurned: int.tryParse(map['kilocalorias_quemadas'].toString()) ?? 0,
-      doneOutdoors: (int.tryParse(map['al_aire_libre'].toString()) ?? 0) != 0,
-      isRoutine: (int.tryParse(map['es_rutina'].toString()) ?? 0) != 0,
+      id: int.tryParse(map[idPropName].toString()) ?? -1,
+      title: map[titlePropName].toString(),
+      date: DateTime.tryParse(map[datePropName].toString()) ?? DateTime.now(),
+      duration: int.tryParse(map[durationPropName].toString()) ?? 0,
+      distance: double.tryParse(map[distancePropName].toString()) ?? 0.0,
+      kiloCaloriesBurned: int.tryParse(map[kcalPropName].toString()) ?? 0,
+      doneOutdoors: (int.tryParse(map[outdoorsPropName].toString()) ?? 0) != 0,
+      isRoutine: (int.tryParse(map[isRoutinePropName].toString()) ?? 0) != 0,
       activityType: type,
-      profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
+      profileId: int.tryParse(map[profileIdPropName].toString()) ?? -1,
     );
   } 
 
+  /// Crea una representación de este objeto en un Map.
+  /// 
+  /// Si [useCamelCasePropNames] es __true__, los nombres de las propiedades 
+  /// (las llaves del mapa) eliminarán los guiones bajos y espacios en ellos y 
+  /// harán mayúscula la primera letra de cada palabra después de un separador,
+  /// menos la primera. Por ejemplo, `"al_aire_libre"` sería convertido a 
+  /// `"alAireLibre"`.
+  /// 
+  /// Si [includeCompleteSubEntities] es __true__, el mapa resultante tendrá 
+  /// entradas con los mapas de las entidades anidadas en este objeto, invocando
+  /// sus propios [toMap()]. Si no, solo se incluye el ID de la sub-entidad. 
+  /// 
+  /// Si [useIntBooleanValues] es __true__, todos los valores booleanos del mapa 
+  /// resultante usarán 0 para false y 1 para true. Si es __false__, los valores
+  /// por defecto de un bool son usados ("true" y "false") .
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
 
+    // Modificar los nombres de los atributos para el Map resultante, segun 
+    // [options].
+    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
+
+    // Comprobar que hay una entrada por cada atributo de ActivityRecord.
+    assert(attributeNames.length == baseAttributeNames.length);
+
+    // Se asume que el mapa de attributeNames contiene entradas para todos los 
+    // atributos de baseAttributeNames, y que acceder con los atributos de 
+    // baseAttributeNames nunca producirá null.
     final Map<String, Object?> map = {
-      'titulo': title, 
-      'fecha': date.toIso8601String(),
-      'duracion': duration,
-      'distancia': distance,
-      'kilocalorias_quemadas': kiloCaloriesBurned,
-      'al_aire_libre': doneOutdoors ? 1 : 0,
-      'es_rutina': isRoutine ? 1 : 0,
-      ActivityType.tableName: activityType,
-      'id_perfil': profileId
+      attributeNames[titlePropName]!: title, 
+      attributeNames[datePropName]!: date.toIso8601String(),
+      attributeNames[durationPropName]!: duration,
+      attributeNames[distancePropName]!: distance,
+      attributeNames[kcalPropName]!: kiloCaloriesBurned,
+      attributeNames[profileIdPropName]!: profileId,
     };
 
-    if (id >= 0) map['id'] = id;
+    if (options.useIntBooleanValues) {
+      // Los valors booleanos del mapa deben ser representados usando ints.
+      map[attributeNames[outdoorsPropName]!] = doneOutdoors ? 1 : 0;
+      map[attributeNames[isRoutinePropName]!] = isRoutine ? 1 : 0;
+    } else {
+      // Los valores booleanos del mapa pueden usar bool.
+      map[attributeNames[outdoorsPropName]!] = doneOutdoors;
+      map[attributeNames[isRoutinePropName]!] = isRoutine;
+    }
 
-    return map;
+    if (options.includeCompleteSubEntities) {
+      map[attributeNames[actTypeIdPropName]!] = activityType;
+    } else {
+      map[attributeNames[actTypeIdPropName]!] = activityType.id;
+    }
+
+    // Solo incluir el ID de la entidad si es una entidad existente.
+    if (id >= 0) map[attributeNames[idPropName]!] = id;
+
+    return Map.unmodifiable(map);
   }
 
   bool _kCalModifiedByUser = false;
@@ -214,20 +297,20 @@ class ActivityRecord extends SQLiteModel {
   /// Calcula la cantidad de monedas de recompensa por realizar esta actividad.
   int get coinReward => 50;
 
-  String get formattedDuration => '$duration min.';
+  String get formattedDuration => "$duration min.";
 
-  String get formattedDistance => '${distance.toStringAsFixed(1)} km';
+  String get formattedDistance => "${distance.toStringAsFixed(1)} km";
 
-  String get formattedKcal => '${kiloCaloriesBurned.toString()} kCal';
+  String get formattedKcal => "${kiloCaloriesBurned.toString()} kCal";
 
   String get hourAndMinuteDuration { 
     int hours = duration ~/ 60;
     int minutes = duration % 60;
 
-    String hourStr = (hours > 0) ? '${hours}h' : '';
-    String minuteStr = (hours > 0) ? 'y $minutes min.' : '$minutes min.';
+    String hourStr = (hours > 0) ? "${hours}h" : "";
+    String minuteStr = (hours > 0) ? "y $minutes min." : "$minutes min.";
 
-    return '$hourStr $minuteStr';
+    return "$hourStr $minuteStr";
   }
 
   String get numericDate {
@@ -237,19 +320,19 @@ class ActivityRecord extends SQLiteModel {
 
   static String? validateTitle(String? inputValue) {
     return (inputValue != null && inputValue.length > 40)
-        ? 'El título debe tener menos de 40 caracteres'
+        ? "El título debe tener menos de 40 caracteres"
         : null;
   }
 
   static String? validateDitance(String? inputValue) {
 
-    double? newDistance = double.tryParse(inputValue?.split(" ").first ?? '0');
+    double? newDistance = double.tryParse(inputValue?.split(" ").first ?? "0");
 
     if (inputValue != null && inputValue.isNotEmpty && newDistance != null) {
       if (newDistance > 30.0) {
-        return 'Las distancia debe ser menor a 30 km';
+        return "Las distancia debe ser menor a 30 km";
       } else if (newDistance < 0.0) {
-        return 'Las distancia debe ser mayor a 0 km';
+        return "Las distancia debe ser mayor a 0 km";
       }
     }
 
@@ -258,11 +341,11 @@ class ActivityRecord extends SQLiteModel {
 
   static String? validateDuration(String? inputValue) {
 
-    int? newDuration = int.tryParse(inputValue?.split(" ").first ?? '0');
+    int? newDuration = int.tryParse(inputValue?.split(" ").first ?? "0");
 
     if (inputValue != null && inputValue.isNotEmpty) {
       if (newDuration != null && newDuration > 60 * 12) {
-        return 'Las duración debe ser menor a 12h';
+        return "Las duración debe ser menor a 12h";
       }
     }
 
@@ -272,11 +355,11 @@ class ActivityRecord extends SQLiteModel {
 
   static String? validateKcal(String? inputValue) {
 
-    double? newKcal = double.tryParse(inputValue?.split(" ").first ?? '0');
+    double? newKcal = double.tryParse(inputValue?.split(" ").first ?? "0");
 
     if (inputValue != null && inputValue.isNotEmpty) {
       if (newKcal != null && newKcal > 2500) {
-        return 'La kilocalorías deben ser menores a 2500';
+        return "La kilocalorías deben ser menores a 2500";
       }
     }
 

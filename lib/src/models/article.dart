@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 
 /// Un modelo que representa un Recurso Informativo.
 /// 
@@ -54,7 +55,7 @@ class Article extends SQLiteModel {
   }
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'titulo': title,
       'descripcion': description,

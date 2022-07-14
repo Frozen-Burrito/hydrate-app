@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:hydrate_app/src/db/migrations.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
 /// Proporciona acceso a una base de datos local de SQLite, a través de [instance].
@@ -44,6 +45,12 @@ class SQLiteDB {
     ActivityRecord.tableName,
     ActivityType.tableName
   ];
+
+  static const entityMapOptions = MapOptions(
+    includeCompleteSubEntities: true,
+    useCamelCasePropNames: false,
+    useIntBooleanValues: true,
+  );
 
   /// Abre la base de datos. Si no existe previamente, es creada.
   Future<Database> init(String filePath) async {
@@ -280,7 +287,7 @@ class SQLiteDB {
     final db = await database;
     
     /// Mapa de la entidad con los valores sin convertir. 
-    final Map<String, Object?> mappedEntity = entity.toMap();
+    final Map<String, Object?> mappedEntity = entity.toMap(options: entityMapOptions);
 
     /// Mapa con los valores finales de las columnas de la entidad.
     final Map<String, Object?> entityColumnValues = {};
@@ -295,7 +302,7 @@ class SQLiteDB {
 
       if (columnValue is SQLiteModel) {
         // Definir la llave foránea para la relación con la otra entidad.
-        final otherEntity = columnValue.toMap();
+        final otherEntity = columnValue.toMap(options: entityMapOptions);
         final otherEntityId = (otherEntity['id'] is int ? otherEntity['id'] as int : -1); 
 
         if (otherEntityId < 0) {
@@ -350,7 +357,7 @@ class SQLiteDB {
     final db = await database;
 
     /// Mapa de la entidad con los valores sin convertir. 
-    final Map<String, Object?> mappedEntity = entity.toMap();
+    final Map<String, Object?> mappedEntity = entity.toMap(options: entityMapOptions);
 
     // Determinar si se están describiendo las relaciones de una inserción o de 
     // una actualización.
@@ -380,7 +387,9 @@ class SQLiteDB {
 
       if (colValue is Iterable<SQLiteModel> && colValue.isNotEmpty) {
 
-        final relatedIds = reduceIds(colValue.map((e) => e.toMap()).toList(), 'id').toList();
+        final rows = colValue.map((e) => e.toMap(options: entityMapOptions)).toList();
+
+        final relatedIds = reduceIds(rows, 'id').toList();
 
         final String relatedTable = colValue.first.table;
         final String? mtmTable = manyToManyTables[entity.table]?[relatedTable];
@@ -397,7 +406,8 @@ class SQLiteDB {
         // Determinar inserciones a tabla muchos-a-muchos. 
         for (var principalEntity in colValue) {
 
-          final principalEntityMap = principalEntity.toMap();
+          final principalEntityMap = principalEntity.toMap(options: entityMapOptions);
+          
           final principalId = (principalEntityMap['id'] is int ? principalEntityMap['id'] as int : -1);
 
           if (isInsertOp) {
@@ -406,7 +416,7 @@ class SQLiteDB {
 
             if (principalId < 0) {
               // La otra entidad no existe, es necesario insertarla primero.
-              int secondaryId = await db.insert(principalEntity.table, principalEntity.toMap()); 
+              int secondaryId = await db.insert(principalEntity.table, principalEntityMap); 
 
               if (secondaryId >= 0) {
                 

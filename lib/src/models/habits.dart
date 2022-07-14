@@ -1,5 +1,6 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 
 class Habits extends SQLiteModel {
@@ -69,7 +70,7 @@ class Habits extends SQLiteModel {
   }
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'horas_sueno': hoursOfSleep,
       'horas_act_fisica': hoursOfActivity,
