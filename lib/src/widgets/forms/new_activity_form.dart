@@ -398,7 +398,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                     setState(() {
                       newActivityRecord.distance = double.tryParse(value.split(" ").first) ?? 0.0;
 
-                      newActivityRecord.distanceModifiedByUser();
+                      newActivityRecord.userModifiedDistance();
                     });
     
                     // distanceController.text = newActivityRecord.formattedDistance; 
@@ -430,7 +430,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                     setState(() {
                       newActivityRecord.kiloCaloriesBurned = int.tryParse(value.split(" ").first) ?? 0;
 
-                      newActivityRecord.kCalModifiedByUser();
+                      newActivityRecord.userModifiedKcal();
                     });
     
                     // kCalController.text = newActivityRecord.formattedKcal; 

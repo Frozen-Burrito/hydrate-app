@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import "package:hydrate_app/src/db/sqlite_keywords.dart";
 import "package:hydrate_app/src/db/sqlite_model.dart";
 import "package:hydrate_app/src/models/activity_type.dart";
@@ -53,6 +54,8 @@ class ActivityRecord extends SQLiteModel {
   static const String isRoutinePropName = "es_rutina";
   static const String actTypeIdPropName = "id_${ActivityType.tableName}";
   static const String profileIdPropName = "id_${UserProfile.tableName}";
+
+  static const int maxDuration = 60 * 12;
 
   /// Una lista con todos los nombres base de los atributos de la entidad.
   static const baseAttributeNames = <String>[
@@ -193,34 +196,33 @@ class ActivityRecord extends SQLiteModel {
     return Map.unmodifiable(map);
   }
 
-  bool _kCalModifiedByUser = false;
-  bool _distanceModifiedByUser = false;
+  bool _kCalNotYetModified = true;
+  bool _distanceNotYetModified = true;
 
-  void kCalModifiedByUser() => _kCalModifiedByUser = true;
-  void distanceModifiedByUser() => _distanceModifiedByUser = true;
+  void userModifiedKcal() => _kCalNotYetModified = false;
+  void userModifiedDistance() => _distanceNotYetModified = false;
 
   /// Estima los valores de kilocalorías quemadas y distancia para este 
   /// [ActivityRecord] según la duración y el tipo de la actividad, además del 
   /// peso actual del usuario.
   void aproximateData(double userWeight) {
-    if (!_distanceModifiedByUser && duration > 0) {
 
-      if (activityType.hasAverageSpeed()) {
+    final isDurationValid = validateDuration(duration) == null;
+    
+    if (isDurationValid) {
+      if (_distanceNotYetModified) {
         // Si no se ha registrado una distancia específica y la actividad tiene una 
         // velocidad promedio asociada, calcular la distancia con la duración y 
         // la velocidad.
-        distance = distanceFromSpeedAndDuration(duration, activityType);
-
-      } else {
-        distance = 0;
+        distance = _distanceFromSpeedAndDuration();
       }
-    }
 
-    if (!_kCalModifiedByUser && duration > 0 && userWeight > 0) {
-      // Si no se ha registrado la cantidad específica de kilocalorías y se tiene el 
-      // peso del usuario, calcular las kilocalorías con la duración, el peso y 
-      // los METs del tipo de actividad.
-      kiloCaloriesBurned = kCalFromWeightAndDuration(userWeight, duration, activityType);
+      if (_kCalNotYetModified) {
+        // Si no se ha registrado la cantidad específica de kilocalorías y se tiene el 
+        // peso del usuario, calcular las kilocalorías con la duración, el peso y 
+        // los METs del tipo de actividad.
+        kiloCaloriesBurned = _kCalFromWeightAndDuration(userWeight);
+      }
     }
   }
 
@@ -231,7 +233,7 @@ class ActivityRecord extends SQLiteModel {
   /// __duracion en horas__ = __[duration]__ / 60.0  
   /// 
   /// __distancia__ =  __duracion en horas__ * __[activityType.averageSpeedKmH]__
-  double distanceFromSpeedAndDuration(int duration, ActivityType activityType) {
+  double _distanceFromSpeedAndDuration() {
     double durationInHours = duration / 60.0;
 
     return durationInHours * activityType.averageSpeedKmH;
@@ -244,14 +246,10 @@ class ActivityRecord extends SQLiteModel {
   /// **kcal/min** = [activityType.mets] * 3.5 * [userWeight] / 200
   /// 
   /// **kcal** = **kcal/min** * [durationMins]
-  int kCalFromWeightAndDuration(
-    double userWeight, 
-    int durationMins, 
-    ActivityType activityType
-  ) {
+  int _kCalFromWeightAndDuration(double userWeight) {
     int kCalPerMinute = activityType.mets * 3.5 * userWeight ~/ 200;
 
-    return kCalPerMinute * durationMins;
+    return kCalPerMinute * duration;
   }
 
   /// Determina si este [ActivityRecord] y [other] son similares.
@@ -339,12 +337,24 @@ class ActivityRecord extends SQLiteModel {
     return null;
   }
 
-  static String? validateDuration(String? inputValue) {
+  static String? validateDuration(Object? inputValue, { bool includesUnits = false }) {
 
-    int? newDuration = int.tryParse(inputValue?.split(" ").first ?? "0");
+    int? newDuration;
 
-    if (inputValue != null && inputValue.isNotEmpty) {
-      if (newDuration != null && newDuration > 60 * 12) {
+    if (inputValue is num) {
+      // Directly convert duration to integer.
+      newDuration = inputValue.toInt();
+    } else if (inputValue is String) {
+      // Try to parse the string value, based on format.
+      String valueAsStr = includesUnits ? inputValue.split(" ").first : inputValue;
+      newDuration = int.tryParse(valueAsStr);
+    }
+
+    if (newDuration != null) {
+      // Validate range of duration, in minutes.
+      if (newDuration.isNegative) {
+        return "La duración debe ser un número positivo";
+      } else if (newDuration > maxDuration) {
         return "Las duración debe ser menor a 12h";
       }
     }

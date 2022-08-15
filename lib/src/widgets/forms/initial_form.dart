@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/widgets/forms/country_dropdown.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
+import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'package:hydrate_app/src/utils/datetime_extensions.dart';
-import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
+import 'package:hydrate_app/src/widgets/forms/country_dropdown.dart';
 
 class InitialForm extends StatefulWidget {
 

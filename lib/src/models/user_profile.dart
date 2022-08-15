@@ -2,11 +2,12 @@ import 'dart:math';
 
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/country.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
+import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/environment.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
-
-import 'country.dart';
-import 'medical_data.dart';
+import 'package:hydrate_app/src/models/medical_data.dart';
 
 class UserProfile extends SQLiteModel {
 
@@ -314,20 +315,4 @@ class UserProfile extends SQLiteModel {
         ? 'El peso debe estar entre 20 kg y 200 kg'
         : null; 
   }
-}
-
-enum UserSex {
-  woman,
-  man,
-  notSpecified,
-}
-
-enum Occupation {
-  notSpecified,
-  student,
-  officeWorker,
-  manualWorker,
-  parent,
-  athlete,
-  other
 }

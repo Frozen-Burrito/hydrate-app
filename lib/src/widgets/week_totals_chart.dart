@@ -103,7 +103,7 @@ class _BarChart extends StatelessWidget {
 
     final xRange = Iterable<int>.generate(dataPoints.length).toList();
 
-    final consumptionAverage = dataPoints.reduce((total, valor) => total + valor) / 7;
+    final consumptionAverage = dataPoints.reduce((total, value) => total + value) / 7;
 
     print("Average: ${consumptionAverage.toInt()}");
 

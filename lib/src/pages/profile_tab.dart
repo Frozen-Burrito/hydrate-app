@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/widgets/dialogs/environment_select_dialog.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -9,8 +9,9 @@ import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:hydrate_app/src/widgets/activity_time_brief.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
-import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
+import 'package:hydrate_app/src/widgets/dialogs/environment_select_dialog.dart';
 import 'package:hydrate_app/src/widgets/forms/initial_form.dart';
+import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
 class ProfileTab extends StatefulWidget {

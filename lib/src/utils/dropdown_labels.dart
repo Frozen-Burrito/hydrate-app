@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/models/enums/user_sex.dart';
 
 class DropdownLabels {
 
