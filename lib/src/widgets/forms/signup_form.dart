@@ -1,133 +1,55 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'package:hydrate_app/src/models/api.dart';
-import 'package:hydrate_app/src/models/user_credentials.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
+import 'package:hydrate_app/src/utils/validation_message_builder.dart';
+import 'package:hydrate_app/src/widgets/form_state_provider.dart';
 
-class SignupForm extends StatefulWidget {
-  const SignupForm({ Key? key }) : super(key: key);
+class SignupForm extends StatelessWidget {
+  const SignupForm({Key? key}) : super(key: key);
 
   @override
-  State<SignupForm> createState() => _SignupFormState();
+  Widget build(BuildContext context) {
+    return FormStateProvider(
+      model: AuthFormBloc.emailSignUp(), 
+      child: const _SignupForm(),
+    );
+  }
 }
 
-class _SignupFormState extends State<SignupForm> {
+class _SignupForm extends StatelessWidget {
 
-  final _formKey = GlobalKey<FormState>();
+  const _SignupForm({Key? key}) : super(key: key);
 
-  final signupApiUrl = '/usuarios/registro';
+  Future<void> _handleFormSubmit(BuildContext context) async {
+    // Submit the form.
+    final bloc = FormStateProvider.of(context).model;
+    bloc.formSubmit.add(context);
 
-  String email = '';
-  String username = '';
-  String password = '';
-  String confirmPassword = '';
-
-  bool editedEmail = false;
-  bool editedUsername = false;
-  bool editedPassword = false;
-  bool editedConfirm = false;
-
-  bool isLoading = false;
-  bool hasError = false;
-
-  AuthError authError = AuthError.none;
-
-  void _validateAndAuthenticate(BuildContext context, { String? redirectRoute }) async {
-    
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() { isLoading = true; });
-
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-
-    final userCredentials = UserCredentials(
-      email: email,
-      username: username,
-      password: password
-    );
-
-    try {
-      final res = await API.post(signupApiUrl, userCredentials.toMap());
-
-      final resBody = json.decode(res.body);
-      final token = resBody[UserCredentials.jwtPropIdentifier];
-
-      if (res.statusCode == HttpStatus.ok && token is String) {
-        // El registro y la autenticación fueron exitosos.
-
-        // Guardar el token JWT.
-        settingsProvider.authToken = token;
-
-        // Obtener el ID de la cuenta de usuario desde el token.
-        final tokenClaims = parseJWT(token);
-
-        String newAccountID = tokenClaims['id'];
-
-        if (profileProvider.linkedAccountId.isNotEmpty) {
-          // Si el perfil actual ya tiene asociada una cuenta de usuario,
-          // crear un nuevo perfil con el ID de la nueva cuenta.
-          profileProvider.newDefaultProfile(existingAccountId: newAccountID);
-
-          // Se registró la nueva cuenta, asociada con un nuevo perfil. Redirigir
-          // al formulario inicial para que el usuario pueda configurar su nuevo
-          // perfil.
-          Navigator.of(context).popAndPushNamed(RouteNames.initialForm, result: token);
-
-        } else if (profileProvider.profileChanges != null) {
-          // Si el perfil de usuario no esta asociado con una cuenta de usuario, 
-          // asociar el perfil con la cuenta creada.
-          profileProvider.profileChanges!.userAccountID = newAccountID;
-
-          profileProvider.saveProfileChanges(restrictModifications: false);
-
-          // Se registró la nueva cuenta y se asoció por defecto al perfil local.
-          Navigator.of(context).popAndPushNamed(RouteNames.home, result: token);
-        }
-
-      } else if (res.statusCode >= HttpStatus.badRequest) {
-        // Existe un error en las credenciales del usuario.
-        final error = AuthError.values[resBody['tipo'] ?? 1];
-
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          authError = error;
-        });
-      } else if (res.statusCode >= HttpStatus.internalServerError) {
-        // Hubo un error en el servidor.
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          authError = AuthError.serviceUnavailable;
-        });
+    // Wait for the result of the submit event.
+    await for(final result in bloc.formState) {
+      if (result == AuthResult.authenticated) {
+        // El usuario ya tiene un perfil. Redirigir a vista de inicio.
+        Navigator.of(context).popAndPushNamed(RouteNames.home);
+      } else if (result == AuthResult.newProfileCreated) {
+        // El usuario todavía no ha llenado su perfil inicial. Redirigir
+        // al formulario inicial para que el usuario pueda configurar su nuevo
+        // perfil.
+        Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
       }
-
-    } on SocketException {
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        authError = AuthError.serviceUnavailable;
-      });
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
 
+    final bloc = FormStateProvider.of(context).model;
     final localizations = AppLocalizations.of(context)!;
 
     return Form(
-      key: _formKey,
+      key: bloc.formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       child: Card(
         margin: const EdgeInsets.only( top: 48.0 ),
@@ -145,29 +67,139 @@ class _SignupFormState extends State<SignupForm> {
 
                 const SizedBox( height: 32.0, ),
 
-                TextFormField(
+                const _SignUpFormFields(),
+
+                StreamBuilder<AuthResult>(
+                  initialData: AuthResult.none,
+                  stream: bloc.formState,
+                  builder: (context, snapshot) {
+
+                    final isAuthErrorResult = snapshot.data == AuthResult.credentialsError
+                      || snapshot.data == AuthResult.serviceUnavailable;
+
+                    if (isAuthErrorResult) {
+                      final isServiceUnavailable = snapshot.data == AuthResult.serviceUnavailable;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Icon(isServiceUnavailable
+                              ? Icons.cloud_off
+                              : Icons.error
+                            ),
+    
+                            const SizedBox( width: 8.0, ),
+                            
+                            Expanded(
+                              child: Text(
+                                isServiceUnavailable 
+                                  ? localizations.errCheckInternetConn
+                                  //TODO: Add i18n
+                                  : 'Your credentials are incorrect.', 
+                                textAlign: TextAlign.start,
+                                maxLines: 2,
+                                softWrap: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      return const SizedBox( height: 32.0, );
+                    }
+                  }
+                ),
+
+                StreamBuilder<bool>(
+                  initialData: false,
+                  stream: bloc.isLoading,
+                  builder: (context, snapshot) {
+
+                    final isFormLoading = snapshot.data ?? false;
+
+                    final onBtnPressed = isFormLoading 
+                      ? null 
+                      : () => _handleFormSubmit(context);
+
+                    return ElevatedButton(
+                      child: isFormLoading 
+                        ? const SizedBox(
+                            height: 24.0,
+                            width: 24.0,
+                            child: CircularProgressIndicator()
+                          )
+                        : Text(
+                            localizations.continueAction,
+                            textAlign: TextAlign.center,
+                          ),
+                      style: ElevatedButton.styleFrom(
+                        primary: Theme.of(context).colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                        textStyle: Theme.of(context).textTheme.bodyText1,
+                      ),
+                      onPressed: onBtnPressed,
+                    );
+                  }
+                ),
+              ],
+            )
+          )
+        )
+      )
+    );
+  }
+}
+
+class _SignUpFormFields extends StatelessWidget {
+
+  const _SignUpFormFields({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = FormStateProvider.of(context).model;
+    final localizations = AppLocalizations.of(context)!;
+    final validationMsgBuilder = ValidationMessageBuilder.of(context);
+
+    return StreamBuilder<bool>(
+      initialData: false,
+      stream: bloc.isLoading,
+      builder: (context, snapshot) {
+
+        final shouldEnableFields = snapshot.data ?? false;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            StreamBuilder<UsernameError>(
+              initialData: UsernameError.none,
+              stream: bloc.emailError,
+              builder: (context, snapshot) {
+                return TextFormField(
                   autocorrect: false,
+                  enabled: shouldEnableFields,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.mail),
                     labelText: localizations.email,
                     helperText: ' ',
-                    errorText: hasError 
-                      && (authError == AuthError.userExists || authError == AuthError.credentialsError)
-                      ? localizations.errUserExistsEmail
-                      : null
+                    errorText: validationMsgBuilder.messageForUsername(snapshot.data!)
                   ),
-                  onChanged: (value) => setState(() {
-                    email = value;
-                    editedEmail = true;
-                  }),
-                  validator: (value) => AuthValidators.emailValidator(value, editedEmail),
-                ),
+                  onChanged: (emailValue) => bloc.emailSink.add(emailValue),
+                );
+              }
+            ),
 
-                const SizedBox( height: 8.0, ),
+            const SizedBox( height: 8.0, ),
 
-                TextFormField(
+            StreamBuilder<UsernameError>(
+              initialData: UsernameError.none,
+              stream: bloc.usernameError,
+              builder: (context, snapshot) {
+                return TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.text,
                   decoration: InputDecoration(
@@ -175,22 +207,22 @@ class _SignupFormState extends State<SignupForm> {
                     prefixIcon: const Icon(Icons.person),
                     labelText: localizations.username,
                     helperText: ' ',
-                    errorText: hasError 
-                      && (authError == AuthError.userExists || authError == AuthError.credentialsError)
-                      ? localizations.errUserExistsName
-                      : null
+                    errorText: validationMsgBuilder.messageForUsername(snapshot.data!),
                   ),
-                  onChanged: (value) => setState(() {
-                    username = value;
-                    editedUsername = true;
-                  }),
-                  validator: (value) => AuthValidators.usernameValidator(value, editedUsername),
-                ),
+                  onChanged: (usernameValue) => bloc.usernameSink.add(usernameValue),
+                );
+              }
+            ),
 
-                const SizedBox( height: 8.0, ),
+            const SizedBox( height: 8.0, ),
 
-                TextFormField(
+            StreamBuilder<PasswordError>(
+              initialData: PasswordError.none,
+              stream: bloc.passwordError,
+              builder: (context, snapshot) {
+                return TextFormField(
                   autocorrect: false,
+                  enabled: shouldEnableFields,
                   obscureText: true,
                   keyboardType: TextInputType.visiblePassword,
                   decoration: InputDecoration(
@@ -198,17 +230,18 @@ class _SignupFormState extends State<SignupForm> {
                     prefixIcon: const Icon(Icons.vpn_key),
                     labelText: localizations.password,
                     helperText: ' ',
+                    errorText: validationMsgBuilder.messageForPassword(snapshot.data!)
                   ),
-                  onChanged: (value) => setState(() {
-                    password = value;
-                    editedPassword = true;
-                  }),
-                  validator: (value) => AuthValidators.passwordValidator(value, editedPassword),
-                ),
+                  onChanged: (passwordValue) => bloc.passwordSink.add(passwordValue),
+                );
+              }
+            ),
 
-                const SizedBox( height: 8.0, ),
-
-                TextFormField(
+            StreamBuilder<PasswordError>(
+              initialData: PasswordError.none,
+              stream: bloc.passwordConfirmError,
+              builder: (context, snapshot) {
+                return TextFormField(
                   autocorrect: false,
                   obscureText: true,
                   keyboardType: TextInputType.visiblePassword,
@@ -217,57 +250,15 @@ class _SignupFormState extends State<SignupForm> {
                     prefixIcon: const Icon(Icons.vpn_key),
                     labelText: localizations.passwordConfirm,
                     helperText: ' ',
+                    errorText: validationMsgBuilder.messageForPassword(snapshot.data!),
                   ),
-                  onChanged: (value) => setState(() {
-                    confirmPassword = value;
-                    editedConfirm = true;
-                  }),
-                  validator: (value) => AuthValidators.confirmPasswordValidator(password, value, editedConfirm),
-                ),
-
-                authError == AuthError.serviceUnavailable 
-                  ? Padding(
-                    padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        const Icon(Icons.cloud_off),
-
-                        const SizedBox( width: 4.0, ),
-                        
-                        Expanded(
-                          child: Text(
-                            localizations.errCheckInternetConn, 
-                            textAlign: TextAlign.start,
-                            maxLines: 2,
-                            softWrap: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  : const SizedBox( height: 8.0, ),
-
-                ElevatedButton(
-                  child: isLoading 
-                    ? const SizedBox(
-                        height: 24.0,
-                        width: 24.0,
-                        child: CircularProgressIndicator()
-                      )
-                    : Text(localizations.continueAction),
-                  style: ElevatedButton.styleFrom(
-                    primary: Theme.of(context).colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                    textStyle: Theme.of(context).textTheme.bodyText1,
-                  ),
-                  onPressed: isLoading ? null : () => _validateAndAuthenticate(context, redirectRoute: '/'),
-                ),
-              ],
-            )
-          )
-        )
-      )
+                  onChanged: (passwordValue) => bloc.passwordSink.add(passwordValue),
+                );
+              }
+            ),
+          ],
+        ); 
+      },
     );
   }
 }

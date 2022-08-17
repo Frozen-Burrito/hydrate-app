@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -83,7 +84,7 @@ class AuthOptionsMenu extends StatelessWidget {
             onSelected: () => Navigator.pushNamed(
               context, 
               RouteNames.authentication, 
-              arguments: AuthFormType.login
+              arguments: AuthActionType.signIn
             ),
           ),
         ]

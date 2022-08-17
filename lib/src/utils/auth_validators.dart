@@ -1,11 +1,31 @@
-enum AuthError {
+import 'package:flutter/material.dart';
+
+enum AuthResult {
   none,
+  authenticated,
+  newProfileCreated,
   credentialsError,
-  userExists,
-  userDoesNotExist,
-  incorrectPassword,
-  incorrectFormat,
   serviceUnavailable,
+}
+
+enum UsernameError { 
+  none,
+  noUsernameProvided,
+  noEmailProvided,
+  incorrectEmailFormat,
+  usernameTooShort,
+  usernameTooLong,
+  incorrectUsernameFormat,
+}
+
+enum PasswordError { 
+  none,
+  noPasswordProvided,
+  passwordTooShort,
+  passwordTooLong,
+  requiresSymbols,
+  noPasswordConfirm,
+  passwordsDoNotMatch,
 }
 
 class AuthValidators {
@@ -22,63 +42,76 @@ class AuthValidators {
 
   static final passwordRegExp = RegExp(_passwordPattern);
 
-  /// Retorna [true] si [email] tiene un formato de correo electrónico válido.
-  static bool isValidEmail (final String email) => email.isNotEmpty && emailRegExp.hasMatch(email);
+  static bool valueCouldBeEmail(String value) => value.contains('@') || value.contains('.');
 
-  static String? emailValidator(final String? emailInput, final bool fieldEdited) {
+  static UsernameError emailValidator(final String? emailInput, final bool fieldEdited) {
 
     if (fieldEdited && emailInput != null) {
-      if (emailInput.isEmpty) return 'El correo electrónico es obligatorio';
+      if (emailInput.isEmpty) return UsernameError.noEmailProvided;
+
+      final isNotAValidEmail = !emailRegExp.hasMatch(emailInput);
       
-      return isValidEmail(emailInput) ? null : 'El correo no tiene un formato válido.';
+      if (isNotAValidEmail) {
+        return UsernameError.incorrectEmailFormat;
+      }
     }
 
-    return null;
+    return UsernameError.none;
   }
 
-  static String? usernameValidator(final String? usernameInput, final bool fieldEdited) {
+  static UsernameError usernameValidator(final String? usernameInput) {
 
-    if (!fieldEdited || usernameInput == null || usernameInput.isEmpty) {
-      return 'El nombre de usuario es obligatorio';
+    if (usernameInput == null || usernameInput.isEmpty) {
+      return UsernameError.noUsernameProvided;
+    }
+
+    if (usernameInput.characters.length < 4) {
+      return UsernameError.usernameTooShort;
+    }
+
+    if (usernameInput.characters.length > 20) {
+      return UsernameError.usernameTooLong;
     }
 
     if (!usernameRegExp.hasMatch(usernameInput)) {
-      return 'El usuario debe tener entre 4 y 20 letras o números';
+      return UsernameError.incorrectUsernameFormat;
     }
 
-    return null;
+    return UsernameError.none;
   }
 
-  static String? passwordValidator(final String? passwordInput, final bool fieldEdited) {
+  static PasswordError passwordValidator(final String? passwordInput, final bool fieldEdited) {
 
     if (fieldEdited && passwordInput != null) {
-      if (passwordInput.isEmpty) return 'La contraseña es obligatoria';
+      if (passwordInput.isEmpty) return PasswordError.noPasswordProvided;
 
-      if (passwordInput.length < 8 || passwordInput.length > 40) {
-        return 'La contraseña debe tener entre 8 y 40 caracteres';
+      if (passwordInput.characters.length < 8) {
+        return PasswordError.passwordTooShort;
+      } else if (passwordInput.characters.length > 40) {
+        return PasswordError.passwordTooShort;
       }
 
       if (!passwordRegExp.hasMatch(passwordInput)) {
-        return 'La contraseña debe tener un número y una mayúscula';
+        return PasswordError.requiresSymbols;
       }
     }
 
-    return null;
+    return PasswordError.none;
   }
 
-  static String? confirmPasswordValidator(final String? password, final String? confirmInput, final bool fieldEdited) {
+  static PasswordError validatePasswordConfirm(String? password, String? confirmInput) {
 
-    if (fieldEdited && password != null && password.isNotEmpty) {
+    if (password != null && password.isNotEmpty) {
 
       if (confirmInput == null || confirmInput.isEmpty) {
-        return 'Escribe la confirmación de contraseña';
+        return PasswordError.noPasswordConfirm;
       }
 
       if (password != confirmInput) {
-        return 'Las contraseñas no coinciden';
+        return PasswordError.passwordsDoNotMatch;
       }
     }
 
-    return null;
+    return PasswordError.none;
   }
 }

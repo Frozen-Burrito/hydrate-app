@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/widgets/forms/login_form.dart';
 import 'package:hydrate_app/src/widgets/forms/signup_form.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
-
-enum AuthFormType {
-  login,
-  signup
-}
 
 class AuthPage extends StatelessWidget {
   const AuthPage({ Key? key }) : super(key: key);
@@ -17,7 +13,8 @@ class AuthPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final formType = ModalRoute.of(context)!.settings.arguments as AuthFormType;
+    final formType = ModalRoute.of(context)!.settings.arguments as AuthActionType;
+    final isSignIn = formType == AuthActionType.signIn;
 
     final localizations = AppLocalizations.of(context)!;
 
@@ -58,23 +55,21 @@ class AuthPage extends StatelessWidget {
                         ),
                       ),
 
-                      formType == AuthFormType.login 
-                        ? const LoginForm()
-                        : const SignupForm(),
+                      (isSignIn ? const LoginForm() : const SignupForm()),
 
                       const SizedBox( height: 32.0,),
 
                       Text(
-                        ((formType == AuthFormType.login) 
+                        ((isSignIn) 
                           ? localizations.dont
                           : localizations.already) + localizations.haveAccount
                       ),
 
                       TextButton(
                         child: Text(
-                          formType == AuthFormType.login 
+                          (isSignIn
                             ? localizations.signUp 
-                            : localizations.signIn,
+                            : localizations.signIn),
                           style: Theme.of(context).textTheme.bodyText1?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
                             fontWeight: FontWeight.w600,
@@ -84,7 +79,7 @@ class AuthPage extends StatelessWidget {
                         onPressed: () => Navigator.pushNamed(
                           context, 
                           RouteNames.authentication,
-                          arguments: formType == AuthFormType.login ? AuthFormType.signup : AuthFormType.login
+                          arguments: (isSignIn) ? AuthActionType.signUp : AuthActionType.signIn
                         )
                       ),
                     ],

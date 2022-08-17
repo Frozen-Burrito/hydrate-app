@@ -131,6 +131,39 @@ class ProfileProvider extends ChangeNotifier {
     return Future.value(queryResults.toList());
   }
 
+  Future<AccountLinkResult> handleAccountLink(
+    String authToken, { bool isNewAccount = false }
+  ) async {
+    // Obtener el ID de la cuenta de usuario desde los claims del token.
+    final tokenClaims = parseJWT(authToken);
+
+    if (tokenClaims.containsKey('id') && tokenClaims['id'] is String) {
+      // authToken contiene un ID de cuenta, intentar asociar la cuenta con un perfil.
+      String accountId = tokenClaims['id'] as String;
+
+      final existingLinkedProfileId = await findProfileLinkedToAccount(accountId); 
+      final noLocalProfileForAccount = existingLinkedProfileId.isNegative;
+
+      //TODO: Obtener el perfil de usuario asociado a la cuenta desde la API web.
+
+      if (isNewAccount || noLocalProfileForAccount) {
+        //TODO: Si es una nueva cuenta o no hay un perfil local para la cuenta, 
+        // guardarlo el perfil de usuario en BD local.
+        
+        const newLocalProfileId = -1;
+
+        changeProfile(newLocalProfileId, userAccountId: accountId);
+
+        return AccountLinkResult.newProfileCreated;
+      } else {
+        changeProfile(existingLinkedProfileId, userAccountId: accountId);
+        return AccountLinkResult.alreadyLinked;
+      }
+    } else {
+      return AccountLinkResult.noAccountId;
+    } 
+  }
+
   /// Guarda un nuevo [UserProfile] en la BD, a partir de los cambios en 
   /// profileChanges. 
   Future<int> saveNewProfile() async {
@@ -291,4 +324,10 @@ class ProfileProvider extends ChangeNotifier {
       return -1;
     }
   }
+}
+
+enum AccountLinkResult {
+  noAccountId,
+  alreadyLinked,
+  newProfileCreated,
 }

@@ -1,3 +1,5 @@
+import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
+import 'package:hydrate_app/src/utils/auth_validators.dart';
 
 class UserCredentials {
 
@@ -5,13 +7,42 @@ class UserCredentials {
   final String email;
   final String password;
 
-  UserCredentials({
+  const UserCredentials({
     this.username = '',
     this.email = '', 
     this.password = ''
   }); 
 
+  factory UserCredentials.forAction(
+    AuthActionType authAction, { 
+      required String username,
+      required String email, 
+      required String password
+    }
+  ) {
+    if (canUseUsernameAsEmail(authAction, username)) {
+      return UserCredentials(
+        email: username,
+        username: '',
+        password: password,
+      );
+    } else {
+      return UserCredentials(
+        email: email,
+        username: '',
+        password: password,
+      );
+    }
+  }
+
   static const jwtPropIdentifier = 'token';
+
+  static bool canUseUsernameAsEmail(AuthActionType authAction, String possibleEmail) {
+    final supportsEmailAsUsername = authAction == AuthActionType.signIn;
+    final valueCouldBeEmail = AuthValidators.valueCouldBeEmail(possibleEmail);
+
+    return (supportsEmailAsUsername && valueCouldBeEmail);
+  }
 
   static UserCredentials fromMap(Map<String, String> map) {
     

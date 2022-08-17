@@ -31,6 +31,8 @@ class API {
     'guias-conexion': Uri.parse('$baseUrl/guias/conexion'),
     'guias-formularios': Uri.parse('$baseUrl/guias/recoleccion-datos'),
     'comentarios': Uri.parse('$baseUrl/comentarios'),
+    'login': Uri.parse('$baseUrl/usuarios/login'),
+    'signUp': Uri.parse('$baseUrl/usuarios/registro'), 
   };
 
   /// Un conjunto de encabezados base para todas las peticiones a la 
