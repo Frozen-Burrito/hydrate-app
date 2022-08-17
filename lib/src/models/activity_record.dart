@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import "package:hydrate_app/src/db/sqlite_keywords.dart";
 import "package:hydrate_app/src/db/sqlite_model.dart";
 import "package:hydrate_app/src/models/activity_type.dart";
@@ -362,7 +361,6 @@ class ActivityRecord extends SQLiteModel {
     return null;
   }
 
-
   static String? validateKcal(String? inputValue) {
 
     double? newKcal = double.tryParse(inputValue?.split(" ").first ?? "0");
@@ -375,4 +373,46 @@ class ActivityRecord extends SQLiteModel {
 
     return null;
   }
+
+  @override
+  String toString() {
+    // Use a StringBuffer to build the string representation of this object.
+    StringBuffer strBuf = StringBuffer("[ActivityRecord]: {");
+
+    strBuf.writeAll(["id: ", id, ", "]);
+    strBuf.writeAll(["date: ", date.toIso8601String().substring(0, 10), ", "]);
+    strBuf.writeAll(["title: ", title, ", "]);
+    strBuf.writeAll(["duration: ", duration, " minutes, "]);
+    strBuf.writeAll(["type: ", activityType.id, ", "]);
+    strBuf.writeAll(["profile ID: ", profileId]);
+
+    strBuf.write("}");
+
+    return strBuf.toString();
+  }
+
+  @override
+  bool operator==(Object? other) {
+
+    if (other is! ActivityRecord) return false;
+
+    final areIdsEqual = id == other.id;
+    final areDatesTheSame = date.isAtSameMomentAs(other.date);
+
+    return areIdsEqual && areDatesTheSame;
+  }
+  
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    title,
+    date,
+    duration,
+    distance,
+    kiloCaloriesBurned,
+    doneOutdoors,
+    isRoutine,
+    activityType,
+    profileId,
+  ]);
 }
