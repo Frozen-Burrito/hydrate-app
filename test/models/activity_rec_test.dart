@@ -1,9 +1,9 @@
-import 'dart:ffi';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
+import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:hydrate_app/src/models/validators/activity_validator.dart';
 
 void main() {
 
@@ -148,61 +148,335 @@ void main() {
     });
   });
 
-  group('Validaciones', () {
+  group('Validaciones para el título de un ActivityRecord', () {
 
-    test('validateTitle() retorna un String si el título tiene más de 40 chars.', () {
+    test('validateTitle(input) retorna TextLengthError.none si input es un String vacio', () {
       // Arrange
-      const title = 'Esto es un titulo con mas de cuarenta caracteres, por lo que no es soportado';
+      const String input = "";
+      const expected = TextLengthError.none;
+      const  validator = ActivityValidator();
 
       // Act
-      final result = ActivityRecord.validateTitle(title);
+      final result = validator.validateTitle(input);
 
       // Assert
-      expect(result, isA<String>()); 
+      expect(result, expected);
     });
 
-    test('validateDistance() retorna null si la distancia está en el rango válido.', () {
+    test('validateTitle(input) retorna TextLengthError.textExceedsCharLimit si input tiene mas caracteres que titleLengthRange.max', () {
       // Arrange
-      const distance = '29.9 km';
+      final String input = List.generate(41, (_) => "+").join();
+      const expected = TextLengthError.textExceedsCharLimit;
+      const  validator = ActivityValidator();
 
       // Act
-      final result = ActivityRecord.validateDitance(distance);
+      final result = validator.validateTitle(input);
 
       // Assert
-      expect(result, isNull);
+      expect(result, expected); 
+    });
+  });
+
+  group('Validaciones para la distancia de un ActivityRecord', () {
+
+    const validator = ActivityValidator();
+
+    test('validateDistanceInMeters(input) retorna NumericInputError.isNaN si input no puede convertirse en un número', () {
+      // Arrange
+      const inputNaN = Object();
+      const expectedError = NumericInputError.isNaN;
+
+      // Act
+      final result = validator.validateDistanceInMeters(inputNaN);
+
+      // Assert
+      expect(result, expectedError);
     });
 
-    test('validateDistance() retorna un String si la distancia está fuera del rango válido.', () {
+    test('validateDistanceInMeters(input) retorna NumericInputError.none si input es un String sin unidades que puede convertirse en número', () {
       // Arrange
-      const distance = '30.1 km';
+      const input = '290';
+      const expectedError = NumericInputError.none;
 
       // Act
-      final result = ActivityRecord.validateDitance(distance);
+      final result = validator.validateDistanceInMeters(input);
 
       // Assert
-      expect(result, isA<String>());
+      expect(result, expectedError);
     });
 
-    test('validateDuration() retorna null si la duración está el rango válido.', () {
+    test('validateDistanceInMeters(input, false) retorna NumericInputError.isNaN si input es un String con un número válido seguido de unidades', () {
       // Arrange
-      const duration = '${60 * 11} mins';
+      const input = '290 m';
+      const expectedError = NumericInputError.isNaN;
 
       // Act
-      final result = ActivityRecord.validateDuration(duration);
+      final result = validator.validateDistanceInMeters(input, includesUnits: false);
 
       // Assert
-      expect(result, isNull);
+      expect(result, expectedError);
     });
 
-    test('validateDuration() retorna un String si la duración es mayor que el rango válido.', () {
+    test('validateDistanceInMeters(input, true) retorna NumericInputError.none si input es un String con un número válido seguido de unidades', () {
       // Arrange
-      const duration = '${60 * 12 + 1} mins';
+      const input = '290 m';
+      const expectedError = NumericInputError.none;
 
       // Act
-      final result = ActivityRecord.validateDuration(duration);
+      final result = validator.validateDistanceInMeters(input, includesUnits: true);
 
       // Assert
-      expect(result, isA<String>());
+      expect(result, expectedError);
+    });
+
+    test('validateDistanceInMeters(input) retorna NumericInputError.inputIsBeforeRange si input es un número negativo', () {
+      // Arrange
+      const negativeInput = -1;
+      const expectedError = NumericInputError.inputIsBeforeRange;
+
+      // Act
+      final result = validator.validateDistanceInMeters(negativeInput);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDistanceInMeters(input) retorna NumericInputError.none si input es igual a distanceInMetersRange.min', () {
+      // Arrange
+      final inputInRange = ActivityValidator.distanceInMetersRange.min;
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateDistanceInMeters(inputInRange);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDistanceInMeters(input) retorna NumericInputError.inputIsAfterRange si input es mayor a distanceInMetersRange.max', () {
+      // Arrange
+      final negativeInput = ActivityValidator.distanceInMetersRange.max + 1;
+      const expectedError = NumericInputError.inputIsAfterRange;
+
+      // Act
+      final result = validator.validateDistanceInMeters(negativeInput);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDistanceInMeters(input) retorna NumericInputError.none si input es igual a distanceInMetersRange.max', () {
+      // Arrange
+      final inputInRange = ActivityValidator.distanceInMetersRange.max;
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateDistanceInMeters(inputInRange);
+
+      // Assert
+      expect(result, expectedError);
+    });
+  });
+
+  group('Validaciones para la duración en minutos de un ActivityRecord', () {
+
+    const validator = ActivityValidator();
+
+    test('validateDurationInMinutes(input) retorna NumericInputError.isNaN si input no puede convertirse en un número', () {
+      // Arrange
+      const inputNaN = Object();
+      const expectedError = NumericInputError.isNaN;
+
+      // Act
+      final result = validator.validateDurationInMinutes(inputNaN);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input) retorna NumericInputError.none si input es un String sin unidades que puede convertirse en número', () {
+      // Arrange
+      const input = '15';
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateDurationInMinutes(input);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input, false) retorna NumericInputError.isNaN si input es un String con un número válido, seguido de unidades', () {
+      // Arrange
+      const input = '15 m';
+      const expectedError = NumericInputError.isNaN;
+
+      // Act
+      final result = validator.validateDurationInMinutes(input, includesUnits: false);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input, true) retorna NumericInputError.none si input es un String con un número válido seguido de unidades', () {
+      // Arrange
+      const input = '15 m';
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateDurationInMinutes(input, includesUnits: true);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input) retorna NumericInputError.inputIsBeforeRange si input es un número menor a durationInMinutesRange.min', () {
+      // Arrange
+      final negativeInput = ActivityValidator.durationInMinutesRange.min - 1;
+      const expectedError = NumericInputError.inputIsBeforeRange;
+
+      // Act
+      final result = validator.validateDurationInMinutes(negativeInput);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input) retorna NumericInputError.none si input es igual a durationInMinutesRange.min', () {
+      // Arrange
+      final inputInRange = ActivityValidator.distanceInMetersRange.min;
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateDurationInMinutes(inputInRange);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input) retorna NumericInputError.inputIsAfterRange si input es mayor a durationInMinutesRange.max', () {
+      // Arrange
+      final negativeInput = ActivityValidator.durationInMinutesRange.max + 1;
+      const expectedError = NumericInputError.inputIsAfterRange;
+
+      // Act
+      final result = validator.validateDurationInMinutes(negativeInput);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateDurationInMinutes(input) retorna NumericInputError.none si input es igual a durationInMinutesRange.max', () {
+      // Arrange
+      final inputInRange = ActivityValidator.durationInMinutesRange.max;
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateDurationInMinutes(inputInRange);
+
+      // Assert
+      expect(result, expectedError);
+    });
+  });
+
+  group('Validaciones para cantidad de kilocalorías quemadas en un ActivityRecord', () {
+
+    const validator = ActivityValidator();
+
+    test('validateKcalConsumed(input) retorna NumericInputError.isNaN si input no puede convertirse en un número', () {
+      // Arrange
+      const inputNaN = Object();
+      const expectedError = NumericInputError.isNaN;
+
+      // Act
+      final result = validator.validateKcalConsumed(inputNaN);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input) retorna NumericInputError.none si input es un String sin unidades que puede convertirse en número', () {
+      // Arrange
+      const input = '1000';
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateKcalConsumed(input);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input, false) retorna NumericInputError.isNaN si input es un String con un número válido, seguido de unidades', () {
+      // Arrange
+      const input = '1000 kcal';
+      const expectedError = NumericInputError.isNaN;
+
+      // Act
+      final result = validator.validateKcalConsumed(input, includesUnits: false);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input, true) retorna NumericInputError.none si input es un String con un número válido seguido de unidades', () {
+      // Arrange
+      const input = '1000 kcal';
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateKcalConsumed(input, includesUnits: true);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input) retorna NumericInputError.inputIsBeforeRange si input es un número menor a kcalPerActivityRange.min', () {
+      // Arrange
+      final negativeInput = ActivityValidator.kcalPerActivityRange.min - 1;
+      const expectedError = NumericInputError.inputIsBeforeRange;
+
+      // Act
+      final result = validator.validateKcalConsumed(negativeInput);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input) retorna NumericInputError.none si input es igual a kcalPerActivityRange.min', () {
+      // Arrange
+      final inputInRange = ActivityValidator.kcalPerActivityRange.min;
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateKcalConsumed(inputInRange);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input) retorna NumericInputError.inputIsAfterRange si input es mayor a kcalPerActivityRange.max', () {
+      // Arrange
+      final negativeInput = ActivityValidator.kcalPerActivityRange.max + 1;
+      const expectedError = NumericInputError.inputIsAfterRange;
+
+      // Act
+      final result = validator.validateKcalConsumed(negativeInput);
+
+      // Assert
+      expect(result, expectedError);
+    });
+
+    test('validateKcalConsumed(input) retorna NumericInputError.none si input es igual a kcalPerActivityRange.max', () {
+      // Arrange
+      final inputInRange = ActivityValidator.kcalPerActivityRange.max;
+      const expectedError = NumericInputError.none;
+
+      // Act
+      final result = validator.validateKcalConsumed(inputInRange);
+
+      // Assert
+      expect(result, expectedError);
     });
   });
 }
