@@ -1,8 +1,11 @@
 import "package:hydrate_app/src/db/sqlite_keywords.dart";
 import "package:hydrate_app/src/db/sqlite_model.dart";
+
 import "package:hydrate_app/src/models/activity_type.dart";
+import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import "package:hydrate_app/src/models/user_profile.dart";
+import 'package:hydrate_app/src/models/validators/activity_validator.dart';
 
 class ActivityRecord extends SQLiteModel {
 
@@ -16,6 +19,8 @@ class ActivityRecord extends SQLiteModel {
   bool isRoutine;
   ActivityType activityType;
   int profileId;
+
+  static const ActivityValidator validator = ActivityValidator();
 
   ActivityRecord({
     this.id = -1,
@@ -206,7 +211,8 @@ class ActivityRecord extends SQLiteModel {
   /// peso actual del usuario.
   void aproximateData(double userWeight) {
 
-    final isDurationValid = validateDuration(duration) == null;
+    final durationError = validator.validateDurationInMinutes(duration);
+    final isDurationValid = durationError == NumericInputError.none;
     
     if (isDurationValid) {
       if (_distanceNotYetModified) {
@@ -313,65 +319,6 @@ class ActivityRecord extends SQLiteModel {
   String get numericDate {
     // Fecha con horas y minutos.
     return date.toString().substring(0, 16);
-  }
-
-  static String? validateTitle(String? inputValue) {
-    return (inputValue != null && inputValue.length > 40)
-        ? "El título debe tener menos de 40 caracteres"
-        : null;
-  }
-
-  static String? validateDitance(String? inputValue) {
-
-    double? newDistance = double.tryParse(inputValue?.split(" ").first ?? "0");
-
-    if (inputValue != null && inputValue.isNotEmpty && newDistance != null) {
-      if (newDistance > 30.0) {
-        return "Las distancia debe ser menor a 30 km";
-      } else if (newDistance < 0.0) {
-        return "Las distancia debe ser mayor a 0 km";
-      }
-    }
-
-    return null;
-  }
-
-  static String? validateDuration(Object? inputValue, { bool includesUnits = false }) {
-
-    int? newDuration;
-
-    if (inputValue is num) {
-      // Directly convert duration to integer.
-      newDuration = inputValue.toInt();
-    } else if (inputValue is String) {
-      // Try to parse the string value, based on format.
-      String valueAsStr = includesUnits ? inputValue.split(" ").first : inputValue;
-      newDuration = int.tryParse(valueAsStr);
-    }
-
-    if (newDuration != null) {
-      // Validate range of duration, in minutes.
-      if (newDuration.isNegative) {
-        return "La duración debe ser un número positivo";
-      } else if (newDuration > maxDuration) {
-        return "Las duración debe ser menor a 12h";
-      }
-    }
-
-    return null;
-  }
-
-  static String? validateKcal(String? inputValue) {
-
-    double? newKcal = double.tryParse(inputValue?.split(" ").first ?? "0");
-
-    if (inputValue != null && inputValue.isNotEmpty) {
-      if (newKcal != null && newKcal > 2500) {
-        return "La kilocalorías deben ser menores a 2500";
-      }
-    }
-
-    return null;
   }
 
   @override

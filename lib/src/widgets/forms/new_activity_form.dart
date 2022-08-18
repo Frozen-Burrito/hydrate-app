@@ -1,12 +1,14 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/routine_occurrence.dart';
-import 'package:hydrate_app/src/utils/datetime_extensions.dart';
-import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/models/routine_occurrence.dart';
+import 'package:hydrate_app/src/models/validators/activity_validator.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
+import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
@@ -267,10 +269,60 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
     distanceController.text = newActivityRecord.formattedDistance;
   }
 
+  Future<void> _onTapDateField() async {
+    final now = DateTime.now();
+    
+    final newActivityDate = await showDatePicker(
+      context: context, 
+      initialDate: now, 
+      firstDate: DateTime(2000), 
+      lastDate: now
+    );
+    
+    final newActivityTime = await showTimePicker(
+      context: context, 
+      initialTime: TimeOfDay.fromDateTime(now)
+    );
+    
+    if (newActivityDate != null && newActivityTime != null) {
+
+      newActivityRecord.date = DateTime(
+        newActivityDate.year,
+        newActivityDate.month,
+        newActivityDate.day,
+        newActivityTime.hour,
+        newActivityTime.minute,
+      );
+
+      dateController.text = newActivityRecord.date.toLocalizedDateTime;
+    }
+  }
+
+  String? _validateTitle(ValidationMessageBuilder messageBuilder, String? input) {
+    final titleError = ActivityRecord.validator.validateTitle(input);
+    return messageBuilder.forActivityTitle(titleError);
+  }
+
+  String? _validateDuration(ValidationMessageBuilder messageBuilder, String? input) {
+    final durationError = ActivityRecord.validator.validateDurationInMinutes(input);
+    return messageBuilder.forActivityDuration(durationError);
+  }
+
+  String? _validateDistance(ValidationMessageBuilder messageBuilder, String? input) {
+    final distanceError = ActivityRecord.validator.validateDistanceInMeters(input);
+    return messageBuilder.forActivityDistance(distanceError);
+  }
+
+  String? _validateKilocalories(ValidationMessageBuilder messageBuilder, String? input) {
+    final kCalsError = ActivityRecord.validator.validateKcalConsumed(input);
+    return messageBuilder.forActivityKcals(kCalsError);
+  }
+
   @override
   Widget build(BuildContext context) {
 
     final localizations = AppLocalizations.of(context)!;
+    final validationMsgBuilder = ValidationMessageBuilder.of(context);
 
     return Form(
       key: _formKey,
@@ -297,9 +349,9 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
               hintText: localizations.activityTitleHint,
               helperText: ' ',
               suffixIcon: const Icon(Icons.text_fields),
-              counterText: '${titleLength.toString()}/40'
+              counterText: '${titleLength.toString()}/${ActivityValidator.titleLengthRange.max}'
             ),
-            validator: (value) => ActivityRecord.validateTitle(value),
+            validator: (value) => _validateTitle(validationMsgBuilder, value),
             onChanged: (value) => setState(() {
               newActivityRecord.title = value;
               titleLength = newActivityRecord.title.length;
@@ -317,36 +369,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
               helperText: ' ', // Para evitar cambios en la altura del widget
               suffixIcon: const Icon(Icons.event_rounded)
             ),
-            onTap: () async {
-    
-              final now = DateTime.now();
-    
-              final newActivityDate = await showDatePicker(
-                context: context, 
-                initialDate: now, 
-                firstDate: DateTime(2000), 
-                lastDate: now
-              );
-    
-              final newActivityTime = await showTimePicker(
-                context: context, 
-                initialTime: TimeOfDay.fromDateTime(now)
-              );
-    
-              if (newActivityDate != null && newActivityTime != null) {
-    
-                newActivityRecord.date = DateTime(
-                  newActivityDate.year,
-                  newActivityDate.month,
-                  newActivityDate.day,
-                  newActivityTime.hour,
-                  newActivityTime.minute,
-                );
-    
-                dateController.text = newActivityRecord.date.toLocalizedDateTime;
-              }
-              
-            },
+            onTap: _onTapDateField,
           ),
     
           const SizedBox( height: 16.0, ),
@@ -360,6 +383,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: '${localizations.duration} (minutos)',
                     hintText: '20 min.',
                     helperText: ' ',
@@ -376,7 +400,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                       durationController.text = newActivityRecord.formattedDuration; 
                     });
                   },
-                  validator: (value) => ActivityRecord.validateDuration(value),
+                  validator: (value) => _validateDuration(validationMsgBuilder, value),
                 ),
               ),
     
@@ -389,8 +413,9 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
+                    //TODO: Cambiar mensaje para metros, en vez de kilometros
                     labelText: localizations.distance,
-                    hintText: '1 km',
+                    hintText: '100 m',
                     helperText: ' ',
                   ),
                   onChanged: (value) {
@@ -403,7 +428,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
     
                     // distanceController.text = newActivityRecord.formattedDistance; 
                   },
-                  validator: (value) => ActivityRecord.validateDitance(value),
+                  validator: (value) => _validateDistance(validationMsgBuilder, value),
                 ),
               ),
             ]
@@ -422,7 +447,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: localizations.kcalBurned,
-                    hintText: '1700 kCal',
+                    hintText: '300 kCal',
                     helperText: ' ',
                     suffixIcon: const Icon(Icons.bolt),
                   ),
@@ -435,7 +460,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
     
                     // kCalController.text = newActivityRecord.formattedKcal; 
                   },
-                  validator: (value) => ActivityRecord.validateKcal(value),
+                  validator: (value) => _validateKilocalories(validationMsgBuilder, value),
                 ),
               ),
     

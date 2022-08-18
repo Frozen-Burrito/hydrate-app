@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';

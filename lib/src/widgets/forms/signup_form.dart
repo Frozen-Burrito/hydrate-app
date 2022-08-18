@@ -4,7 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
-import 'package:hydrate_app/src/utils/validation_message_builder.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
 
 class SignupForm extends StatelessWidget {

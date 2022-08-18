@@ -34,7 +34,7 @@ class GoalProvider extends ChangeNotifier {
 
   bool _hasAskedForPeriodicalData = false;
   bool _hasAskedForMedicalData = false;
-
+  //TODO: Dos setters que no hacen 'set' a las variables que posiblemente deben controlar
   set hasAppAskedForPeriodicalData(bool hasAppAsked) => _hasAskedForPeriodicalData;
   set hasAppAskedForMedicalData(bool hasAppAsked) => _hasAskedForMedicalData;
 
