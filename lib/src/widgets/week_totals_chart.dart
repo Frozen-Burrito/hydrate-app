@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -38,33 +40,32 @@ class WeekTotalsChart extends StatelessWidget {
           height: 240.0,
           child: FutureBuilder<List<int>>(
             future: dailyTotals,
+            initialData: UnmodifiableListView(List.generate(7, (_) => 0)),
             builder: (context, snapshot) {
 
-              if (snapshot.hasData) {
+              if (snapshot.hasError) {
 
-                final dataPoints = snapshot.data;
-
-                if (dataPoints != null && dataPoints.isNotEmpty) {
-                  // Hay datos para la grafica de barras.
-                  return _BarChart(
-                    yUnitsLabel: yUnit,
-                    dataPoints: dataPoints
-                  );
-                } else {
-                  return const Center(
-                    child: Text("No hay datos disponibles."),
-                  );
-                }
-
-              } else if (snapshot.hasError) {
-                // Ocurrió un error al intentar obtener los datos.
+                // Ocurrió un error al intentar obtener los datos. Mostrar un 
+                // placeholder.
                 return const Center(
                   child: Text("Hubo un error inesperado al obtener los datos."),
                 );
+
               } else {
-                // Los datos para la grafica todavia estan cargando.
-                return const Center(
-                  child: CircularProgressIndicator(),
+                // Este future builder maneja de esta forma el posible valor nulo
+                // o vacío de su snapshot.data porque asume que dailyTotals siempre
+                // será una lista no nula con al menos un elemento. Si el Future 
+                // todavía no tiene data, simplemente muestra la gráfica con puntos en
+                // 0, para mostrar la animación implícita de la gráfica.
+
+                final dataPoints = snapshot.data;
+
+                assert(dataPoints != null, 'el futuro de dailyTotals nunca debe resultar en una lista nula');
+                assert(dataPoints!.isNotEmpty, 'siempre debe haber datos en dailyTotals, aunque sean por default');
+
+                return _BarChart(
+                  yUnitsLabel: yUnit,
+                  dataPoints: dataPoints!
                 );
               }
             }
