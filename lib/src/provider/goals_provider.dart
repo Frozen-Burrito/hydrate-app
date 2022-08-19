@@ -299,7 +299,9 @@ class GoalProvider extends ChangeNotifier {
     final queryResults = await SQLiteDB.instance.select<Goal>(
       Goal.fromMap,
       Goal.tableName,
-      where: [ WhereClause('id_perfil', _profileId.toString() )]
+      where: [ WhereClause('id_perfil', _profileId.toString() )],
+      includeOneToMany: true,
+      queryManyToMany: true,
     );
 
     return Future.value(queryResults.toList());

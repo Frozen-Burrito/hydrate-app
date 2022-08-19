@@ -31,9 +31,13 @@ class GoalSliverList extends StatelessWidget {
     if (goals.isNotEmpty) {
       // Ordenar metas para que la meta principal sea la primera.
       final mainGoalIdx = goals.indexWhere((goal) => goal.isMainGoal);
-      final mainGoal = goals.removeAt(mainGoalIdx);
 
-      goals.insert(0, mainGoal);
+      if (mainGoalIdx >= 0) {
+        // Si hay una meta principal, reordenarla para ponerla como primera 
+        // en la lista de metas.
+        final mainGoal = goals.removeAt(mainGoalIdx);
+        goals.insert(0, mainGoal);
+      }
 
       // Obtener los progresos hacia las metas de hidratación.
       final progressTowardsGoals = await getProgressValuesForGoals(goals);

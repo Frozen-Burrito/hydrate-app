@@ -35,7 +35,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
       final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
 
-      final saveResult = await profileProvider.saveProfileChanges( restrictModifications: false );
+      final saveResult = await profileProvider.saveProfileChanges();
 
       if (saveResult != SaveProfileResult.noChanges) {
         _showSaveResultSnackbar(context, saveResult);
