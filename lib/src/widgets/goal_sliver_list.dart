@@ -26,9 +26,9 @@ class GoalSliverList extends StatelessWidget {
 
     goalsProvider.activeProfileId = profileId;
 
-    final goals = await goalsProvider.goals;
+    final goals = await goalsProvider.goals ?? <Goal>[];
 
-    if (goals != null) {
+    if (goals.isNotEmpty) {
       // Ordenar metas para que la meta principal sea la primera.
       final mainGoalIdx = goals.indexWhere((goal) => goal.isMainGoal);
       final mainGoal = goals.removeAt(mainGoalIdx);

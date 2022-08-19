@@ -179,7 +179,7 @@ class ProfileProvider extends ChangeNotifier {
   /// Guarda un nuevo [UserProfile] en la BD, a partir de los cambios en 
   /// profileChanges. 
   //TODO: Por ahora, este método ya no es usado. Determinar si es necesario mantenerlo.
-  Future<int> saveNewProfile() async {
+  Future<int> _remove() async {
     
     try {
       final profileChanges = _profileChanges;
@@ -269,68 +269,87 @@ class ProfileProvider extends ChangeNotifier {
     return emptyProfile;
   }
 
-  /// Crea un nuevo perfil de usuario, con datos por defecto.
-  Future<int> newDefaultProfile({ String? existingAccountId }) async {
+  /// Persiste un nuevo [UserProfile] en la base de datos y cambia la sesión
+  /// al nuevo perfil. Retorna el ID del perfil creado, o un entero negativo
+  /// si el perfil no pudo ser creado.
+  /// 
+  /// Si [saveEmpty] es **true**, el nuevo perfil será creado como un perfil 
+  /// vacío (por defecto, sin datos). Si es **false**, el perfil tendrá los 
+  /// valores encontrados en [_profileChanges]. 
+  Future<int> saveNewProfile({ bool saveEmpty = false, }) async {
 
-    // Obtener un nuevo perfil vacío.
-    final defaultProfile = await _buildEmptyProfile();
+    // Obtener los datos del nuevo perfil, según el valor de saveEmpty.
+    final newProfile = saveEmpty 
+      ? await _buildEmptyProfile()
+      : _profileChanges;
 
-    // Persistir el perfil vacío en la base de datos
-    final result = await SQLiteDB.instance.insert(defaultProfile);
+    // Persistir el nuevo perfil en la base de datos
+    final resultId = await SQLiteDB.instance.insert(newProfile);
 
-    if (result > 0) {
-      // El perfil fue creado con éxito. Actualizar el estado interno de este 
-      // provider.
-      _profileId = result;
-      _accountId = defaultProfile.userAccountID;
+    final wasProfileCreated = resultId >= UserProfile.defaultProfileId;
+
+    if (wasProfileCreated) {
+      // Update the active profile to the newly created one.
+      changeProfile(resultId, userAccountId: newProfile.userAccountID);
     }
 
-    return Future.value(result);
+    return resultId;
   }
 
   /// Persiste los cambios realizados en [profileChanges] a la base de datos y
   /// le indica al caché de perfiles que debería refrescarse.
   /// 
-  /// Retorna el ID del perfil que fue modificado. Si no hay un perfil activo, o 
-  /// el perfil no pudo ser modificado por un error de la base de datos, retorna
-  /// **-1**.
-  /// 
   /// Si  [restrictModifications] es **true**, los cambios serán guardados solo 
-  /// si profileChanges.modificationCount < maxYearlyProfileModifications.
+  /// cuando profileChanges.modificationCount < maxYearlyProfileModifications.
   /// 
-  /// Si no hay cambios, es decir, si `(await _profileCache.data) == _profileChanges`,
-  /// este método retorna inmediatamente.
-  Future<int> saveProfileChanges({bool restrictModifications = true}) async {
+  /// Retorna uno de los siguientes valores de [SaveProfileResult], según el caso:
+  ///  - [changesSaved]: si el perfil fue actualizado correctamente.
+  ///  - [noChanges]: si no hay diferencias en el perfil, retorna inmediatamente.
+  ///  - [profileNotFound]: si no se puede encontrar el perfil actual.
+  ///  - [reachedChangeLimit]: si [restrictModifications] es **true** y el perfil 
+  ///      ya no puede ser modificado.
+  ///  - [persistenceError]: si hubo un error de persistencia al intentar guardar
+  ///     los cambios.
+  Future<SaveProfileResult> saveProfileChanges({bool restrictModifications = true}) async {
 
-    final activeProfile = await _profileCache.data;
+    final currentProfile = await _profileCache.data;
+    
+    // Por alguna razón, el perfil actual no coincide.
+    final isProfileMissing = currentProfile == null;
+    if (isProfileMissing) return SaveProfileResult.profileNotFound;
 
-    // Por alguna razón, no hay un perfil activo.
-    if (activeProfile == null) return -1;
+    // Solo es necesario guardar modificaciones cuando hay diferencias entre 
+    // currentProfile y _profileChanges. 
+    if (currentProfile != _profileChanges) {
 
-    // No hay cambios que guardar. 
-    if (activeProfile != _profileChanges) {
       // Determinar si es necesario restringir el número de modificaciones.
       if (restrictModifications) {
         // Los cambios deben ser restringidos por el numero de modificaciones en el
         // perfil.
         if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {
-          throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
+          // El perfil ya alcanzó el límite de modificaciones restringidas.
+          // El perfil no debe ser modificado.
+          return SaveProfileResult.reachedChangeLimit;
         }
 
         _profileChanges.recordModification();
       }
 
-      // Bajo condiciones comunes, esta operación siempre debería ser exitosa.
-      int result = await SQLiteDB.instance.update(_profileChanges);
+      // Intentar guardar los cambios al perfil existente
+      int alteredRows = await SQLiteDB.instance.update(_profileChanges);
 
-      assert(result > 0, 'Por algun motivo, el perfil no pudo ser actualizado en SQLite');
+      // Si ninguna fila fue modificada, el perfil no pudo ser actualizado a 
+      // causa de un error con la base de datos.
+      if (alteredRows > 0) {
+        _profileCache.shouldRefresh();
+        return SaveProfileResult.changesSaved;
+      } else {
+        return SaveProfileResult.persistenceError;
+      }
 
-      if (result < 1) return -1;
-
-      _profileCache.shouldRefresh();
+    } else {
+      return SaveProfileResult.noChanges;
     }
-    
-    return activeProfile.id;
   }
 
   /// Busca un perfil local con id_usuario == accountId.
@@ -369,4 +388,12 @@ enum AccountLinkResult {
   noAccountId,
   alreadyLinked,
   newProfileCreated,
+}
+
+enum SaveProfileResult {
+  changesSaved,
+  noChanges,
+  profileNotFound,
+  reachedChangeLimit,
+  persistenceError,
 }

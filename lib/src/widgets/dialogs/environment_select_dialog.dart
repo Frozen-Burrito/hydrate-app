@@ -190,7 +190,7 @@ class _EnvGridView extends StatelessWidget {
                           fit: BoxFit.cover,
                         ),
                         color: Theme.of(context).colorScheme.surface,
-                        border: profileProvider.profileChanges?.selectedEnvId == environment.id
+                        border: profileProvider.profileChanges.selectedEnvId == environment.id
                           ? Border.all(
                             width: 2.0,
                             color: Theme.of(context).colorScheme.primary

@@ -51,18 +51,14 @@ class NewActivityForm extends StatelessWidget {
     final today = DateTime.now().onlyDate;
     final activitiesToday = pastWeekActivities[today]?.length ?? 0;
 
-    final giveOrTakeCoins = profileProvider.profileChanges?.giveOrTakeCoins;
-    
-    if (giveOrTakeCoins != null) {
-      // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
-      // el día de hoy.
-      await giveActivityReward(
-        activitiesToday, 
-        newActivity, 
-        giveOrTakeCoins,
-        profileProvider.saveProfileChanges
-      );
-    }
+    // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
+    // el día de hoy.
+    await giveActivityReward(
+      activitiesToday, 
+      newActivity, 
+      profileProvider.profileChanges.giveOrTakeCoins,
+      profileProvider.saveProfileChanges
+    );
 
     // Obtener todos los registros de actividades de la semana pasada que sean 
     // similares a newActivity.
@@ -228,8 +224,6 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
 
   final newActivityRecord = ActivityRecord.uncommited();
 
-  double userWeight = 0.0;
-
   int titleLength = 0;
   int notesLength = 0;
 
@@ -237,17 +231,6 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
   final durationController = TextEditingController();
   final distanceController = TextEditingController();
   final kCalController = TextEditingController();
-  
-  @override
-  void initState() {
-
-    // Obtener el peso registrado del usuario.
-    Provider.of<ProfileProvider>(context, listen: false).profile.then((profile) {
-      userWeight = profile?.weight ?? 0.0; 
-    });
-
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -322,206 +305,223 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
   Widget build(BuildContext context) {
 
     final localizations = AppLocalizations.of(context)!;
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
     final validationMsgBuilder = ValidationMessageBuilder.of(context);
 
-    return Form(
-      key: _formKey,
-      autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+    return FutureBuilder<UserProfile?>(
+      future: profileProvider.profile,
+      builder: (context, snapshot) {
 
-          _ActivityTypeDropdown(
-            value: newActivityRecord.activityType.id,
-            onActivityTypeChange: (activityType) {
-              onActivityTypeSelected(activityType, userWeight);
-            }
-          ),
-    
-          const SizedBox( height: 16.0, ),
-    
-          TextFormField(
-            maxLength: 40,
-            maxLines: 1,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: localizations.activityTitle,
-              hintText: localizations.activityTitleHint,
-              helperText: ' ',
-              suffixIcon: const Icon(Icons.text_fields),
-              counterText: '${titleLength.toString()}/${ActivityValidator.titleLengthRange.max}'
-            ),
-            validator: (value) => _validateTitle(validationMsgBuilder, value),
-            onChanged: (value) => setState(() {
-              newActivityRecord.title = value;
-              titleLength = newActivityRecord.title.length;
-            }),
-          ),
-    
-          const SizedBox( height: 16.0, ),
-    
-          TextFormField(
-            readOnly: true,
-            controller: dateController,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: localizations.date,
-              helperText: ' ', // Para evitar cambios en la altura del widget
-              suffixIcon: const Icon(Icons.event_rounded)
-            ),
-            onTap: _onTapDateField,
-          ),
-    
-          const SizedBox( height: 16.0, ),
-    
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    //TODO: agregar i18n
-                    labelText: '${localizations.duration} (minutos)',
-                    hintText: '20 min.',
-                    helperText: ' ',
-                    suffixIcon: const Icon(Icons.timer_rounded)
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      newActivityRecord.duration = int.tryParse(value.split(" ").first) ?? 0;
+        if (snapshot.hasData) {
 
-                      newActivityRecord.aproximateData(userWeight);
-                    
-                      kCalController.text = newActivityRecord.formattedKcal;
-                      distanceController.text = newActivityRecord.formattedDistance;
-                      durationController.text = newActivityRecord.formattedDuration; 
-                    });
-                  },
-                  validator: (value) => _validateDuration(validationMsgBuilder, value),
-                ),
-              ),
-    
-              const SizedBox( width: 16.0, ),
-    
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  controller: distanceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    //TODO: Cambiar mensaje para metros, en vez de kilometros
-                    labelText: localizations.distance,
-                    hintText: '100 m',
-                    helperText: ' ',
-                  ),
-                  onChanged: (value) {
-    
-                    setState(() {
-                      newActivityRecord.distance = double.tryParse(value.split(" ").first) ?? 0.0;
+          final userWeight = snapshot.data!.weight;
 
-                      newActivityRecord.userModifiedDistance();
-                    });
-    
-                    // distanceController.text = newActivityRecord.formattedDistance; 
-                  },
-                  validator: (value) => _validateDistance(validationMsgBuilder, value),
-                ),
-              ),
-            ]
-          ),
-    
-          const SizedBox( height: 16.0, ),
-    
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: TextFormField(
-                  autocorrect: false,
-                  keyboardType: TextInputType.number,
-                  controller: kCalController,
-                  decoration: InputDecoration(
-                    border: const OutlineInputBorder(),
-                    labelText: localizations.kcalBurned,
-                    hintText: '300 kCal',
-                    helperText: ' ',
-                    suffixIcon: const Icon(Icons.bolt),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      newActivityRecord.kiloCaloriesBurned = int.tryParse(value.split(" ").first) ?? 0;
+          return Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
 
-                      newActivityRecord.userModifiedKcal();
-                    });
-    
-                    // kCalController.text = newActivityRecord.formattedKcal; 
-                  },
-                  validator: (value) => _validateKilocalories(validationMsgBuilder, value),
-                ),
-              ),
-    
-              const SizedBox( width: 16.0, ),
-    
-              Expanded(
-                child: CheckboxListTile(
-                  title: Text(localizations.outdoor),
-                  dense: true,
-                  value: newActivityRecord.doneOutdoors, 
-                  onChanged: (bool? value) {
-                    setState(() {
-                      newActivityRecord.doneOutdoors = value ?? false;
-                    });
+                _ActivityTypeDropdown(
+                  value: newActivityRecord.activityType.id,
+                  onActivityTypeChange: (activityType) {
+                    onActivityTypeSelected(activityType, userWeight);
                   }
                 ),
-              ),
-            ]
-          ),
-    
-          const SizedBox( height: 16.0, ),
-    
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Expanded(
-                child: ElevatedButton(
-                  child: Text(localizations.cancel),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.grey.shade700,
+          
+                const SizedBox( height: 16.0, ),
+          
+                TextFormField(
+                  maxLength: 40,
+                  maxLines: 1,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.activityTitle,
+                    hintText: localizations.activityTitleHint,
+                    helperText: ' ',
+                    suffixIcon: const Icon(Icons.text_fields),
+                    counterText: '${titleLength.toString()}/${ActivityValidator.titleLengthRange.max}'
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  validator: (value) => _validateTitle(validationMsgBuilder, value),
+                  onChanged: (value) => setState(() {
+                    newActivityRecord.title = value;
+                    titleLength = newActivityRecord.title.length;
+                  }),
                 ),
-              ),
-    
-              const SizedBox( width: 16.0, ),
-    
-              Expanded(
-                child: ElevatedButton(
-                  child: Text(localizations.create),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.blue,
+          
+                const SizedBox( height: 16.0, ),
+          
+                TextFormField(
+                  readOnly: true,
+                  controller: dateController,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.date,
+                    helperText: ' ', // Para evitar cambios en la altura del widget
+                    suffixIcon: const Icon(Icons.event_rounded)
                   ),
-                  onPressed: () {
+                  onTap: _onTapDateField,
+                ),
+          
+                const SizedBox( height: 16.0, ),
+          
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Expanded(
+                      child: TextFormField(
+                        autocorrect: false,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          //TODO: agregar i18n
+                          labelText: '${localizations.duration} (minutos)',
+                          hintText: '20 min.',
+                          helperText: ' ',
+                          suffixIcon: const Icon(Icons.timer_rounded)
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            newActivityRecord.duration = int.tryParse(value.split(" ").first) ?? 0;
 
-                    bool isFormValid = _formKey.currentState?.validate() ?? false;
-                    
-                    if (isFormValid) {
-                      widget.onSave(
-                        context, 
-                        newActivityRecord, 
-                        redirectRoute: RouteNames.home
-                      );
-                    }
-                  } 
+                            newActivityRecord.aproximateData(userWeight);
+                          
+                            kCalController.text = newActivityRecord.formattedKcal;
+                            distanceController.text = newActivityRecord.formattedDistance;
+                            durationController.text = newActivityRecord.formattedDuration; 
+                          });
+                        },
+                        validator: (value) => _validateDuration(validationMsgBuilder, value),
+                      ),
+                    ),
+          
+                    const SizedBox( width: 16.0, ),
+          
+                    Expanded(
+                      child: TextFormField(
+                        autocorrect: false,
+                        controller: distanceController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          //TODO: Cambiar mensaje para metros, en vez de kilometros
+                          labelText: localizations.distance,
+                          hintText: '100 m',
+                          helperText: ' ',
+                        ),
+                        onChanged: (value) {
+          
+                          setState(() {
+                            newActivityRecord.distance = double.tryParse(value.split(" ").first) ?? 0.0;
+
+                            newActivityRecord.userModifiedDistance();
+                          });
+          
+                          // distanceController.text = newActivityRecord.formattedDistance; 
+                        },
+                        validator: (value) => _validateDistance(validationMsgBuilder, value),
+                      ),
+                    ),
+                  ]
                 ),
-              ),
-            ]
-          ),
-        ],
-      ),
+          
+                const SizedBox( height: 16.0, ),
+          
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Expanded(
+                      child: TextFormField(
+                        autocorrect: false,
+                        keyboardType: TextInputType.number,
+                        controller: kCalController,
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          labelText: localizations.kcalBurned,
+                          hintText: '300 kCal',
+                          helperText: ' ',
+                          suffixIcon: const Icon(Icons.bolt),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            newActivityRecord.kiloCaloriesBurned = int.tryParse(value.split(" ").first) ?? 0;
+
+                            newActivityRecord.userModifiedKcal();
+                          });
+          
+                          // kCalController.text = newActivityRecord.formattedKcal; 
+                        },
+                        validator: (value) => _validateKilocalories(validationMsgBuilder, value),
+                      ),
+                    ),
+          
+                    const SizedBox( width: 16.0, ),
+          
+                    Expanded(
+                      child: CheckboxListTile(
+                        title: Text(localizations.outdoor),
+                        dense: true,
+                        value: newActivityRecord.doneOutdoors, 
+                        onChanged: (bool? value) {
+                          setState(() {
+                            newActivityRecord.doneOutdoors = value ?? false;
+                          });
+                        }
+                      ),
+                    ),
+                  ]
+                ),
+          
+                const SizedBox( height: 16.0, ),
+          
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Expanded(
+                      child: ElevatedButton(
+                        child: Text(localizations.cancel),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.grey.shade700,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+          
+                    const SizedBox( width: 16.0, ),
+          
+                    Expanded(
+                      child: ElevatedButton(
+                        child: Text(localizations.create),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.blue,
+                        ),
+                        onPressed: () {
+
+                          bool isFormValid = _formKey.currentState?.validate() ?? false;
+                          
+                          if (isFormValid) {
+                            widget.onSave(
+                              context, 
+                              newActivityRecord, 
+                              redirectRoute: RouteNames.home
+                            );
+                          }
+                        } 
+                      ),
+                    ),
+                  ]
+                ),
+              ],
+            ),
+          );
+        } else {
+          return const Center(
+            //TODO: agregar i18n
+            child: Text('No hay un perfil de usuario activo.'),
+          );
+        }
+      }
     );
   }
 }

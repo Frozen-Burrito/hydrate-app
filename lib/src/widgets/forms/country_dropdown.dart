@@ -12,52 +12,45 @@ class CountryDropdown extends StatelessWidget {
 
   const CountryDropdown({
     Key? key, 
-    required this.isUnmodifiable,
+    required this.isModifiable,
   }) : super(key: key);
 
-  final bool isUnmodifiable;
+  final bool isModifiable;
 
   @override
   Widget build(BuildContext context) {
 
     final profileProvider = Provider.of<ProfileProvider>(context);
     final localizations = AppLocalizations.of(context)!;
+
+    final profileChanges = profileProvider.profileChanges;
     
     return FutureBuilder<List<Country>?>(
-      future: profileProvider.countries,
+      initialData: [Country(id: 0)],
+      future: profileProvider.countries, //TODO: make this future return a non-nullable list
       builder: (context, snapshot) {
 
-        if (snapshot.hasData) {
+        final countries = snapshot.data ?? [Country(id: 0)];
 
-          final countries = snapshot.data;
-          final profileChanges = profileProvider.profileChanges;
+        final profileCountryIdx = countries.indexOf(profileChanges.country);
+        final dropdownValue = profileCountryIdx.isNegative ? 0 : profileCountryIdx;
 
-          if (countries != null && profileChanges != null) {
-
-            return DropdownButtonFormField(
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: localizations.country,
-                helperText: ' ',
-                hintText: localizations.select
-              ),
-              isExpanded: true,
-              items: DropdownLabels.getCountryDropdownItems(context, countries),
-              value: countries.indexOf(profileChanges.country),
-              onChanged: isUnmodifiable
-                ? null
-                : (int? newValue) {
-                    profileChanges.country = countries[min(newValue ?? 0, countries.length)];
-                  },
-            );
-          }
-        }
-
-        return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.05,
-          child: const Center(
-            child: CircularProgressIndicator(),
+        return DropdownButtonFormField(
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            labelText: localizations.country,
+            helperText: ' ',
+            hintText: localizations.select
           ),
+          isExpanded: true,
+          items: DropdownLabels.getCountryDropdownItems(context, countries),
+          value: dropdownValue,
+          onChanged: isModifiable && snapshot.hasData
+            ? (int? newValue) {
+                final valueInRange = min(newValue ?? 0, countries.length);
+                profileChanges.country = countries[valueInRange];
+              }
+            : null,
         );
       }
     );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/pages/pages.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/forms/create_goal_form.dart';
-import 'package:hydrate_app/src/widgets/forms/initial_form.dart';
+import 'package:hydrate_app/src/widgets/forms/profile_form.dart';
 import 'package:hydrate_app/src/widgets/forms/medical_form.dart';
 import 'package:hydrate_app/src/widgets/forms/new_activity_form.dart';
 import 'package:hydrate_app/src/widgets/forms/weekly_form.dart';
@@ -44,7 +44,7 @@ class Routes {
     RouteNames.initialForm: (BuildContext context) => CommonFormPage(
       formTitle: 'Bienvenido', 
       formLabel: 'Escribe sobre tí para conocerte mejor:',
-      formWidget: const InitialForm(),
+      formWidget: const ProfileForm(),
       displayBackAction: false,
       backgroundColor: Theme.of(context).colorScheme.primary,
     ),

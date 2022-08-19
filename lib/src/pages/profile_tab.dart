@@ -10,7 +10,7 @@ import 'package:hydrate_app/src/widgets/activity_time_brief.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/dialogs/environment_select_dialog.dart';
-import 'package:hydrate_app/src/widgets/forms/initial_form.dart';
+import 'package:hydrate_app/src/widgets/forms/profile_form.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
@@ -25,6 +25,62 @@ class ProfileTab extends StatefulWidget {
 class _ProfileTabState extends State<ProfileTab> {
 
   bool isEditModeActive = false;
+  bool isSaving = false;
+
+  Future<void> _toggleEditMode(BuildContext context) async {
+
+    if (isEditModeActive) {
+
+      setState(() { isSaving = true; });
+
+      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+
+      final saveResult = await profileProvider.saveProfileChanges( restrictModifications: false );
+
+      if (saveResult != SaveProfileResult.noChanges) {
+        _showSaveResultSnackbar(context, saveResult);
+      }
+
+      switch(saveResult) {
+        case SaveProfileResult.changesSaved:
+        case SaveProfileResult.noChanges:
+          isEditModeActive = false;
+          break;
+        default:
+          isEditModeActive = true; 
+          break;
+      }
+    } else {
+      isEditModeActive = true;
+    }
+
+    isSaving = false;
+
+    setState(() {});
+  }
+
+  void _showSaveResultSnackbar(BuildContext context, SaveProfileResult result) {
+    //TODO: agregar i18 a los mensajes de snackbar para cambios de perfil
+    String message = "Something went wrong with message display.";
+
+    switch(result) {
+      case SaveProfileResult.changesSaved:
+        message = "Profile changes saved.";
+        break;
+      case SaveProfileResult.reachedChangeLimit:
+        message = "You have reached the limit of yearly profile modifications";
+        break;
+      default: 
+        message = "An error occurred while saving changes. Please try again.";
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 3),
+      )
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,22 +96,39 @@ class _ProfileTabState extends State<ProfileTab> {
             CoinDisplay(),
           ],
           actions: <Widget>[
-            IconButton(
-              icon: Icon( isEditModeActive ? Icons.check : Icons.edit ),
-              onPressed: () {
-                if (isEditModeActive) {
-                  profileProvider.saveProfileChanges();
-                }
 
-                setState(() {
-                  isEditModeActive = !isEditModeActive;
-                });
-              }, 
+            Builder(
+              builder: (context) {
+                if (isSaving) {
+                  return const Center(
+                    child: SizedBox(
+                      height: 16.0,
+                      width: 16.0,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        semanticsLabel: 'Saving profile changes',
+                      ),
+                    ),
+                  );
+                } else {
+                  return IconButton(
+                    icon: Icon( isEditModeActive ? Icons.check : Icons.edit ),
+                    color: isEditModeActive
+                      ? Colors.green.shade400
+                      : Theme.of(context).colorScheme.onBackground,
+                    onPressed: () {
+                      _toggleEditMode(context);
+                    }, 
+                  );
+                }
+              }
             ),
 
             const AuthOptionsMenu()
           ],
         ),
+
+        
   
         SliverToBoxAdapter(
           child: FutureBuilder<UserProfile?>(
@@ -140,8 +213,8 @@ class _ProfileTabState extends State<ProfileTab> {
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: InitialForm(
-                    isFormEditing: true,
+                  child: ProfileForm(
+                    isModifyingExistingProfile: true,
                     isFormModifiable: isEditModeActive
                   ),
                 ),
@@ -160,6 +233,16 @@ class _FullnameDisplay extends StatelessWidget {
 
   const _FullnameDisplay({ this.isEditing = false, Key? key }) : super(key: key);
 
+  String? _getTextInputCounter(String value, int maxLength) {
+    // Build the string using a buffer.
+    StringBuffer strBuf = StringBuffer(value.characters.length);
+
+    strBuf.write("/");
+    strBuf.write(UserProfile.maxFirstNameLength);
+
+    return strBuf.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -175,7 +258,7 @@ class _FullnameDisplay extends StatelessWidget {
           final profile = snapshot.data;
           final profileChanges = profileProvider.profileChanges;
 
-          if (profile != null && profileChanges != null) {
+          if (profile != null) {
             if (isEditing) {
 
               return Column(
@@ -187,13 +270,17 @@ class _FullnameDisplay extends StatelessWidget {
                         width: MediaQuery.of(context).size.width * 0.4,
                         child: TextFormField(
                           keyboardType: TextInputType.text,
-                          maxLength: 50,
+                          maxLength: UserProfile.maxFirstNameLength,
                           decoration: InputDecoration(
                             border: const OutlineInputBorder(),
                             labelText: localizations.firstName,
                             helperText: ' ',
-                            counterText: '${profileChanges.firstName.length.toString()}/50'
+                            counterText: _getTextInputCounter(
+                              profileChanges.firstName,
+                              UserProfile.maxFirstNameLength
+                            ),
                           ),
+                          //TODO: Agregar i18n para mostrar nombre de usuario anónimo.
                           initialValue: profile.firstName,
                           onChanged: (value) => profileChanges.firstName = value,
                           validator: (value) => UserProfile.validateFirstName(value),
@@ -206,12 +293,15 @@ class _FullnameDisplay extends StatelessWidget {
                         width: MediaQuery.of(context).size.width * 0.4,
                         child: TextFormField(
                           keyboardType: TextInputType.text,
-                          maxLength: 50,
+                          maxLength: UserProfile.maxLastNameLength,
                           decoration: InputDecoration(
                             border: const OutlineInputBorder(),
                             labelText: localizations.lastName,
                             helperText: ' ',
-                            counterText: '${profileChanges.lastName.length.toString()}/50'
+                            counterText: _getTextInputCounter(
+                              profileChanges.lastName,
+                              UserProfile.maxLastNameLength
+                            ),
                           ),
                           initialValue: profile.lastName,
                           onChanged: (value) => profileChanges.lastName = value,
@@ -240,10 +330,13 @@ class _FullnameDisplay extends StatelessWidget {
                 ],
               );
             } else {
+
               return Column(
                 children: <Widget>[
                   Text(
-                    profile.fullName,
+                    (profile.fullName.trim().isNotEmpty) 
+                      ? profile.fullName
+                      : 'Perfil Anónimo',
                     style: Theme.of(context).textTheme.headline4,
                   ),
 
