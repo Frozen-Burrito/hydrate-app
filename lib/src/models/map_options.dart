@@ -54,7 +54,7 @@ class MapOptions {
 
     String transformedAttribute = attribute;
 
-    if (options.includeCompleteSubEntities) {
+    if (options.includeCompleteSubEntities && transformedAttribute != "id_perfil") {
       transformedAttribute = transformedAttribute.replaceFirst("id_", "");
     }
 

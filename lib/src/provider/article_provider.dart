@@ -114,6 +114,7 @@ class ArticleProvider with ChangeNotifier {
         return insertedId;
 
       } else {
+        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
         throw Exception('No se pudo crear un marcador para el articulo.');
       }
     }

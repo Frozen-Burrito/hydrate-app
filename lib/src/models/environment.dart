@@ -14,10 +14,10 @@ class Environment extends SQLiteModel {
     required this.price
   });
 
-  Environment.uncommited() : this(
-    id: -1,
+  Environment.firstUnlocked() : this(
+    id: 0,
     imagePath: 'assets/img/entorno_1_agua.png',
-    price: 999,
+    price: 0,
   );
 
   static const String tableName = 'entorno';

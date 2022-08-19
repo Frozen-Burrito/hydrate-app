@@ -70,17 +70,17 @@ class SQLiteMigrator {
       ActivityType.createTableQuery,
 
       // Insertar todos los tipos de actividad soportados inicialmente.
-      '''INSERT INTO ${ActivityType.tableName} VALUES (0, 5.0, 4.3, 0);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (1, 8.0, 7.0, 1);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (2, 11.0, 7.5, 2);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (3, 0.0, 9.8, 3);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (4, 0.0, 7.0, 4);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (5, 0.0, 6.5, 5);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (6, 0.0, 4.0, 6);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8, 7);''',
-      '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3, 8);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (0, 5.0, 4.3);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (1, 8.0, 7.0);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (2, 11.0, 7.5);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (3, 0.0, 9.8);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (4, 0.0, 7.0);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (5, 0.0, 6.5);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (6, 0.0, 4.0);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8);''',
+      '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3);''',
     ],
-    16: [
+    17: [
       '${SQLiteKeywords.dropTableIfExists} ${ActivityRecord.tableName}',
       '${SQLiteKeywords.dropTableIfExists} ${ActivityType.tableName}',
       '${SQLiteKeywords.dropTableIfExists} ${Routine.tableName}',
@@ -100,8 +100,12 @@ class SQLiteMigrator {
       '''INSERT INTO ${ActivityType.tableName} VALUES (7, 0.0, 7.8);''',
       '''INSERT INTO ${ActivityType.tableName} VALUES (8, 0.0, 1.3);''',
     ],
-    17: [
-      'ALTER TABLE ${Goal.tableName} ADD COLUMN es_principal ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType} DEFAULT 0'
+    18: [
+      '${SQLiteKeywords.dropTableIfExists} ${Environment.tableName}',
+      
+      Environment.createTableQuery,
+
+      '''INSERT INTO ${Environment.tableName} VALUES (0, 'assets/img/entorno_1_agua.png', 0);''',
     ]
   };
 

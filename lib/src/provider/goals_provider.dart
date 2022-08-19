@@ -133,6 +133,7 @@ class GoalProvider extends ChangeNotifier {
         _goalCache.shouldRefresh();
         return result;
       } else {
+        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
         throw Exception('No se pudo crear la meta de hidratación.');
       }
     }
@@ -250,6 +251,7 @@ class GoalProvider extends ChangeNotifier {
         _weeklyDataCache.shouldRefresh();
         return result;
       } else {
+        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
         throw Exception('No se pudo registrar el reporte semanal.');
       }
     }
@@ -270,6 +272,7 @@ class GoalProvider extends ChangeNotifier {
         _weeklyDataCache.shouldRefresh();
         return result;
       } else {
+        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
         throw Exception('No se pudo registrar el reporte semanal.');
       }
     }

@@ -106,6 +106,9 @@ class UserProfile extends SQLiteModel {
   ''';
 
   static UserProfile fromMap(Map<String, Object?> map) {
+
+    //TODO: considerar validar ciertos campos (especialmente que 'entornos' y 
+    // 'entorno_sel' coincidan, además de revisar el valor de 'pais').
     
     final country = Country.fromMap(
       (map['pais'] is Map<String, Object?>) 
@@ -145,6 +148,10 @@ class UserProfile extends SQLiteModel {
 
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
+
+    //TODO: considerar validar ciertos campos (especialmente que 'entornos' y 
+    // 'entorno_sel' coincidan, además de revisar el valor de 'pais').
+
     final Map<String, Object?> map = {
       'nombre': firstName,
       'apellido': lastName,
@@ -225,7 +232,7 @@ class UserProfile extends SQLiteModel {
 
   bool get hasNephroticSyndrome => medicalCondition == MedicalCondition.nephroticSyndrome;
 
-  String get fullName => '$firstName $lastName';
+  String get fullName => '$_firstName $_lastName';
 
   /// Obtiene las iniciales del usuario, en mayúsculas.
   String get initials {

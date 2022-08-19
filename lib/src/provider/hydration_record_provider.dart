@@ -91,6 +91,9 @@ class HydrationRecordProvider extends ChangeNotifier {
   }
 
   /// Guarda un nuevo registro de hidratación en la base de datos.
+  /// 
+  /// Retorna el ID del [HydrationRecord] persistido con éxito, o -1 si el 
+  /// registro no pudo ser guardado.
   Future<int> saveHydrationRecord(
     HydrationRecord newRecord, 
     { refreshImmediately = true }
@@ -110,6 +113,7 @@ class HydrationRecordProvider extends ChangeNotifier {
         
         return result;
       } else {
+        //TODO: Evitar lanzar una excepcion para cacharla inmediatamente después.
         throw Exception('No se pudo crear el registro de actividad fisica.');
       }
     }

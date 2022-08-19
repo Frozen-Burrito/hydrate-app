@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -101,27 +102,50 @@ class SQLiteDB {
 
   /// Inserta un [SQLiteModel] en la base de datos.
   /// 
-  /// Retorna el ID de la entidad insertada.
+  /// [entity] es convertida a un mapa usando su método [SQLiteModel.toMap()], 
+  /// con las opciones especificadas en [entityMapOptions]. Estas opciones 
+  /// determinan la forma en que serán manejadas las relaciones y transformación
+  /// a columnas de SQLite.
+  /// 
+  /// Retorna el ID de la entidad insertada, o un entero negativo si la entidad 
+  /// no pudo ser insertada.
   Future<int> insert(SQLiteModel entity) async {
     final db = await database;
 
     // Todas las columnas con tipos primarios, que no son relaciones 1-m o m-m.
     final simpleEntityColumns = await _filterSimpleColumns(entity);
 
-    int totalRowsAltered = 0;
+    try {
+      // Intentar insertar la entidad principal.
+      final insertedId = await db.insert(entity.table, simpleEntityColumns);
 
-    // Insertar la entidad principal.
-    final insertedId = await db.insert(entity.table, simpleEntityColumns);
+      if (insertedId >= 0) {
 
-    if (insertedId >= 0) {
-      // Incrementar filas modificadas.
-      totalRowsAltered++;
+        int totalRowsAltered = 1;
 
-      // Manejar las relaciones muchos a muchos y uno a muchos de la entidad.
-      totalRowsAltered += await _describeRelationships(entity, insertedId: insertedId);
+        // Manejar las relaciones muchos a muchos y uno a muchos de la entidad
+        // insertada.
+        totalRowsAltered += await _describeRelationships(
+          entity, 
+          insertedId: insertedId
+        );
+
+        print("Entity inserted, rows altered: $totalRowsAltered");
+
+        // Retornar el ID de la entidad principal insertada.
+        return insertedId;
+
+      } else {
+        return -1;
+      }
+
+    } on DatabaseException catch(ex) {
+      // Ocurrió algún error relacionado con la base de datos durante esta 
+      // operación de INSERT. Imprimir el error y retornar un entero negativo.
+      //TODO: Considerar opciones para mejorar el manejo de errores de base de datos.
+      print("DatabaseException: ${ex.result}");
+      return -1;
     }
-
-    return totalRowsAltered;
   }
 
   /// Retorna una lista con todos los registros de una tabla.
@@ -137,7 +161,8 @@ class SQLiteDB {
       final String? orderByColumn,
       final bool? orderByAsc,
     }
-  ) async {
+  ) async 
+  {
 
     final db = await database;
 

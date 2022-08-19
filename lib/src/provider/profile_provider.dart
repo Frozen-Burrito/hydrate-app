@@ -14,6 +14,10 @@ class ProfileProvider extends ChangeNotifier {
   /// El UUID de la cuenta de usuario del servicio web asociada con el 
   /// perfil. 
   String? _accountId;
+
+  /// El número máximo de veces que el usuario puede modificar su perfil, en un 
+  /// año.
+  static const int maxYearlyProfileModifications = 3;
   
   /// Crea una instancia de [ProfileProvider] que es inicializada con el 
   /// [UserProfile] por defecto.
@@ -37,16 +41,24 @@ class ProfileProvider extends ChangeNotifier {
 
   /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
   /// actual. Esta instancia de [UserProfile] es modificable.
-  UserProfile? _profileChanges;
+  UserProfile _profileChanges = UserProfile.modifiableCopyOf(
+    UserProfile.uncommited(
+      Country(), 
+      Environment.firstUnlocked(), 
+      ''
+    )
+  );
 
   /// Un contenedor para el [UserProfile] del usuario actual.
   late final CacheState<UserProfile?> _profileCache = CacheState(
     fetchData: _fetchUserProfile,
-    onDataRefreshed: (UserProfile? profile) {
-      // Actualizar el modelo de cambios a perfil, con el perfil actual.
+    onDataRefreshed: (UserProfile? profile) async  {
+      // Actualizar el modelo de cambios a perfil. Si el perfil activo no es nulo,
+      // los cambios de perfil son una copia del perfil original. Si no, crear 
+      // un perfil vacío.
       _profileChanges = profile != null 
         ? UserProfile.modifiableCopyOf(profile)
-        : null;
+        : await _buildEmptyProfile(linkedAccountId: '');
 
       notifyListeners();
     },
@@ -70,7 +82,7 @@ class ProfileProvider extends ChangeNotifier {
   /// Retorna una instancia de solo lectura del [UserProfile] del usuario actual.
   Future<UserProfile?> get profile => _profileCache.data;
 
-  UserProfile? get profileChanges => _profileChanges;
+  UserProfile get profileChanges => _profileChanges;
 
   bool get hasCountriesData => _countriesCache.hasData;
   Future<List<Country>?> get countries => _countriesCache.data;
@@ -83,9 +95,11 @@ class ProfileProvider extends ChangeNotifier {
     final whereQuery = [ WhereClause('id', _profileId.toString()), ];
     final unions = <String>[];
 
-    if (_accountId != null) {
-      // Si hay un usuario autenticado, obtener el perfil que tenga el id
-      // de perfil Y el id de la cuenta de usuario.
+    final isAccountIdSet = _accountId?.isNotEmpty ?? false;
+
+    if (isAccountIdSet) {
+      // Si el usuario inició sesión con una cuenta, obtener el perfil que, además
+      // de tener el ID de perfil especificado, tenga el id de la cuenta del usuario.
       whereQuery.add(WhereClause('id_usuario', _accountId!));
       unions.add('OR');
     }
@@ -93,11 +107,11 @@ class ProfileProvider extends ChangeNotifier {
     final queryResults = await SQLiteDB.instance.select<UserProfile>(
       UserProfile.fromMap,
       UserProfile.tableName,
-      where: whereQuery,
-      whereUnions: unions,
+      // where: whereQuery,
+      // whereUnions: unions,
       includeOneToMany: true,
       queryManyToMany: true,
-      limit: 1
+      // limit: 1
     );
 
     UserProfile? profile;
@@ -105,7 +119,7 @@ class ProfileProvider extends ChangeNotifier {
     if (queryResults.isNotEmpty)
     {
       profile = queryResults.first;
-      assert(profile.id == _profileId);
+      // assert(profile.id == _profileId);
     }
 
     return Future.value(profile);
@@ -131,9 +145,7 @@ class ProfileProvider extends ChangeNotifier {
     return Future.value(queryResults.toList());
   }
 
-  Future<AccountLinkResult> handleAccountLink(
-    String authToken, { bool isNewAccount = false }
-  ) async {
+  Future<AccountLinkResult> handleAccountLink(String authToken, { bool isNewAccount = false }) async {
     // Obtener el ID de la cuenta de usuario desde los claims del token.
     final tokenClaims = parseJWT(authToken);
 
@@ -166,14 +178,11 @@ class ProfileProvider extends ChangeNotifier {
 
   /// Guarda un nuevo [UserProfile] en la BD, a partir de los cambios en 
   /// profileChanges. 
+  //TODO: Por ahora, este método ya no es usado. Determinar si es necesario mantenerlo.
   Future<int> saveNewProfile() async {
     
     try {
       final profileChanges = _profileChanges;
-
-      if (profileChanges == null) {
-        throw StateError('profileChanges es nulo. Esto no debería ser posible.');
-      }
 
       int result = await SQLiteDB.instance.insert(profileChanges);
 
@@ -181,6 +190,7 @@ class ProfileProvider extends ChangeNotifier {
         _profileCache.shouldRefresh();
         return result;
       } else {
+        //TODO: Eviar lanzar una excepción genérica para cacharla inmediatamente después.
         throw Exception('No se pudo crear el nuevo perfil.');
       }
     }
@@ -194,10 +204,10 @@ class ProfileProvider extends ChangeNotifier {
 
   void changeSelectedEnv(Environment environment) {
 
-    final isEnvUnlocked = profileChanges?.hasUnlockedEnv(environment.id) ?? false;
+    final isEnvUnlocked = profileChanges.hasUnlockedEnv(environment.id);
 
     if (isEnvUnlocked) {
-      profileChanges?.selectedEnvId = environment.id;
+      profileChanges.selectedEnvId = environment.id;
       notifyListeners();
     }
   }
@@ -215,9 +225,9 @@ class ProfileProvider extends ChangeNotifier {
 
     if (profile != null && !profile.hasUnlockedEnv(environment.id)) {
       /// Desbloquear el entorno de forma no confirmada, usando profileChanges.
-      profileChanges?.giveOrTakeCoins(-environment.price);
+      profileChanges.giveOrTakeCoins(-environment.price);
 
-      profileChanges?.unlockedEnvironments.add(environment);
+      profileChanges.unlockedEnvironments.add(environment);
 
       return true;
     } else {
@@ -233,65 +243,94 @@ class ProfileProvider extends ChangeNotifier {
     _profileCache.shouldRefresh();
   }
 
+  Future<UserProfile> _buildEmptyProfile({ String? linkedAccountId }) async {
+    // Obtener el país y el entorno principal por defecto. 
+    final whereDefault = [ WhereClause("id", "0"), ];
+
+    final countryResults = await SQLiteDB.instance.select<Country>(
+      Country.fromMap,
+      Country.tableName,
+      where: whereDefault,
+      limit: 1
+    );
+
+    assert(countryResults.isNotEmpty, 'No hay un país por defecto configurado');
+    
+    // Obtener el pais y el entorno por defecto (deberian ser accesibles para
+    // todos los usuarios, desde el inicio de la app).
+    final defaultCountry = countryResults.single;
+
+    final emptyProfile = UserProfile.uncommited(
+      defaultCountry, 
+      Environment.firstUnlocked(),
+      linkedAccountId ?? '',
+    );
+
+    return emptyProfile;
+  }
+
   /// Crea un nuevo perfil de usuario, con datos por defecto.
   Future<int> newDefaultProfile({ String? existingAccountId }) async {
 
-    final countries = (await _countriesCache.data);
-    final environments = (await _environmentsCache.data);
+    // Obtener un nuevo perfil vacío.
+    final defaultProfile = await _buildEmptyProfile();
 
-    if (countries != null && environments != null) {
+    // Persistir el perfil vacío en la base de datos
+    final result = await SQLiteDB.instance.insert(defaultProfile);
 
-      // Obtener el pais y el entorno por defecto (deberian ser accesibles para
-      // todos los usuarios, desde el inicio de la app).
-      final defaultCountry = countries.where((country) => country.id == 0).single;
-      final defaultEnv = environments.where((env) => env.id == 0).single;
-
-      final defaultProfile = UserProfile.uncommited(
-        defaultCountry, 
-        defaultEnv,
-        existingAccountId ?? '',
-      );
-
-      final result = await SQLiteDB.instance.insert(defaultProfile);
-
-      if (result > 0) {
-        _profileId = result;
-        _accountId = defaultProfile.userAccountID;
-
-        return Future.value(result);
-      }
+    if (result > 0) {
+      // El perfil fue creado con éxito. Actualizar el estado interno de este 
+      // provider.
+      _profileId = result;
+      _accountId = defaultProfile.userAccountID;
     }
 
-    return Future.value(-1);
+    return Future.value(result);
   }
 
-  Future<void> saveProfileChanges({bool restrictModifications = true}) async {
+  /// Persiste los cambios realizados en [profileChanges] a la base de datos y
+  /// le indica al caché de perfiles que debería refrescarse.
+  /// 
+  /// Retorna el ID del perfil que fue modificado. Si no hay un perfil activo, o 
+  /// el perfil no pudo ser modificado por un error de la base de datos, retorna
+  /// **-1**.
+  /// 
+  /// Si  [restrictModifications] es **true**, los cambios serán guardados solo 
+  /// si profileChanges.modificationCount < maxYearlyProfileModifications.
+  /// 
+  /// Si no hay cambios, es decir, si `(await _profileCache.data) == _profileChanges`,
+  /// este método retorna inmediatamente.
+  Future<int> saveProfileChanges({bool restrictModifications = true}) async {
 
     final activeProfile = await _profileCache.data;
-    final profileChanges = _profileChanges;
+
+    // Por alguna razón, no hay un perfil activo.
+    if (activeProfile == null) return -1;
 
     // No hay cambios que guardar. 
-    if (activeProfile == profileChanges) return;
+    if (activeProfile != _profileChanges) {
+      // Determinar si es necesario restringir el número de modificaciones.
+      if (restrictModifications) {
+        // Los cambios deben ser restringidos por el numero de modificaciones en el
+        // perfil.
+        if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {
+          throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
+        }
 
-    if (profileChanges == null) {
-      throw StateError('profileChanges es nulo. Esto no debería ser posible.');
-    }
-
-    if (restrictModifications) {
-      // Los cambios deben ser restringidos por el numero de modificaciones en el
-      // perfil.
-      if (profileChanges.modificationCount >= 3) {
-        throw UnsupportedError('El perfil ya llego el limite de modificaciones anuales.');
+        _profileChanges.recordModification();
       }
 
-      profileChanges.recordModification();
+      // Bajo condiciones comunes, esta operación siempre debería ser exitosa.
+      int result = await SQLiteDB.instance.update(_profileChanges);
+
+      assert(result > 0, 'Por algun motivo, el perfil no pudo ser actualizado en SQLite');
+
+      if (result < 1) return -1;
+
+      _profileCache.shouldRefresh();
     }
-
-    int result = await SQLiteDB.instance.update(profileChanges);
-
-    if (result < 1) throw Exception('El perfil de usuario no fue modificado.');
-
-    _profileCache.shouldRefresh();
+    
+    return activeProfile.id;
   }
 
   /// Busca un perfil local con id_usuario == accountId.
