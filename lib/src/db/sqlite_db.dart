@@ -492,16 +492,19 @@ class SQLiteDB {
           }
         } 
       }
+    }
 
-      if (mappedEntity['id'] is int) {
-        // Hacer las operaciones necesarias en tablas muchos-a-muchos.
-        totalRowsAltered += await _modifyManyToMany(
-          entity.table, 
-          mappedEntity['id'] as int,
-          otherInsertedRowIds: secondaryInsertions,
-          otherDeletedRowIds: secondaryDeletions,
-        );
-      }
+    final requiresMtmOperations = secondaryInsertions.isNotEmpty 
+      || secondaryDeletions.isNotEmpty;
+
+    if (mappedEntity['id'] is int && requiresMtmOperations) {
+      // Hacer las operaciones necesarias en tablas muchos-a-muchos.
+      totalRowsAltered += await _modifyManyToMany(
+        entity.table, 
+        mappedEntity['id'] as int,
+        otherInsertedRowIds: secondaryInsertions,
+        otherDeletedRowIds: secondaryDeletions,
+      );
     }
 
     return totalRowsAltered;
