@@ -406,17 +406,17 @@ class SQLiteDB {
     // el nombre de la tabla relacionada, y su valor es una lista con todos los 
     // IDs de las entidades modificadas en la relación m-m con dicha tabla.
 
-    for (var column in mappedEntity.entries) {
+    for (final column in mappedEntity.entries) {
 
-      Object? colValue = column.value;
+      final columnValue = column.value;
 
-      if (colValue is Iterable<SQLiteModel> && colValue.isNotEmpty) {
+      if (columnValue is Iterable<SQLiteModel> && columnValue.isNotEmpty) {
 
-        final rows = colValue.map((e) => e.toMap(options: entityMapOptions)).toList();
+        final rows = columnValue.map((e) => e.toMap(options: entityMapOptions)).toList();
 
         final relatedIds = reduceIds(rows, 'id').toList();
 
-        final String relatedTable = colValue.first.table;
+        final String relatedTable = columnValue.first.table;
         final String? mtmTable = manyToManyTables[entity.table]?[relatedTable];
 
         // Obtener las entidades de la tabla mtm.
@@ -429,7 +429,7 @@ class SQLiteDB {
           : <Map<String, Object?>>[];
 
         // Determinar inserciones a tabla muchos-a-muchos. 
-        for (var principalEntity in colValue) {
+        for (var principalEntity in columnValue) {
 
           final principalEntityMap = principalEntity.toMap(options: entityMapOptions);
           
@@ -462,7 +462,13 @@ class SQLiteDB {
             }
           } else {
             // Agregar a mtm si principalEntity no existe en ella.
-            if (relationshipEntities.indexWhere((e) => e['id'] == principalId) < 0) {
+            final principalIdColumn = 'id_${principalEntity.table}';
+
+            final isPrincipalEntityNotCreated = relationshipEntities
+              .where((e) => e[principalIdColumn] == principalId)
+              .isEmpty;
+
+            if (isPrincipalEntityNotCreated) {
 
               if (secondaryInsertions[principalEntity.table] != null) {
                 secondaryInsertions[principalEntity.table]?.add(principalId); 
