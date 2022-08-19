@@ -32,6 +32,9 @@ class UserProfile extends SQLiteModel {
   static const defaultProfileId = 0;
   static const maxCoins = 9999;
 
+  static const maxFirstNameLength = 64;
+  static const maxLastNameLength = 64;
+
   UserProfile.unmodifiable(
     this._id,
     this._firstName,
@@ -195,12 +198,28 @@ class UserProfile extends SQLiteModel {
   set userAccountID(String newAccountId) => isReadonly ? null : _userAccountID = newAccountId;
   set selectedEnvId(int newSelectedEnvId) => isReadonly ? null : _selectedEnvId = newSelectedEnvId;
 
-  Environment get selectedEnvironment => unlockedEnvironments.isNotEmpty
-      ? unlockedEnvironments.firstWhere((env) => env.id == selectedEnvId)
-      : Environment.uncommited();
+  /// Revisa si este perfil tiene un [Environment] con un [id] equivalente a 
+  /// [selectedEnvId] en su colección de [unlockedEnvironments]. Luego, retorna 
+  /// el entorno seleccionado o retorna un [Environment.firstUnlocked] si el 
+  /// perfil no ha desbloqueado el entorno.
+  Environment get selectedEnvironment {
 
+    final hasSelectedEnv = hasUnlockedEnv(selectedEnvId);
+
+    return (hasSelectedEnv)
+      ? unlockedEnvironments.singleWhere(
+        (env) => env.id == selectedEnvId, 
+        orElse: () => Environment.firstUnlocked()
+      )
+      : Environment.firstUnlocked();
+  }
+
+  /// Determina si este perfil de usuario ha desbloqueado el entorno con [envId].
+  /// 
+  /// Retorna **false** si este perfil no ha desbloqueado ningún entorno con 
+  /// [envId], o si ha desbloqueado más de 1.  
   bool hasUnlockedEnv(int envId) => unlockedEnvironments
-      .where((e) => e.id == envId).isNotEmpty;
+      .where((e) => e.id == envId).length == 1;
 
   bool get hasRenalInsufficiency => medicalCondition == MedicalCondition.renalInsufficiency;
 
