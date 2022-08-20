@@ -267,7 +267,9 @@ class HydrationRecordProvider extends ChangeNotifier {
     final totals = await _totalsFromPrevDaysInMl(daysOfRecords, daysOffset: dayOffset);
 
     // Agregar los totales diarios.
-    int currentProgressMl = totals.reduce((value, dayTotal) => value + dayTotal);
+    int currentProgressMl = totals.isNotEmpty
+      ? totals.reduce((value, dayTotal) => value + dayTotal)
+      : 0;
 
     if (previousTotal != null) {
       // Si hay un total ya calculado, agregarlo a currentProgressMl.

@@ -59,14 +59,17 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
       // Obtener el número de metas creadas.
       final numOfExistingGoals = (await goalProvider.goals)?.length ?? 0;
       
-      bool hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
+      final hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
+      bool userChoseGoalsToDelete = false;
 
       if (hasReachedGoalLimit) {
         // Si el usuario ha llegado al límite de metas simultáneas, preguntarle
         // si desea reemplazar metas existentes usando un Dialog.
         List<int>? goalIdsToReplace = await showAskGoalReplacemente(context); 
+  
+        userChoseGoalsToDelete = goalIdsToReplace != null && goalIdsToReplace.isNotEmpty;
 
-        if (goalIdsToReplace != null && goalIdsToReplace.isNotEmpty) {
+        if (userChoseGoalsToDelete) {
           
           for (var id in goalIdsToReplace) {
             // Remover todas las metas especificadas por el usuario.
@@ -76,33 +79,24 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             if (hasReachedGoalLimit && result >= 0) {
               // Si se había llegado al límite de metas, pero se removió al menos 
               // una de ellas, si debería crear la nueva meta.
-              hasReachedGoalLimit = false;
+              // Asociar el perfil del usuario actual con la nueva meta.
+              userChoseGoalsToDelete = true;
             }
           }
         }
       }
 
-      if (!hasReachedGoalLimit) {
-        // Asociar el perfil del usuario actual con la nueva meta.
-        final profile = await Provider.of<ProfileProvider>(context, listen: false).profile;
+      final int goalCreateResult = (!hasReachedGoalLimit || userChoseGoalsToDelete)
+        ? await _createGoal(context)
+        : -1;
 
-        newGoal.profileId = profile?.id ?? -1;
-
-        // Asociar el perfil del usuario actual con las etiquetas de la meta.
-        for (var tag in newGoal.tags) {
-          tag.profileId = profile?.id ?? -1;
+      if (goalCreateResult >= 0) {
+        if (redirectRoute != null) {
+          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+        } else {
+          Navigator.of(context).pop();
         }
-
-        int resultado = await goalProvider.createHydrationGoal(newGoal);
-
-        if (resultado >= 0) {
-          if (redirectRoute != null) {
-            Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-          } else {
-            Navigator.of(context).pop();
-          }
-        }
-      } else {
+      } else if (userChoseGoalsToDelete) {
         // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar( 
@@ -111,6 +105,23 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
         );
       } 
     }
+  }
+
+  Future<int> _createGoal(BuildContext context) async {
+
+    final goalProvider = Provider.of<GoalProvider>(context, listen: false);
+    final profile = await Provider.of<ProfileProvider>(context, listen: false).profile;
+
+    newGoal.profileId = profile?.id ?? -1;
+
+    // Asociar el perfil del usuario actual con las etiquetas de la meta.
+    for (var tag in newGoal.tags) {
+      tag.profileId = profile?.id ?? -1;
+    }
+
+    int newGoalId = await goalProvider.createHydrationGoal(newGoal);
+
+    return newGoalId;
   }
 
   Future<List<int>?> showAskGoalReplacemente(BuildContext context) {

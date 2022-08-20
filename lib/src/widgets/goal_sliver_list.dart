@@ -18,15 +18,11 @@ class GoalSliverList extends StatelessWidget {
 
   Future<Map<Goal, int>> getGoalsWithProgress(
     BuildContext context, 
-    int profileId,
+    Future<List<Goal>?> goalsFuture,
     Future<Map<Goal, int>> Function(List<Goal>) getProgressValuesForGoals
   ) async {
 
-    final goalsProvider = Provider.of<GoalProvider>(context, listen: false);
-
-    goalsProvider.activeProfileId = profileId;
-
-    final goals = await goalsProvider.goals ?? <Goal>[];
+    final goals = await goalsFuture ?? <Goal>[];
 
     if (goals.isNotEmpty) {
       // Ordenar metas para que la meta principal sea la primera.
@@ -53,15 +49,18 @@ class GoalSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final goalsProvider = Provider.of<GoalProvider>(context);
     final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
     final profileId = Provider.of<ProfileProvider>(context).profileId;
+
+    goalsProvider.activeProfileId = profileId;
     
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
       sliver: FutureBuilder<Map<Goal, int>>(
         future: getGoalsWithProgress(
           context, 
-          profileId,
+          goalsProvider.goals,
           hydrationProvider.getGoalsProgressValuesInMl,
         ),
         builder: (context, snapshot) {
@@ -128,33 +127,41 @@ class GoalSliverList extends StatelessWidget {
 
 class _GoalCard extends StatelessWidget {
 
-  final Goal goal;
-  final int progress;
-
-  //TODO: Agregar traducciones reales, centralizadas.
-  static const termLabels = <String>['Diario','Semanal','Mensual'];
-
-  const _GoalCard({ 
+  _GoalCard({ 
     required this.goal, 
     required this.progress,
     Key? key 
-  }) : super(key: key);
+  }) : _currentProgress = max(min(progress, goal.quantity), 0) / goal.quantity.toDouble(), 
+       _isComplete = (max(min(progress, goal.quantity), 0) > goal.quantity),
+       super(key: key);
+
+  final Goal goal;
+  final int progress;
+
+  final double _currentProgress;
+  final bool _isComplete;
+
+  //TODO: Agregar i18n para plazos de tiempo
+  static const termLabels = <String>['Diario','Semanal','Mensual'];
+  
+  //TODO: Agregar i18n para rangos de fechas en metas
+  String _buildDateLabel(DateTime? start, DateTime? end) {
+
+    final strBuf = StringBuffer();
+
+    if (start != null) {
+      strBuf.writeAll([ "Desde ", start.toLocalizedDate]);
+    }
+
+    if (end != null) {
+      strBuf.writeAll([ " hasta ", end.toLocalizedDate]);
+    }
+
+    return strBuf.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
-
-    final setMainGoal = Provider.of<GoalProvider>(context).setMainGoal;
-
-    final currentProgress = max(min(progress, goal.quantity), 0.0);
-    final isGoalComplete = (currentProgress >= goal.quantity);
-
-    final startDateStr = goal.startDate != null 
-      ? 'Desde ${goal.startDate?.toLocalizedDate}'
-      : '';
-
-    final endDateStr = goal.endDate != null 
-      ? 'hasta ${goal.endDate?.toLocalizedDate}'
-      : '';
 
     final mainCard = Card(
       child: Padding(
@@ -168,9 +175,13 @@ class _GoalCard extends StatelessWidget {
               children: [
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.075,
-                  child: IconButton(
-                    icon: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
-                    onPressed: () => setMainGoal(goal.id),
+                  child: Consumer<GoalProvider>(
+                    builder: (_, provider, __) {
+                      return IconButton(
+                        icon: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
+                        onPressed: () => provider.setMainGoal(goal.id),
+                      );
+                    }
                   )
                 ),
 
@@ -254,7 +265,7 @@ class _GoalCard extends StatelessWidget {
             : const SizedBox( width: 0.0,),
               
             Text(
-              '$startDateStr $endDateStr', 
+              _buildDateLabel(goal.startDate, goal.endDate), 
               style: Theme.of(context).textTheme.bodyText1,
               textAlign: TextAlign.left
             ),
@@ -265,11 +276,11 @@ class _GoalCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: LinearProgressIndicator(
-                      value: currentProgress / goal.quantity.toDouble(),
+                      value: _currentProgress,
                     ),
                   ),
 
-                  (isGoalComplete) 
+                  (_isComplete) 
                   ? Container(
                       margin: const EdgeInsets.only( left: 8.0 ),
                       child: Icon(

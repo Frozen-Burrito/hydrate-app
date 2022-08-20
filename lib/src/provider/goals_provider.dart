@@ -142,77 +142,76 @@ class GoalProvider extends ChangeNotifier {
     } 
   }
 
-  /// Cambia la meta principal a la meta en donde su ID sea [newMainGoalId].
+  /// Cambia la meta principal a la meta que tenga [newMainGoalId] como su ID.
+  /// 
+  /// [newMainGoalId] siempre debe ser un ID de una meta activa existente. De lo 
+  /// contrario, este método retornará un valor entero negativo. 
+  /// 
+  /// Cuando [newMainGoalId] es el ID de la meta principal actual, la meta es 
+  /// definida como común y deja de haber una meta principal.
+  /// 
+  /// Retorna el ID de la nueva meta principal, o un número entero negativo si
+  /// hubo un error configurando la meta principal.
   Future<int> setMainGoal(int newMainGoalId) async {
-    try {
-      // Obtener la meta principal y la meta que tenga un ID que coincida con 
-      // newMainGoalId (puede que sean la misma meta).
-      final queryResults = await SQLiteDB.instance.select<Goal>(
-        Goal.fromMap, 
-        Goal.tableName,
-        where: [
-          WhereClause('es_principal', '1' ),
-          WhereClause('id', newMainGoalId.toString() )
-        ],
-        whereUnions: [ 'OR' ]
-      );
 
-      // Transformar los resultados a una lista.
-      final queryList = queryResults.toList();
+    assert(newMainGoalId >= 0, '<newMainGoalId> debe ser un número positivo');
 
-      Goal? currentMainGoal;
-      Goal? newMainGoal;
+    // Obtener la meta principal y la meta que tenga un ID que coincida con 
+    // newMainGoalId (puede que sean la misma meta).
+    final queryResults = await SQLiteDB.instance.select<Goal>(
+      Goal.fromMap, 
+      Goal.tableName,
+      where: [
+        WhereClause('es_principal', '1' ),
+        WhereClause('id', newMainGoalId.toString() )
+      ],
+      whereUnions: [ 'OR' ]
+    );
 
-      switch(queryList.length) {
-        case 1:
-          if (queryList.first.isMainGoal) {
-            currentMainGoal = queryList.first;
-          }
+    // Transformar los resultados a una lista.
+    final resultsAsList = queryResults.toList();
+      
+    // Si queryResults no tiene elementos, significa que este método fue 
+    // invocado sin que existan metas. 
+    assert(resultsAsList.isNotEmpty, 'La query para cambiar la meta principal no retornó ninguna meta');
+    // Si tiene más de dos elementos, hay más de una meta con el mismo ID o hay
+    // más de una meta principal.
+    assert(resultsAsList.length <= 2, 'La query para cambiar la meta principal retornó más de dos metas');
 
-          newMainGoal = queryList.first;
-          break;
-        case 2:
-          int mainGoalIdx = queryList.indexWhere((goal) => goal.isMainGoal);
-          currentMainGoal = queryList.removeAt(mainGoalIdx);
-          newMainGoal = queryList.first;
-          break;
-      }
+    // Determinar cuál de los dos resultados es la meta principal.
+    final int mainGoalIdx = resultsAsList.indexWhere((goal) => goal.isMainGoal);
+    final int newMainGoalIdx = (mainGoalIdx == 0 && resultsAsList.length > 1) ? 1 : 0;
 
-      if (currentMainGoal != null) {
-        // Convertir la meta principal actual en una meta normal.
-        currentMainGoal.isMainGoal = false;
-        int result = await SQLiteDB.instance.update(currentMainGoal);
+    final currentMainGoal = mainGoalIdx >= 0 ? resultsAsList[mainGoalIdx] : null;
+    final newMainGoal = resultsAsList[newMainGoalIdx];
 
-        if (result <= 0) {
-          throw Exception('No se pudo modificar la meta principal de hidratación.');
-        }
-      }
+    int totalRowsModified = 0;
 
-      if (newMainGoal != null) {
-        // Convertir la meta seleccionada en la meta principal.
-        newMainGoal.isMainGoal = !newMainGoal.isMainGoal;
-        int result = await SQLiteDB.instance.update(newMainGoal);
-
-        if (result >= 0) {
-          _goalCache.shouldRefresh();
-          return result;
-        } else {
-          throw Exception('No se pudo modificar la meta principal de hidratación.');
-        }
-      } else {
-        throw ArgumentError.value(
-          newMainGoalId, 
-          'newMainGoalId', 
-          'No se encontró un Goal con este ID.'
-        );
-      }
+    if (currentMainGoal != null) {
+      // Actualizar la meta principal actual para que sea una meta activa común y 
+      // sumar las filas modificadas por el update al número de filas totales.
+      currentMainGoal.isMainGoal = !currentMainGoal.isMainGoal;
+      totalRowsModified += await SQLiteDB.instance.update(currentMainGoal);
     }
-    on Exception catch (e) {
-      return Future.error(e);
 
-    } finally {
-      notifyListeners();
+    if (currentMainGoal != newMainGoal) {
+      // Si esta operación está cambiando la meta principal (en vez de solo
+      // alternar su estado como principal), convertir la nueva especificada en 
+      // la nueva meta principal.
+      newMainGoal.isMainGoal = true;
+      totalRowsModified += await SQLiteDB.instance.update(newMainGoal);
     }
+
+    // if meta principal no existe (currentMainGoal == null) = 1
+    // if meta principal es la misma (currentMainGoal == newMainGoal) = 1
+    // if meta principal es distinta (currentMainGoal != newMainGoal) = 1
+
+    final int expectedModifiedRows = (currentMainGoal != newMainGoal && currentMainGoal != null) ? 2 : 1;
+
+    if (totalRowsModified != expectedModifiedRows) return -1;
+
+    _goalCache.refresh();
+    return newMainGoal.id;
   }
 
   /// Elimina una meta de hidratación existente.
