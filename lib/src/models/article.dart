@@ -67,6 +67,30 @@ class Article extends SQLiteModel {
 
     return map;
   }
+
+  @override
+  bool operator==(covariant Article other) {
+
+    final areIdsEqual = id == other.id;
+    final areTitlesEqual = title == other.title;
+    final areUrlsEqual = url == other.url;
+    final areDescriptionsEqual = description == other.description;
+    final arePublishedAtSameMoment = (publishDate != null && other.publishDate != null)
+      ? publishDate!.isAtSameMomentAs(other.publishDate!)
+      : false;
+
+    return areIdsEqual && areTitlesEqual && areUrlsEqual && areDescriptionsEqual 
+        && arePublishedAtSameMoment;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    title,
+    description,
+    url,
+    publishDate,
+  ]);
 }
 
 class ArticleCollection {
