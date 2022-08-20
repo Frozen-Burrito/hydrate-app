@@ -1,6 +1,7 @@
 import "package:flutter_test/flutter_test.dart";
 import 'package:hydrate_app/src/api/paged_result.dart';
 import 'package:hydrate_app/src/models/article.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 
 void main() {
 
@@ -8,7 +9,7 @@ void main() {
     id: 1,
     title: "An Article",
     description: "A description.",
-    url: "https://google.com",
+    articleUrl: "https://google.com",
     publishDate: DateTime(2016, 5, 26),
   );
 
@@ -16,7 +17,7 @@ void main() {
     id: 2,
     title: "Another article",
     description: "Another description.",
-    url: "https://google.com",
+    articleUrl: "https://google.com",
     publishDate: DateTime(2016, 5, 27),
   );
 
@@ -77,7 +78,12 @@ void main() {
       // Act
       final parsedResult = PagedResult.fromJson(
         correctJson, 
-        mapper: (Map<String, Object?> map) => Article.fromMap(map, usarNombresDeAPI: true)
+        mapper: (Map<String, Object?> map) {
+          return Article.fromMap(
+            map, 
+            options: const MapOptions( useCamelCasePropNames: true )
+          );
+        }
       );
 
       // Assert

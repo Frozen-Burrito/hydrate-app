@@ -9,46 +9,66 @@ import 'package:hydrate_app/src/models/map_options.dart';
 /// representa este objeto.
 class Article extends SQLiteModel {
   
-  int id;
-  String title;
-  String? description;
-  String url;
-  DateTime? publishDate;
+  final int id;
+  final String title;
+  final String? description;
+  final Uri? url;
+  final DateTime? publishDate;
   bool isBookmarked;
 
   Article({
     this.id = -1,
     this.title = '',
     this.description,
-    this.url = '',
+    String articleUrl = '',
     this.publishDate,
     this.isBookmarked = false,
-  });
+  }) : url = Uri.tryParse(articleUrl);
 
   @override
   String get table => tableName;
 
   static const String tableName = 'recurso_inf';
 
+  static const String idFieldName = "id";
+  static const String titleFieldName = "titulo";
+  static const String descriptionFieldName = "descripcion";
+  static const String urlFieldName = "url";
+  static const String publishDateFieldName = "fecha_pub";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    titleFieldName,
+    descriptionFieldName,
+    urlFieldName,
+    publishDateFieldName,
+  ];
+
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteKeywords.idType},
-      titulo ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      descripcion ${SQLiteKeywords.textType},
-      url ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      fecha_pub ${SQLiteKeywords.textType}
+      $idFieldName ${SQLiteKeywords.idType},
+      $titleFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $descriptionFieldName ${SQLiteKeywords.textType},
+      $urlFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $publishDateFieldName ${SQLiteKeywords.textType}
     )
   ''';
 
-  static Article fromMap(Map<String, Object?> map, { bool usarNombresDeAPI = false}) {
+  static Article fromMap(
+    Map<String, Object?> map, 
+    { MapOptions options = const MapOptions(), }
+  ) {
     
-    String campoFechaPub = usarNombresDeAPI ? 'fechaPublicacion' : 'fecha_pub';
+    final String campoFechaPub = options.useCamelCasePropNames 
+      ? 'fechaPublicacion' 
+      : publishDateFieldName;
 
     return Article(
-      id: (map['id'] is int ? map['id'] as int : -1),
-      title: map['titulo'].toString(),
-      description: map['descripcion'].toString(),
-      url: map['url'].toString(),
+      id: (map[idFieldName] is int ? map[idFieldName] as int : -1),
+      title: map[titleFieldName].toString(),
+      description: map[descriptionFieldName].toString(),
+      articleUrl: map[urlFieldName].toString(),
       publishDate: DateTime.tryParse(map[campoFechaPub] is String ? map[campoFechaPub].toString(): ''),
       isBookmarked: false
     );
@@ -56,16 +76,34 @@ class Article extends SQLiteModel {
 
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
-    final Map<String, Object?> map = {
-      'titulo': title,
-      'descripcion': description,
-      'url': url,
-      'fecha_pub': publishDate?.toIso8601String() ?? 'No date',
-    };
 
-    if (id >= 0) map['id'] = id;
+    // Modificar los nombres de los atributos para el Map resultante, según 
+    // [options].
+    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
 
-    return map;
+    // Comprobar que hay una entrada por cada atributo de ActivityRecord.
+    assert(attributeNames.length == baseAttributeNames.length);
+
+    final String campoFechaPub = options.useCamelCasePropNames 
+      ? 'fechaPublicacion' 
+      : publishDateFieldName;
+
+    // Se asume que el mapa de attributeNames contiene entradas para todos los 
+    // atributos de baseAttributeNames, y que acceder con los atributos de 
+    // baseAttributeNames nunca producirá null.
+    final Map<String, Object?> map = {};
+
+    // Solo incluir el ID de la entidad si es una entidad existente.
+    if (id >= 0) map[attributeNames[idFieldName]!] = id;
+
+    map.addAll({
+      attributeNames[titleFieldName]!: title, 
+      attributeNames[urlFieldName]!: url,
+      attributeNames[descriptionFieldName]!: description,
+      attributeNames[campoFechaPub]!: publishDate?.toIso8601String() ?? '',
+    });
+
+    return Map.unmodifiable(map);
   }
 
   @override
@@ -77,7 +115,7 @@ class Article extends SQLiteModel {
     final areDescriptionsEqual = description == other.description;
     final arePublishedAtSameMoment = (publishDate != null && other.publishDate != null)
       ? publishDate!.isAtSameMomentAs(other.publishDate!)
-      : false;
+      : publishDate == other.publishDate;
 
     return areIdsEqual && areTitlesEqual && areUrlsEqual && areDescriptionsEqual 
         && arePublishedAtSameMoment;
@@ -91,17 +129,4 @@ class Article extends SQLiteModel {
     url,
     publishDate,
   ]);
-}
-
-class ArticleCollection {
-
-  List<Article> items = <Article>[];
-
-  ArticleCollection.fromJsonCollection(List<dynamic> json) {
-
-    for (var articleMap in json) {
-      final article = Article.fromMap(articleMap, usarNombresDeAPI: true);
-      items.add(article);
-    }
-  }
 }

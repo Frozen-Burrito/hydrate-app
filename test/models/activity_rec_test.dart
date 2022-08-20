@@ -74,7 +74,7 @@ void main() {
   });
 
   group("From y to Map", () {
-    test("toMap() retorna un mapa con todos los atributos de ActivityRecord", () {
+    test("ActivityRecord toMap() retorna un mapa con todos los atributos de ActivityRecord", () {
       // Arrange
       final activityRecord = ActivityRecord.uncommited();
 
@@ -91,7 +91,7 @@ void main() {
         "al_aire_libre": true,
         "es_rutina": false,
         "tipo_actividad": ActivityType.uncommited(),
-        "perfil": -1,
+        "id_perfil": -1,
       });
 
       // Act
@@ -102,7 +102,7 @@ void main() {
       expect(actualMap, expectedMap);
     });
 
-    test("toMap(), con useCamelCasePropNames = true, usa nombres en camelCase", () {
+    test("ActivityRecord.toMap(), con useCamelCasePropNames = true, usa nombres en camelCase", () {
       // Arrange
       final activityRecord = ActivityRecord.uncommited();
 
@@ -110,16 +110,16 @@ void main() {
       activityRecord.id = 0;
 
       final expectedMap = Map.unmodifiable(<String, Object?>{
+        "id": -1,
         "titulo": "",
         "fecha": activityRecord.date.toIso8601String(),
         "duracion": 0,
         "distancia": 0.0,
         "kilocaloriasQuemadas": 0,
-        "perfil": -1,
         "alAireLibre": true,
         "esRutina": false,
         "tipoActividad": ActivityType.uncommited(),
-        "id": -1,
+        "idPerfil": -1,
       });
 
       // Act
@@ -131,7 +131,7 @@ void main() {
       expect(actualMap.keys, expectedMap.keys);
     });
 
-    test("toMap(), con includeCompleteSubEntities = false, solo incluye el ID ActivityType", () {
+    test("ActivityRecord.toMap(), con includeCompleteSubEntities = false, solo incluye el ID ActivityType", () {
       // Arrange
       final activityRecord = ActivityRecord.uncommited();
 

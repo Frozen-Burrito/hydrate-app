@@ -169,17 +169,20 @@ class ActivityRecord extends SQLiteModel {
     // Se asume que el mapa de attributeNames contiene entradas para todos los 
     // atributos de baseAttributeNames, y que acceder con los atributos de 
     // baseAttributeNames nunca producirá null.
-    final Map<String, Object?> map = {
-      attributeNames[titlePropName]!: title, 
+    final Map<String, Object?> map = {};
+
+    // Solo incluir el ID de la entidad si es una entidad existente.
+    if (id >= 0) map[attributeNames[idPropName]!] = id;
+
+    map.addAll({attributeNames[titlePropName]!: title, 
       attributeNames[datePropName]!: date.toIso8601String(),
       attributeNames[durationPropName]!: duration,
       attributeNames[distancePropName]!: distance,
       attributeNames[kcalPropName]!: kiloCaloriesBurned,
-      attributeNames[profileIdPropName]!: profileId,
-    };
+    });
 
     if (options.useIntBooleanValues) {
-      // Los valors booleanos del mapa deben ser representados usando ints.
+      // Los valores booleanos del mapa deben ser representados usando ints.
       map[attributeNames[outdoorsPropName]!] = doneOutdoors ? 1 : 0;
       map[attributeNames[isRoutinePropName]!] = isRoutine ? 1 : 0;
     } else {
@@ -194,8 +197,7 @@ class ActivityRecord extends SQLiteModel {
       map[attributeNames[actTypeIdPropName]!] = activityType.id;
     }
 
-    // Solo incluir el ID de la entidad si es una entidad existente.
-    if (id >= 0) map[attributeNames[idPropName]!] = id;
+    map.addAll({attributeNames[profileIdPropName]!: profileId, });
 
     return Map.unmodifiable(map);
   }
