@@ -1,24 +1,27 @@
 import 'dart:math';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
-import 'package:provider/provider.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
-  final Future<List<Article>?> articleSource;
+  final Future<List<Article>?> articles;
 
-  final bool isBookmarks;
+  final ScrollController? scrollController;
+
+  final ArticleSource articleSource;
 
   const ArticleSliverList({ 
-    required this.articleSource, 
-    required this.isBookmarks,
+    required this.articles, 
+    required this.articleSource,
+    this.scrollController,
     Key? key 
-    }) : super(key: key);
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +34,7 @@ class ArticleSliverList extends StatelessWidget {
       child: Builder(
         builder: (context) {
           return CustomScrollView(
+            controller: scrollController,
             physics: const BouncingScrollPhysics(),
             slivers: <Widget> [
               SliverOverlapInjector(
@@ -39,10 +43,10 @@ class ArticleSliverList extends StatelessWidget {
               SliverPadding(
                 padding: const EdgeInsets.all(8.0),
                 sliver: FutureBuilder<List<Article>?>(
-                  future: articleSource,
+                  future: articles,
                   builder: (context, snapshot) {
 
-                    if (snapshot.hasData && snapshot.data != null) {
+                    if (snapshot.hasData) {
                       // El Future tiene datos.
                       if (snapshot.data!.isNotEmpty) {
                         // Retornar lista de articulos, si los hay.
@@ -57,7 +61,7 @@ class ArticleSliverList extends StatelessWidget {
                       } else {
                         // Mostrar contenido placeholder cuando no hay articulos.
                         return SliverDataPlaceholder(
-                          message: isBookmarks 
+                          message: articleSource == ArticleSource.bookmarks 
                             ? localizations.noBookmarks
                             : localizations.resourcesUnavailable,
                           icon: Icons.inbox,
@@ -67,7 +71,9 @@ class ArticleSliverList extends StatelessWidget {
                       // Mostrar contenido placeholder de error.
                       return SliverDataPlaceholder(
                         message: localizations.resourcesErr,
-                        icon: isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded,
+                        icon: (articleSource == ArticleSource.bookmarks) 
+                          ? Icons.folder_open 
+                          : Icons.cloud_off_rounded,
                       );
                     }
 
@@ -110,15 +116,17 @@ class _ArticleCard extends StatelessWidget {
 
     if (article.isBookmarked) {
       // Si está marcado, quitar marca.
-      bool wasBookmarkRemoved = await provider.removeArticle(article.id);
+      bool wasBookmarkRemoved = await provider.removeBookmark(article);
       snackMsg = wasBookmarkRemoved 
         ? localizations.resourceRemoved 
         : localizations.resourceNotRemoved;
 
     } else {
       // Si no está marcado, marcar y guardar el recurso informativo.
-      final id = await provider.bookmarkArticle(article);
-      snackMsg = id > -1 ? localizations.resourceAdded : localizations.resourceNotAdded;
+      final wasBookmarkCreated = await provider.bookmarkArticle(article);
+      snackMsg = wasBookmarkCreated 
+        ? localizations.resourceAdded 
+        : localizations.resourceNotAdded;
     }
 
     return SnackBar(
@@ -128,8 +136,6 @@ class _ArticleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final articleProvider = Provider.of<ArticleProvider>(context);
 
     final localizations = AppLocalizations.of(context)!;
 
@@ -146,8 +152,8 @@ class _ArticleCard extends StatelessWidget {
             visualDensity: VisualDensity.comfortable,
             minVerticalPadding: 16.0,
             title: GestureDetector(
-              onTap: article.url.startsWith('https')
-                ? () => UrlLauncher.launchUrlInBrowser(Uri.parse(article.url))
+              onTap: article.url != null
+                ? () => UrlLauncher.launchUrlInBrowser(article.url!)
                 : null,
               child: Text(
                 article.title, 
@@ -163,14 +169,18 @@ class _ArticleCard extends StatelessWidget {
                 )
               ),
             ),
-            trailing: IconButton(
-              icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
-              color: article.isBookmarked ? Colors.blue : Colors.grey,
-              onPressed: () async {
-                final snackBar = await addOrRemoveBookmark(context, articleProvider);
-                ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(snackBar);
-              },
+            trailing: Consumer<ArticleProvider>(
+              builder: (_, articleProvider, __) {
+                return IconButton(
+                  icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
+                  color: article.isBookmarked ? Colors.blue : Colors.grey,
+                  onPressed: () async {
+                    final snackBar = await addOrRemoveBookmark(context, articleProvider);
+                    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                  },
+                );
+              }
             ),
           ),
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
@@ -64,12 +66,19 @@ class Article extends SQLiteModel {
       ? 'fechaPublicacion' 
       : publishDateFieldName;
 
+
+    final trimmedDateString = (map[campoFechaPub] is String) 
+      ? map[campoFechaPub].toString().trim()
+      : '';
+
+    final int maxDateStrLength = min(trimmedDateString.length, 27);
+
     return Article(
       id: (map[idFieldName] is int ? map[idFieldName] as int : -1),
       title: map[titleFieldName].toString(),
       description: map[descriptionFieldName].toString(),
       articleUrl: map[urlFieldName].toString(),
-      publishDate: DateTime.tryParse(map[campoFechaPub] is String ? map[campoFechaPub].toString(): ''),
+      publishDate: DateTime.tryParse(trimmedDateString.substring(0, maxDateStrLength)),
       isBookmarked: false
     );
   }
@@ -98,7 +107,7 @@ class Article extends SQLiteModel {
 
     map.addAll({
       attributeNames[titleFieldName]!: title, 
-      attributeNames[urlFieldName]!: url,
+      attributeNames[urlFieldName]!: url.toString(),
       attributeNames[descriptionFieldName]!: description,
       attributeNames[campoFechaPub]!: publishDate?.toIso8601String() ?? '',
     });

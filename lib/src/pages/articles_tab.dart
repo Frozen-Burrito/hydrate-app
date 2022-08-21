@@ -53,12 +53,13 @@ class ArticlesTab extends StatelessWidget {
                 physics: const BouncingScrollPhysics(),
                 children: <Widget> [
                   ArticleSliverList(
-                    articleSource: articleProvider.allArticles,
-                    isBookmarks: false,
+                    articles: Future.value(articleProvider.allArticles),
+                    scrollController: articleProvider.scrollController,
+                    articleSource: ArticleSource.network,
                   ),
                   ArticleSliverList(
-                    articleSource: articleProvider.bookmarks, 
-                    isBookmarks: true,
+                    articles: articleProvider.bookmarks, 
+                    articleSource: ArticleSource.bookmarks,
                   ),
                 ]
               );

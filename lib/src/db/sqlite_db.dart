@@ -389,12 +389,10 @@ class SQLiteDB {
     final isInsertOp = (insertedId != null);
 
     /// El número de filas modificadas.
-    int totalRowsAltered = 0;
+    int totalRowsAltered = 0; 
 
-    if (isInsertOp) {
-      // Es una inserción, usar el id de la entidad original insertada.
-      mappedEntity['id'] = insertedId;
-    }
+    // Es una inserción, usar el id de la entidad original insertada.
+    final int entityId = isInsertOp ? insertedId! : mappedEntity["id"] as int;
 
     /// Mapa con todas las inserciones colaterales que deben realizarse.
     Map<String, List<int>> secondaryInsertions = {};
@@ -424,7 +422,7 @@ class SQLiteDB {
           ? await db.query(
             mtmTable,
             where: 'id_${entity.table} = ?',
-            whereArgs: [ mappedEntity['id'] ]
+            whereArgs: [ entityId ]
           )
           : <Map<String, Object?>>[];
 
@@ -503,11 +501,11 @@ class SQLiteDB {
     final requiresMtmOperations = secondaryInsertions.isNotEmpty 
       || secondaryDeletions.isNotEmpty;
 
-    if (mappedEntity['id'] is int && requiresMtmOperations) {
+    if (entityId >= 0 && requiresMtmOperations) {
       // Hacer las operaciones necesarias en tablas muchos-a-muchos.
       totalRowsAltered += await _modifyManyToMany(
         entity.table, 
-        mappedEntity['id'] as int,
+        entityId,
         otherInsertedRowIds: secondaryInsertions,
         otherDeletedRowIds: secondaryDeletions,
       );
