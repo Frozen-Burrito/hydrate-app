@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
@@ -42,6 +43,33 @@ void main() {
   });
 
   group("Article as an SQLiteModel instance", () {
+    test('Article.fromMap() creates an equivalent Article from a correct map representation', () {
+      // Arrange
+      final DateTime now = DateTime.now();
+
+      final Map<String, Object?> sourceMap = <String, Object?>{
+        Article.idFieldName: 0,
+        Article.titleFieldName: "A test Article",
+        Article.urlFieldName: Uri.parse("https://article.com").toString(),
+        Article.descriptionFieldName: "A test description.",
+        Article.publishDateFieldName: now.toIso8601String(),
+      };
+
+      final expectedArticle = Article(
+        id: 0,
+        title: "A test Article",
+        articleUrl: "https://article.com",
+        description: "A test description.",
+        publishDate: now,
+      );
+
+      // Act
+      final result = Article.fromMap(sourceMap);
+
+      // Assert
+      expect(result, expectedArticle);
+    });
+
     test('Article.toMap() creates an equivalent map representation of the Article', () {
       // Arrange
       const articleId = 1;
@@ -61,7 +89,7 @@ void main() {
       final expectedMap = <String, dynamic>{
         Article.idFieldName: articleId,
         Article.titleFieldName: title,
-        Article.urlFieldName: Uri.parse(url),
+        Article.urlFieldName: Uri.parse(url).toString(),
         Article.descriptionFieldName: description,
         Article.publishDateFieldName: now.toIso8601String()
       };
@@ -85,6 +113,28 @@ void main() {
 
       // Assert
       expect(publishDateStr, expectedDateStr);
+    });
+
+    test('Invoking Article.fromMap(map) and then Article.toMap() produces a map equivalent to the original map', () {
+      // Arrange
+      final nowAsString = DateTime.now().toIso8601String();
+      final Map<String, Object?> expectedMap = <String, Object?>{
+        Article.idFieldName: 0,
+        Article.titleFieldName: "A test Article",
+        Article.urlFieldName: Uri.parse("https://article.com").toString(),
+        Article.descriptionFieldName: "A test description.",
+        Article.publishDateFieldName: nowAsString,
+      };
+
+      // 2016-05-26T00:00:00.0000000
+      // 2022-08-21T13:13:00.551059
+
+      // Act
+      final article = Article.fromMap(expectedMap);
+      final result = article.toMap();
+
+      // Assert
+      expect(mapEquals(expectedMap, result), isTrue);
     });
 
     test("Article's table name is consistent between Article.tableName and Article().table", () {
