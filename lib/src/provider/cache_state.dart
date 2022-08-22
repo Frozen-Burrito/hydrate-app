@@ -22,6 +22,7 @@ class CacheState<T> {
     bool isLoading = false,
     T? initialData,
     void Function(T?)? onDataRefreshed,
+    T? Function(T? oldData, T? newData)? dataUpdateHandler,
     Duration? maxDataAge,
     Error? error,
   }) 
@@ -30,6 +31,7 @@ class CacheState<T> {
       _alreadyLoading = isLoading,
       _shouldRefresh = initialData == null,
       _onDataRefreshed = onDataRefreshed,
+      _dataUpdateHandler = dataUpdateHandler,
       _lastFetchTimestamp = DateTime.now(),
       _maxAge = maxDataAge;
 
@@ -59,6 +61,8 @@ class CacheState<T> {
   Future<T> Function() _fetchData;
   // Callback invocado cuando _fetchData() produce un valor, sin error.
   void Function(T?)? _onDataRefreshed;
+  // Un callback que controla la integración de nuevos datos con _data.
+  T? Function(T?, T?)? _dataUpdateHandler;
 
   // Es true si se le indicó a este CacheState que debe actualizar sus datos.
   bool _shouldRefresh;
@@ -69,6 +73,8 @@ class CacheState<T> {
 
   /// Es __true__ si ya está en proceso de actualizar sus datos.
   bool get isLoading => _alreadyLoading;
+
+  T? get cachedData => _data;
 
   /// Es __true__ si hay datos que no sean nulos.
   bool get hasData => _data != null;
@@ -117,7 +123,11 @@ class CacheState<T> {
       _alreadyLoading = true;
 
       // Obtener los datos.
-      _data = await _fetchData();
+      final T newData = await _fetchData();
+
+      final updateHandler = _dataUpdateHandler ?? _defaultDataUpdateHandler;
+
+      _data = updateHandler(_data, newData);
 
       // Actualizar la información de estado de los datos.
       _lastFetchTimestamp = DateTime.now();
@@ -134,5 +144,9 @@ class CacheState<T> {
   /// Le indica a este [CacheState<T>] que debería actualizar sus datos internos.
   void shouldRefresh() {
     _shouldRefresh = true;
+  }
+
+  T? _defaultDataUpdateHandler(T? _, T? newData) {
+    return newData;
   }
 }
