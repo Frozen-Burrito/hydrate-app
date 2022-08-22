@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:hydrate_app/src/api/api.dart';
@@ -6,9 +5,10 @@ import 'package:hydrate_app/src/api/paged_result.dart';
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 
+//TODO: Documentación
 class ArticlesApi {
 
-  static const int defaultArticlesPerPage = 20;
+  static const int defaultArticlesPerPage = 5;
 
   static final _apiClient = ApiClient();
 
@@ -59,6 +59,8 @@ class ArticlesApi {
     return Future.error(Exception("Something went wrong"));
   }
 
+  /// Cierra el cliente HTTP usado para realizar peticiones a la API de 
+  /// recursos informativos.
   void dispose() {
     _apiClient.close();
   }

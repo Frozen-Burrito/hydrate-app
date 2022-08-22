@@ -19,52 +19,61 @@ class ArticlesTab extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => ArticleProvider(),
       child: DefaultTabController(
-        length: 2,
-        child: NestedScrollView(
-          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-            return <Widget> [
-              SliverOverlapAbsorber(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                sliver: CustomSliverAppBar(
-                  title: localizations.resources,
-                  bottom: TabBar(
-                    indicatorColor: Theme.of(context).colorScheme.primary,
-                    tabs: <Tab> [
-                      Tab(
-                        child: Text(localizations.discover, 
-                        style: Theme.of(context).textTheme.bodyText1, )
+        length: ArticleProvider.articleTabsLength,
+        child: Consumer<ArticleProvider>(
+          builder: (innerContext, articleProvider, __) {
+
+            final tabController = DefaultTabController.of(innerContext)!;
+
+            tabController.addListener(() {
+              if (!tabController.indexIsChanging) {
+                print("Tab index changed to: ${tabController.index}");
+                articleProvider.currentTabIndex = tabController.index;
+              }
+            });
+
+            return NestedScrollView(
+              physics: const BouncingScrollPhysics(),
+              controller: articleProvider.scrollController,
+              headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+                return <Widget> [
+                  SliverOverlapAbsorber(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                    sliver: CustomSliverAppBar(
+                      title: localizations.resources,
+                      bottom: TabBar(
+                        indicatorColor: Theme.of(context).colorScheme.primary,
+                        tabs: <Tab> [
+                          Tab(
+                            child: Text(localizations.discover, 
+                            style: Theme.of(context).textTheme.bodyText1, )
+                          ),
+                          Tab(
+                            child: Text(localizations.bookmarks, 
+                            style: Theme.of(context).textTheme.bodyText1, )
+                          ),
+                        ],
                       ),
-                      Tab(
-                        child: Text(localizations.bookmarks, 
-                        style: Theme.of(context).textTheme.bodyText1, )
-                      ),
-                    ],
+                      actions: const <Widget>[
+                        AuthOptionsMenu(),
+                      ],
+                    ),
                   ),
-                  actions: const <Widget>[
-                    AuthOptionsMenu(),
-                  ],
-                ),
-              ),
-            ];
-          },
-          body: Consumer<ArticleProvider>(
-            builder: (_, articleProvider, __) {
-              return TabBarView(
-                physics: const BouncingScrollPhysics(),
+                ];
+              },
+              body: const TabBarView(
+                physics: BouncingScrollPhysics(),
                 children: <Widget> [
                   ArticleSliverList(
-                    articles: Future.value(articleProvider.allArticles),
-                    scrollController: articleProvider.scrollController,
                     articleSource: ArticleSource.network,
                   ),
                   ArticleSliverList(
-                    articles: articleProvider.bookmarks, 
                     articleSource: ArticleSource.bookmarks,
                   ),
                 ]
-              );
-            },
-          ),
+              ),
+            );
+          }
         ),
       ),
     );

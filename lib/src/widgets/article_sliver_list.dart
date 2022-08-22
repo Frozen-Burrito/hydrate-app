@@ -6,84 +6,75 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/provider/article_provider.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
-import 'package:hydrate_app/src/widgets/data_placeholder.dart';
+import 'package:hydrate_app/src/widgets/floating_progress_indicator.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
-  final Future<List<Article>?> articles;
-
-  final ScrollController? scrollController;
-
-  final ArticleSource articleSource;
-
   const ArticleSliverList({ 
-    required this.articles, 
     required this.articleSource,
-    this.scrollController,
     Key? key 
   }) : super(key: key);
+
+  /// Define la fuente de los artículos mostrados en esta lista. Puede tener
+  /// los siguientes valores:
+  /// 
+  /// - [ArticleSource.bookmarks] Los artículos mostrados son aquellos 
+  /// marcados y guardados localmente.
+  /// - [ArticleSource.network] Los artículos mostrados son los obtenidos
+  /// desde la API web de recursos informativos.
+  final ArticleSource articleSource;
 
   @override
   Widget build(BuildContext context) {
 
-    final localizations = AppLocalizations.of(context)!;
-
     return SafeArea(
       top: false,
       bottom: false,
-      child: Builder(
-        builder: (context) {
-          return CustomScrollView(
-            controller: scrollController,
-            physics: const BouncingScrollPhysics(),
-            slivers: <Widget> [
-              SliverOverlapInjector(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(8.0),
-                sliver: FutureBuilder<List<Article>?>(
-                  future: articles,
-                  builder: (context, snapshot) {
+      child: Consumer<ArticleProvider>(
+        builder: (_, articleProvider, __) {
 
-                    if (snapshot.hasData) {
-                      // El Future tiene datos.
-                      if (snapshot.data!.isNotEmpty) {
-                        // Retornar lista de articulos, si los hay.
-                        return SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (BuildContext context, int i) {
-                              return _ArticleCard(article: snapshot.data![i]);
-                            },
-                            childCount: snapshot.data!.length
-                          ),
-                        );
-                      } else {
-                        // Mostrar contenido placeholder cuando no hay articulos.
-                        return SliverDataPlaceholder(
-                          message: articleSource == ArticleSource.bookmarks 
-                            ? localizations.noBookmarks
-                            : localizations.resourcesUnavailable,
-                          icon: Icons.inbox,
-                        );
-                      }
-                    } else if (snapshot.hasError) {
-                      // Mostrar contenido placeholder de error.
-                      return SliverDataPlaceholder(
-                        message: localizations.resourcesErr,
-                        icon: (articleSource == ArticleSource.bookmarks) 
-                          ? Icons.folder_open 
-                          : Icons.cloud_off_rounded,
-                      );
-                    }
+          final articles = articleSource == ArticleSource.network
+            ? articleProvider.allArticles
+            : articleProvider.bookmarks;
 
-                    return const SliverDataPlaceholder(
-                      isLoading: true,
-                    );
-                  }
-                )
+          final isLoading = articleSource == ArticleSource.network
+            ? articleProvider.isFetchingAllArticles
+            : articleProvider.isFetchingBookmarks;
+
+          return Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: <Widget> [
+                  SliverOverlapInjector(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(8.0),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int i) {
+                          return _ArticleCard(
+                            article: articles[i],
+                          );
+                        },
+                        childCount: articles.length
+                      ),
+                    ),
+                  ),
+                ]
               ),
-            ]
+
+              if (isLoading) 
+              Positioned(
+                bottom: 32.0,
+                left: MediaQuery.of(context).size.width * 0.5 - 16.0,
+                child: const FloatingProgressIndicator(
+                  width: 32.0,
+                  height: 32.0,
+                ),
+              ),
+            ],
           );
         }
       ),
@@ -147,6 +138,7 @@ class _ArticleCard extends StatelessWidget {
 
     return Card(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
             visualDensity: VisualDensity.comfortable,
@@ -189,7 +181,8 @@ class _ArticleCard extends StatelessWidget {
             child: Text(
               article.description ?? '', 
               style: Theme.of(context).textTheme.bodyText2,
-              textAlign: TextAlign.start, 
+              textAlign: TextAlign.start,
+              overflow: TextOverflow.ellipsis, 
               maxLines: 3,
             ),
           ),
