@@ -116,6 +116,23 @@ class Article extends SQLiteModel {
   }
 
   @override
+  String toString() {
+
+    final strBuf = StringBuffer("Article: {");
+
+    strBuf.writeAll(["id: ", id, ", "]);
+    strBuf.writeAll(["title: ", title, ", "]);
+    strBuf.writeAll(["url: ", url, ", "]);
+    strBuf.writeAll(["date: ", publishDate, ", "]);
+    strBuf.writeAll(["description: ", description, ", "]);
+    strBuf.writeAll(["isBookmarked: ", isBookmarked]);
+
+    strBuf.write("}");
+
+    return strBuf.toString();
+  }
+
+  @override
   bool operator==(covariant Article other) {
 
     final areIdsEqual = id == other.id;

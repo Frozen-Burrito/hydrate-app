@@ -162,6 +162,18 @@ void main() {
       expect(articleAsString.isNotEmpty, isTrue);
     });
 
+    test("Article.toString() does not return the default string representation of the object", () {
+      // Arrange
+      const defaultStrValue = "Instance of 'Article'";
+      final article = Article();
+
+      // Act
+      final articleAsString = article.toString();
+
+      // Assert
+      expect(articleAsString, isNot(defaultStrValue));
+    });
+
     test("Article == operator implementation is reflexive", () {
       // Arrange
       final a = Article();
