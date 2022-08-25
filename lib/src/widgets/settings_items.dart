@@ -62,7 +62,7 @@ class _SettingsItemsState extends State<SettingsItems> {
     bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
     bool hasDataContributionChanged = _originalContributeData != _shouldContributeData;
     bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
-    bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
+    bool hasWeeklyFormsChanged = _originalWeeklyForms != _weeklyForms;
 
     bool settingsChanged = hasThemeChanged || hasDataContributionChanged || hasNotificationsChanged || hasWeeklyFormsChanged;
 
@@ -95,7 +95,7 @@ class _SettingsItemsState extends State<SettingsItems> {
     bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
     bool hasDataContributionChanged = _originalContributeData != _shouldContributeData;
     bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
-    bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
+    bool hasWeeklyFormsChanged = _originalWeeklyForms != _weeklyForms;
 
     if (hasThemeChanged) {
       widget.settingsProvider.appThemeMode = _selectedThemeMode;
