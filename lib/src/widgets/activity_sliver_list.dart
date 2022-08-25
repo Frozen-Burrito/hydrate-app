@@ -32,6 +32,7 @@ class ActivitySliverList extends StatelessWidget {
                     child: WeekTotalsChart(
                       dailyTotals: provider.prevWeekKcalTotals,
                       yUnit: 'kCal',
+                      maxYValue: 3000.0,
                     ),
                   ),
 

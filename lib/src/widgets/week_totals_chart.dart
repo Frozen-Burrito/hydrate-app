@@ -5,18 +5,20 @@ import 'package:flutter/material.dart';
 
 class WeekTotalsChart extends StatelessWidget {
 
-  final Future<List<int>> dailyTotals;
-
-  final String? encabezado;
-
-  final String yUnit;
-
   const WeekTotalsChart({ 
     required this.dailyTotals, 
     this.encabezado,
     this.yUnit = "",
+    this.maxYValue,
     Key? key 
   }) : super(key: key);
+
+  final Future<List<int>> dailyTotals;
+
+  final String? encabezado;
+
+  final double? maxYValue;
+  final String yUnit;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +42,7 @@ class WeekTotalsChart extends StatelessWidget {
           height: 240.0,
           child: FutureBuilder<List<int>>(
             future: dailyTotals,
-            initialData: UnmodifiableListView(List.generate(7, (_) => 0)),
+            initialData: UnmodifiableListView(List.generate(7, (_) => 130)),
             builder: (context, snapshot) {
 
               if (snapshot.hasError) {
@@ -65,6 +67,7 @@ class WeekTotalsChart extends StatelessWidget {
 
                 return _BarChart(
                   yUnitsLabel: yUnit,
+                  maxY: maxYValue,
                   dataPoints: dataPoints!
                 );
               }
@@ -84,10 +87,12 @@ class _BarChart extends StatelessWidget {
     Key? key,
     required this.dataPoints,
     this.yUnitsLabel = '',
+    this.maxY = 1000,
   }) : super(key: key);
 
   final List<int> dataPoints;
 
+  final double? maxY;
   final String yUnitsLabel;
 
   //TODO: Agregar i18n para abreviaciones de dias.
@@ -110,7 +115,7 @@ class _BarChart extends StatelessWidget {
 
     return BarChart(
       BarChartData(
-        maxY: 3000, // Maximo 3000 de yUnit.
+        maxY: maxY,
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles( showTitles: false )
