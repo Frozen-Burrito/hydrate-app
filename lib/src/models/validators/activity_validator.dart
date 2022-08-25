@@ -62,6 +62,30 @@ class ActivityValidator {
     return value;
   }
 
+  static double? _tryParseInputAsDouble({
+    Object? inputValue,
+    int indexInString = -1,
+  }) 
+  {
+    double? value;
+
+    if (inputValue is double) {
+      // El valor de entrada ya es un double.
+      value = inputValue;
+    } else if (inputValue is String) {
+      // Intentar interpretar el valor de entrada, que es un String, 
+      // como un número double. Puede que sea necesario subdividir el 
+      // String.
+      String inputAsString = indexInString > -1
+        ? inputValue.split(" ")[indexInString] 
+        : inputValue;
+
+      value = double.tryParse(inputAsString);
+    } 
+
+    return value;
+  }
+
   static NumericInputError validateRange(int value, { required Range range }) {
 
     final rangeComparison = range.compareTo(value);
@@ -110,20 +134,22 @@ class ActivityValidator {
   /// puede ser convertida en uno, y si su valor está incluido en 
   /// [distanceInMetersRange].
   /// 
-  /// NOTA: la distancia siempre será tratada como un valor entero, en metros.
+  /// NOTA: la distancia siempre es recibida como un valor con hasta dos 
+  /// posiciones decimales, en kilómetros. Para validarla en metros, se 
+  /// multiplica por 1000 y se convierte en un entero.
   NumericInputError validateDistanceInMeters(Object? inputValue, { bool includesUnits = false }) {
-    // Intentar convertir a un valor entero.
-    int? distanceInMeters = _tryParseInputAsInt(
+    // Intentar convertir a un valor decimal, que represente kilometros.
+    double? distanceInKm = _tryParseInputAsDouble(
       inputValue: inputValue,
       indexInString: includesUnits ? 0 : -1,
     );
 
     var distanceError = NumericInputError.none;
 
-    if (distanceInMeters != null) {
+    if (distanceInKm != null) {
       // Validar el rango de la distancia del input.
       distanceError = validateRange(
-        distanceInMeters,
+        (distanceInKm * 1000).toInt(),
         range: distanceInMetersRange,
       );
 
@@ -160,7 +186,7 @@ class ActivityValidator {
         range: durationInMinutesRange,
       );
 
-    } else {
+    } else if ((inputValue is! String) || (inputValue.trim().isNotEmpty)) {
       durationError = NumericInputError.isNaN;
     }
 

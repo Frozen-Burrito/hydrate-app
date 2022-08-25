@@ -36,7 +36,7 @@ class SettingsProvider with ChangeNotifier {
     _sharedPreferences = await SharedPreferences.getInstance();
   }
 
-  final String versionName = "1.0.0-beta+1";
+  final String versionName = "1.0.0-beta+2";
 
   // SharedPreferences Get/Set
 

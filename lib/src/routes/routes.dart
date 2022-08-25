@@ -34,11 +34,11 @@ class Routes {
       formWidget: CreateGoalForm(),
       shapeDecoration: WaveShape(),
     ),
-    RouteNames.newActivity: (context) => CommonFormPage(
+    RouteNames.newActivity: (context) => const CommonFormPage(
       formTitle: 'Registra una Actividad', 
       formLabel: 'Escribe los detalles de la actividad física realizada.', 
-      formWidget: NewActivityForm(_currentProfileId),
-      shapeDecoration: const WaveShape(),
+      formWidget: NewActivityForm(),
+      shapeDecoration: WaveShape(),
     ),
 
     RouteNames.initialForm: (BuildContext context) => CommonFormPage(

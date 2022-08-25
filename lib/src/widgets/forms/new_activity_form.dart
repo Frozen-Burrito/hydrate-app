@@ -4,34 +4,32 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
 import 'package:hydrate_app/src/models/validators/activity_validator.dart';
-import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
-import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
-import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
+import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
 
 class NewActivityForm extends StatelessWidget {
 
-  const NewActivityForm(this.currentProfileId, { Key? key }) : super(key: key);
-
-  final int currentProfileId;
+  const NewActivityForm({ Key? key }) : super(key: key);
 
   /// Agrega un registro para [newActivity], asociado con el perfil de usuario 
   /// activo. Si es exitoso, redirige la app a [redirectRoute].
   void _saveActivityRecord(BuildContext context, ActivityRecord newActivity, {String? redirectRoute}) async {
-    
-    // Asociar el perfil del usuario actual con la nueva meta.
-    newActivity.profileId = currentProfileId;
 
     // Obtener instancias de providers, usando el context.
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
 
     final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+
+    // Asociar el perfil del usuario actual con la nueva meta.
+    newActivity.profileId = profileProvider.profileId;
 
     if (newActivity.activityType.id < 0) {
       final activityTypes = await activityProvider.activityTypes;
@@ -41,7 +39,6 @@ class NewActivityForm extends StatelessWidget {
 
         newActivity.activityType = activityTypes[actTypeIndex];
       }
-
     }
 
     assert(newActivity.activityType.id >= 0);
@@ -91,7 +88,7 @@ class NewActivityForm extends StatelessWidget {
           uniqueRoutineDays,
           activityId: baseActivity.id,
           timeOfDay: baseActivity.date.onlyTime, 
-          profileId: currentProfileId
+          profileId: profileProvider.profileId
         );
         
         resultadoDeSave = await activityProvider.createRoutine(newRoutine);
@@ -287,17 +284,23 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
   }
 
   String? _validateDuration(ValidationMessageBuilder messageBuilder, String? input) {
-    final durationError = ActivityRecord.validator.validateDurationInMinutes(input);
+    final durationError = ActivityRecord.validator
+      .validateDurationInMinutes(input, includesUnits: input?.split(" ").length == 2);
+
     return messageBuilder.forActivityDuration(durationError);
   }
 
   String? _validateDistance(ValidationMessageBuilder messageBuilder, String? input) {
-    final distanceError = ActivityRecord.validator.validateDistanceInMeters(input);
+    final distanceError = ActivityRecord.validator
+      .validateDistanceInMeters(input, includesUnits: input?.split(" ").length == 2);
+
     return messageBuilder.forActivityDistance(distanceError);
   }
 
   String? _validateKilocalories(ValidationMessageBuilder messageBuilder, String? input) {
-    final kCalsError = ActivityRecord.validator.validateKcalConsumed(input);
+    final kCalsError = ActivityRecord.validator
+      .validateKcalConsumed(input, includesUnits: input?.split(" ").length == 2);
+
     return messageBuilder.forActivityKcals(kCalsError);
   }
 

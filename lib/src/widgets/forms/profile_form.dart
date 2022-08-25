@@ -229,8 +229,9 @@ class _ProfileFormState extends State<ProfileForm> {
         
           const SizedBox( height: 16.0, ),
 
-          (widget.isModifyingExistingProfile)
-          ? DropdownButtonFormField(
+          (widget.isModifyingExistingProfile
+            ? const SizedBox( height: 0.0, )
+            : DropdownButtonFormField(
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
                 labelText: localizations.occupation,
@@ -245,7 +246,7 @@ class _ProfileFormState extends State<ProfileForm> {
                   }
                 : null,
             )
-          : const SizedBox( height: 0.0 ),
+          ),
 
           const SizedBox( height: 16.0, ),
 

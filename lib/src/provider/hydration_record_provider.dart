@@ -215,16 +215,16 @@ class HydrationRecordProvider extends ChangeNotifier {
     final List<int> recentTotals = List.filled(numberOfDays, 0, growable: false);
 
     // Obtener registros de hidratación, ordenados por día.
-    final hydrationPerDay = await dailyHidration; 
+    await _hydrationRecordsCache.data;
 
     for (int i = 0; i < numberOfDays; i++) {
 
       final DateTime previousDay = startDate.subtract(Duration( days: i));
 
-      if (hydrationPerDay[previousDay] != null) {
+      if (_dailyHydration[previousDay] != null) {
         // Existen registros de hidratación para el día. 
         // Obtener las cantidades de los registros de hidratacion y agregarlas. 
-        int totalMililiters = hydrationPerDay[previousDay]!
+        int totalMililiters = _dailyHydration[previousDay]!
             .map((registroHidratacion) => registroHidratacion.amount)
             .reduce((total, cantidadConsumida) => total += cantidadConsumida);
 
