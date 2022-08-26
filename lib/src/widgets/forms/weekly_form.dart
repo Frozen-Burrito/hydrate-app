@@ -26,7 +26,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
     // Asegurar que el Form está en un estado válido.
     if (_formKey.currentState!.validate()) {
 
-      final saveReport = Provider.of<GoalProvider>(context).saveWeeklyReport;
+      final saveReport = Provider.of<GoalProvider>(context, listen: false).saveWeeklyReport;
 
       int resultado = await saveReport(_userHabits);
 

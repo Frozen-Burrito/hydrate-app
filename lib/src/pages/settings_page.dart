@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
@@ -15,9 +15,6 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final settingsProvider = Provider.of<SettingsProvider>(context);
-    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
 
     final localizations = AppLocalizations.of(context)!;
     
@@ -69,32 +66,42 @@ class SettingsPage extends StatelessWidget {
               )
             ),
 
-            FutureBuilder<List<HydrationRecord>?>(
-              future: hydrationProvider.allRecords,
-              initialData: const [],
-              builder: (context, snapshot) {
+            Consumer<HydrationRecordProvider>(
+              builder: (_, hydrationProvider, __) {
+                return FutureBuilder<List<HydrationRecord>?>(
+                  future: hydrationProvider.allRecords,
+                  initialData: const [],
+                  builder: (context, snapshot) {
 
-                String lastBatteryUpdate = 'Nunca'; //TODO: Localizacion de 'nunca'
+                    String lastBatteryUpdate = 'Nunca'; //TODO: Localizacion de 'nunca'
 
-                if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
-                  // Determinar actualización más reciente de nivel de batería.
-                  lastBatteryUpdate = snapshot.data!.first.date.toString().substring(0,16);
-                } 
+                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                      // Determinar actualización más reciente de nivel de batería.
+                      lastBatteryUpdate = snapshot.data!.first.date.toString().substring(0,16);
+                    } 
 
-                return SliverToBoxAdapter(
-                  child: Container(
-                    margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
-                    child: Text(
-                      '${localizations.lastUpdate}: $lastBatteryUpdate', 
-                      style: Theme.of(context).textTheme.bodyText2,
-                    ),
-                  ),
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
+                        child: Text(
+                          '${localizations.lastUpdate}: $lastBatteryUpdate', 
+                          style: Theme.of(context).textTheme.bodyText2,
+                        ),
+                      ),
+                    );
+                  }
                 );
               }
             ),
 
             SliverToBoxAdapter(
-              child: SettingsItems(settingsProvider)
+              child: Consumer<SettingsProvider>(
+                builder: (_, settingsProvider, __) {
+                  return SettingsItems(
+                    currentSettings: settingsProvider.currentSettings,
+                  );
+                }
+              )
             ),
           ], 
         ),
@@ -169,82 +176,77 @@ class _BatteryUsageChart extends StatelessWidget {
       height: 300.0,
       child: FutureBuilder<List<HydrationRecord>?>(
         future: hydrationProvider.allRecords,
+        initialData: List.unmodifiable(<HydrationRecord>[]),
         builder: (context, snapshot) {
 
-          if (snapshot.hasData && snapshot.data != null) {
+          final now = DateTime.now();
+          final records = snapshot.data ?? List.unmodifiable(<HydrationRecord>[]);
 
-            final now = DateTime.now();
-
-            return LineChart(
-              LineChartData(
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: _getBatteryUsageSpots(snapshot.data!, now),
-                    color: Colors.yellow.shade300,
-                    isCurved: false,
-                    barWidth: 2,
-                    belowBarData: BarAreaData(
-                      show: false,
-                    ),
-                    dotData: FlDotData(show: false)
-                  )
-                ],
-                minY: 0.0,
-                maxY: 100.0,
-                minX: 0.0,
-                maxX: 24.0,
-                titlesData: FlTitlesData(
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles( showTitles: false )
+          return LineChart(
+            LineChartData(
+              lineBarsData: [
+                LineChartBarData(
+                  spots: _getBatteryUsageSpots(records, now),
+                  color: Colors.yellow.shade300,
+                  isCurved: false,
+                  barWidth: 2,
+                  belowBarData: BarAreaData(
+                    show: false,
                   ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles( showTitles: false )
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles( showTitles: false )
-                  ),
-                  bottomTitles: AxisTitles( 
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 4,
-                      reservedSize: 30,
-                      getTitlesWidget: (double value, TitleMeta? _) {
+                  dotData: FlDotData(show: false)
+                )
+              ],
+              minY: 0.0,
+              maxY: 100.0,
+              minX: 0.0,
+              maxX: 24.0,
+              titlesData: FlTitlesData(
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles( showTitles: false )
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles( showTitles: false )
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles( showTitles: false )
+                ),
+                bottomTitles: AxisTitles( 
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 4,
+                    reservedSize: 30,
+                    getTitlesWidget: (double value, TitleMeta? _) {
 
-                        String titleContent = '';
+                      String titleContent = '';
 
-                        if (value > 0.0 && value < 24.0) {
+                      if (value > 0.0 && value < 24.0) {
 
-                          DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
-                          // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
+                        DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
+                        // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
 
-                          titleContent = '${labelDate.toString().substring(11,14)}00';
-                        }
-
-                        return Text(
-                          titleContent,
-                          style: Theme.of(context).textTheme.bodyText2,
-                        );
+                        titleContent = '${labelDate.toString().substring(11,14)}00';
                       }
-                    ),
+
+                      return Text(
+                        titleContent,
+                        style: Theme.of(context).textTheme.bodyText2,
+                      );
+                    }
                   ),
                 ),
-                gridData: FlGridData(
-                  show: true,
-                  drawHorizontalLine: true,
-                  drawVerticalLine: true,
-                  horizontalInterval: 4,
-                  verticalInterval: 10,
-                  checkToShowHorizontalLine: (x) => x.toInt() % 10 == 0,
-                  checkToShowVerticalLine: (y) => y.toInt() == 0,
-                ),
-                borderData: FlBorderData( show: false, ),
-              )
-            );
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+              ),
+              gridData: FlGridData(
+                show: true,
+                drawHorizontalLine: true,
+                drawVerticalLine: true,
+                horizontalInterval: 4,
+                verticalInterval: 10,
+                checkToShowHorizontalLine: (x) => x.toInt() % 10 == 0,
+                checkToShowVerticalLine: (y) => y.toInt() == 0,
+              ),
+              borderData: FlBorderData( show: false, ),
+            )
+          );
         },
       )
     );

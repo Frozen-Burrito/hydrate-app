@@ -1,26 +1,10 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Describe las notificaciones enviadas por la app.
-enum NotificationSettings {
-  /// Las notificaciones están desactivadas. La app no enviará ninguna notificación.
-  disabled,
-
-  /// La app enviará notificaciones sobre las metas del usuario. 
-  goals,
-
-  /// La app enviará notificaciones con el nivel de batería de la botella.
-  battery,
-
-  /// La app enviará notificaciones con recordatorios de actividad y rutinas.
-  activity,
-
-  /// La app enviará notificaciones de metas y de nivel de batería.
-  all
-}
+import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
+import 'package:hydrate_app/src/models/enums/notification_types.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
 class SettingsProvider with ChangeNotifier {
@@ -38,16 +22,33 @@ class SettingsProvider with ChangeNotifier {
 
   final String versionName = "1.0.0-beta+2";
 
+  Settings get currentSettings => Settings(
+    appThemeMode,
+    notificationSettings,
+    isSharingData,
+    areWeeklyFormsEnabled,
+  );
+
   // SharedPreferences Get/Set
+
+  static const String appThemeModeKey = "tema";
+  static const String contributeDataKey = "aportarDatos";
+  static const String weeklyFormsEnabledKey = "formRecurrentes";
+  static const String allowedNotificationsKey = "notificaciones";
+  static const String localeCodeKey = "codigoFormato";
+  static const String deviceIdKey = "idDispositivo";
+  static const String authTokenKey = "jwt";
+  static const String currentProfileIdKey = "perfil_actual";
+  static const String appStartupCountKey = "inicios_app";
 
   /// Obtiene el [ThemeMode] de la app desde Shared Preferences.
   /// 
   /// Retorna [ThemeMode.system] por defecto.
-  ThemeMode get appThemeMode => ThemeMode.values[_sharedPreferences?.getInt('tema') ?? 0];
+  ThemeMode get appThemeMode => ThemeMode.values[_sharedPreferences?.getInt(appThemeModeKey) ?? 0];
 
   /// Guarda el nuevo [themeMode] en Shared Preferences.
   set appThemeMode (ThemeMode themeMode) {
-    _sharedPreferences?.setInt('tema', themeMode.index);
+    _sharedPreferences?.setInt(appThemeModeKey, themeMode.index);
     
     notifyListeners();
   }
@@ -56,62 +57,60 @@ class SettingsProvider with ChangeNotifier {
   /// 
   /// Es [true] si el usuario desea aportar sus datos de hidratación y [false]
   /// si no desea compartirlos. El valor por defecto es [false].
-  bool get isSharingData => _sharedPreferences?.getBool('aportarDatos') ?? false;
+  bool get isSharingData => _sharedPreferences?.getBool(contributeDataKey) ?? false;
 
   /// Guarda en Shared Preferences la configuración de aporte a datos abiertos.
   /// 
   /// [share] es [true] si el usuario desea aportar sus datos de hidratación y [false]
   /// si no desea compartirlos. El valor por defecto es [false].
-  set isSharingData (bool share) => _sharedPreferences?.setBool('aportarDatos', share);
+  set isSharingData (bool share) => _sharedPreferences?.setBool(contributeDataKey, share);
 
   /// La configuración del usuario de los formularios semanales.
   /// 
   /// Es [true] si los formularios están activados, [false] por el contrario. Por defecto
   /// es [false].
-  bool get areWeeklyFormsEnabled => _sharedPreferences?.getBool('formRecurrentes') ?? false;
+  bool get areWeeklyFormsEnabled => _sharedPreferences?.getBool(weeklyFormsEnabledKey) ?? false;
 
   /// Guarda en Shared Preferences una nueva configuración de formularios semanales.
-  set areWeeklyFormsEnabled (bool formsEnabled) => _sharedPreferences?.setBool('formRecurrentes', formsEnabled);
+  set areWeeklyFormsEnabled (bool formsEnabled) => _sharedPreferences?.setBool(weeklyFormsEnabledKey, formsEnabled);
 
   /// Obtiene de Shared Preferences los tipos de notificaciones que ha activado 
   /// el usuario.
-  NotificationSettings get notificationSettings {
-    int notif = _sharedPreferences?.getInt('notificaciones') ?? 0;
+  NotificationTypes get notificationSettings {
+    int notif = _sharedPreferences?.getInt(allowedNotificationsKey) ?? 0;
 
-    int notifIndex = max(min(notif, NotificationSettings.values.length), 0);
+    int notifIndex = max(min(notif, NotificationTypes.values.length), 0);
 
-    return NotificationSettings.values[notifIndex];
+    return NotificationTypes.values[notifIndex];
   }
 
   /// Guarda la configuración de notificaciones del usuario.
-  set notificationSettings (NotificationSettings notifSettings) {
+  set notificationSettings (NotificationTypes notifSettings) {
 
-    _sharedPreferences?.setInt('notificaciones', notifSettings.index);
+    _sharedPreferences?.setInt(allowedNotificationsKey, notifSettings.index);
   }
 
   /// El código de dos letras de la región del usuario para localizar el contenido.
-  String get localeCode => _sharedPreferences?.getString('codigoFormato') ?? 'ES';
+  String get localeCode => _sharedPreferences?.getString(localeCodeKey) ?? 'ES';
 
   /// Guarda un nuevo código de región del usuario.
   set localeCode (String code) {
-    _sharedPreferences?.setString('codigoFormato', code.substring(0,2));
+    _sharedPreferences?.setString(localeCodeKey, code.substring(0,2));
   }
 
   /// El identificador de la botella conectada previamente. Por defecto, es un 
   /// String vacío.
-  String get deviceId => _sharedPreferences?.getString('idDispositivo') ?? '';
+  String get deviceId => _sharedPreferences?.getString(deviceIdKey) ?? '';
 
   /// Guarda un nuevo ID BLE de una botella.  
-  set deviceId (String newDeviceId) => _sharedPreferences?.setString('idDispositivo', newDeviceId);
+  set deviceId (String newDeviceId) => _sharedPreferences?.setString(deviceIdKey, newDeviceId);
 
   /// El JsonWebToken de autenticación del usuario. Es posible que ya haya expirado.
   String get authToken {
-    final String token = _sharedPreferences?.getString('jwt') ?? '';
-
-    print('Token obtenido de SP: $token');
+    final String token = _sharedPreferences?.getString(authTokenKey) ?? '';
 
     if (token.isNotEmpty && isTokenExpired(token)) {
-      _sharedPreferences?.setString('jwt', '');
+      _sharedPreferences?.setString(authTokenKey, '');
       return '';
     }
 
@@ -121,21 +120,21 @@ class SettingsProvider with ChangeNotifier {
   /// Guarda un nuevo JWT de autenticación en Shared Preferences.
   set authToken (String newJwt) {
     if (newJwt.isNotEmpty && !isTokenExpired(newJwt)) {
-      _sharedPreferences?.setString('jwt', newJwt);
+      _sharedPreferences?.setString(authTokenKey, newJwt);
       notifyListeners();
     }
   }
 
   Future<void> logOut() async {
-    await _sharedPreferences?.setString('jwt', '');
+    await _sharedPreferences?.setString(authTokenKey, '');
     notifyListeners();
   }
 
-  int get currentProfileId => _sharedPreferences?.getInt('perfil_actual') ?? -1;
+  int get currentProfileId => _sharedPreferences?.getInt(currentProfileIdKey) ?? -1;
 
-  set currentProfileId(int profileId) => _sharedPreferences?.setInt('perfil_actual', profileId);
+  set currentProfileId(int profileId) => _sharedPreferences?.setInt(currentProfileIdKey, profileId);
 
-  int get appStartups => _sharedPreferences?.getInt('inicios_app') ?? 0;
+  int get appStartups => _sharedPreferences?.getInt(appStartupCountKey) ?? 0;
 
-  set appStartups(int startupCount) => _sharedPreferences?.setInt('inicios_app', startupCount);
+  set appStartups(int startupCount) => _sharedPreferences?.setInt(appStartupCountKey, startupCount);
 }
