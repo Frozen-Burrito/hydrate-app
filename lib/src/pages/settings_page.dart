@@ -69,7 +69,7 @@ class SettingsPage extends StatelessWidget {
             Consumer<HydrationRecordProvider>(
               builder: (_, hydrationProvider, __) {
                 return FutureBuilder<List<HydrationRecord>?>(
-                  future: hydrationProvider.allRecords,
+                  future: hydrationProvider.allRecords, //TODO: solo usar los registros de las ultimas 24h.
                   initialData: const [],
                   builder: (context, snapshot) {
 
@@ -122,48 +122,56 @@ class _BatteryUsageChart extends StatelessWidget {
 
   const _BatteryUsageChart({ Key? key, }) : super(key: key);
 
-  List<FlSpot> _getBatteryUsageSpots(
-    final List<HydrationRecord> hydrationRecords, 
-    final DateTime now
-  ) {
+  List<FlSpot> _getBatteryUsageSpots(List<BatteryRecord> batteryUsage) {
 
+    final now = DateTime.now();
     final yesterday = now.subtract(const Duration(days: 1));
 
     // Transforma la lista de registros de consumo en una lista de puntos para la gráfica.
-    // - Filtra los datos para obtener los registros de las últimas 24 hrs.
     // - Convierte registros a puntos, donde x es la hora y y es el nivel de batería.
-    final batteryData = hydrationRecords
-        .where((r) => r.date.isAfter(yesterday) && r.date.isBefore(now))
+    final batterySpots = batteryUsage
         .map((r) {
-          // Representa la hora y minuto, donde las horas son enteros y los 
-          // minutos se representan como centesimas.
-          double decimalTime = r.date.day == now.day 
-              ? 24 - ((r.date.hour - now.hour).abs()).toDouble() 
-              : ((24 - now.hour) - (24 - r.date.hour)).abs().toDouble();
+            // El primer registro de uso puede ser uno agregado solo para indicar que
+          // hay registros previos. 
+          final isRecordBeforeYesterday = r == batteryUsage.last && r.date.isBefore(yesterday);
+          if (isRecordBeforeYesterday) return FlSpot(0.0, r.level.toDouble());
 
-          decimalTime += r.date.minute / 60;
+          final dateDiff = now.difference(r.date);
+
+          assert(dateDiff.inSeconds > 0, "por algun motivo, r.date sucede después que now");
+          assert(dateDiff.inMinutes < (24 * 60), "la diferencia de fechas es mayor a un día");
+
+          final howMuchTimeAgo = dateDiff.inMinutes.toDouble() / 60.0;
 
           return FlSpot(
-            decimalTime, r.batteryPercentage.toDouble()
+            24.0 - howMuchTimeAgo, r.level.toDouble()
           );
         }).toList();
 
-    // Condición para insertar puntos en extremos de la línea de la gráfica.
-    final isBatteryDataAvailable = hydrationRecords.isNotEmpty && hydrationRecords.length > batteryData.length; 
-
-    final prevBatteryLvl = isBatteryDataAvailable
-        ? hydrationRecords[hydrationRecords.length - batteryData.length -1].batteryPercentage.toDouble()
-        : batteryData.isNotEmpty ? batteryData.last.y : 0.0;
-
     // Insertar puntos en extremos de la gráfica para conseguir una linea horizontal
     // completa.
-    if (batteryData.isNotEmpty) {
-      batteryData.insert(0, FlSpot(24.0, batteryData.first.y));
+    if (batterySpots.isNotEmpty) {
+      batterySpots.insert(0, FlSpot(24.0, batterySpots.first.y));
     }
 
-    batteryData.add(FlSpot(0.0, prevBatteryLvl));
+    return batterySpots;
+  }
 
-    return batteryData;
+  String _getLabelForValue(double value) {
+    final strBuf = StringBuffer();
+
+    if (value > 0.0 && value < 24.0) {
+
+      final now = DateTime.now();
+      DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
+
+      strBuf.writeAll([ 
+        labelDate.toString().substring(11,14),
+        "00"
+      ]);
+    }
+
+    return strBuf.toString();
   }
 
   @override
@@ -174,19 +182,18 @@ class _BatteryUsageChart extends StatelessWidget {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: 300.0,
-      child: FutureBuilder<List<HydrationRecord>?>(
-        future: hydrationProvider.allRecords,
-        initialData: List.unmodifiable(<HydrationRecord>[]),
+      child: FutureBuilder<List<BatteryRecord>>(
+        future: hydrationProvider.last24hBatteryUsage,
+        initialData: List.unmodifiable(<BatteryRecord>[]),
         builder: (context, snapshot) {
 
-          final now = DateTime.now();
-          final records = snapshot.data ?? List.unmodifiable(<HydrationRecord>[]);
+          final records = snapshot.data ?? List.unmodifiable(<BatteryRecord>[]);
 
           return LineChart(
             LineChartData(
               lineBarsData: [
                 LineChartBarData(
-                  spots: _getBatteryUsageSpots(records, now),
+                  spots: _getBatteryUsageSpots(records),
                   color: Colors.yellow.shade300,
                   isCurved: false,
                   barWidth: 2,
@@ -217,18 +224,10 @@ class _BatteryUsageChart extends StatelessWidget {
                     reservedSize: 30,
                     getTitlesWidget: (double value, TitleMeta? _) {
 
-                      String titleContent = '';
-
-                      if (value > 0.0 && value < 24.0) {
-
-                        DateTime labelDate = now.subtract(Duration(hours: (24 - value).toInt()));
-                        // String yesterdayLabel = labelDate.day < now.day ? 'Ayer, ' : '';
-
-                        titleContent = '${labelDate.toString().substring(11,14)}00';
-                      }
+                      final label = _getLabelForValue(value);
 
                       return Text(
-                        titleContent,
+                        label,
                         style: Theme.of(context).textTheme.bodyText2,
                       );
                     }

@@ -25,6 +25,8 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   Future<List<HydrationRecord>?> get allRecords => _hydrationRecordsCache.data;
 
+  Future<List<BatteryRecord>> get last24hBatteryUsage => _getBatteryRecordsSinceYesterday();
+
   Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration async {
 
     await _hydrationRecordsCache.data;
@@ -184,6 +186,38 @@ class HydrationRecordProvider extends ChangeNotifier {
     return progressForGoals;
   }
 
+  Future<List<BatteryRecord>> _getBatteryRecordsSinceYesterday() async {
+
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+
+    final batteryRecords = <BatteryRecord>[];
+
+    final hydrationRecords = (await _hydrationRecordsCache.data) ?? <HydrationRecord>[];
+
+    final recordsAfterYesterday = hydrationRecords.where((r) => r.date.isAfter(yesterday));
+
+    if (recordsAfterYesterday.isNotEmpty) {
+
+      batteryRecords.addAll(recordsAfterYesterday
+        .where((r) => r.date.isBefore(now))
+        .map((r) => r.batteryRecord)
+      );
+
+      final idxOfEarliestRecordYesterday = hydrationRecords.indexOf(recordsAfterYesterday.last);
+
+      final hasEarlierRecord = idxOfEarliestRecordYesterday > 0 
+          && idxOfEarliestRecordYesterday < hydrationRecords.length -1;
+
+      if (hasEarlierRecord) {
+        final prevRecord = hydrationRecords[idxOfEarliestRecordYesterday +1];
+        batteryRecords.add(prevRecord.batteryRecord);
+      }
+    } 
+
+    return List.unmodifiable(batteryRecords);
+  }
+
   /// Obtiene el consumo total de agua diario para __[numberOfDays]__ días anteriores 
   /// al día de hoy. 
   /// 
@@ -280,3 +314,5 @@ class HydrationRecordProvider extends ChangeNotifier {
     return currentProgressMl;
   }
 }
+
+

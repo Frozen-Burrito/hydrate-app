@@ -7,21 +7,23 @@ import 'package:hydrate_app/src/models/user_profile.dart';
 
 class HydrationRecord extends SQLiteModel {
 
-  int id;
-  int amount;
-  int batteryPercentage;
-  double temperature;
-  DateTime date;
-  int profileId;
-
   HydrationRecord({
     this.id = -1,
     this.amount = 0,
-    this.batteryPercentage = 0,
+    int batteryPercentage = 0,
     this.temperature = 0.0,
-    required this.date,
+    required DateTime date,
     this.profileId = -1
-  });
+  }) : batteryRecord = BatteryRecord( date, batteryPercentage );
+
+  final int id;
+  final int amount;
+  final double temperature;
+  final int profileId;
+
+  final BatteryRecord batteryRecord; 
+
+  DateTime get date => batteryRecord.date;
 
   //TODO: Quitar este constructor, es solo temporal para pruebas.
   HydrationRecord.random(Random rand, DateTime lastDate, int profileId) : this(
@@ -67,9 +69,9 @@ class HydrationRecord extends SQLiteModel {
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'cantidad': amount, 
-      'porcentaje_bateria': batteryPercentage,
+      'porcentaje_bateria': batteryRecord.level,
       'temperatura': temperature,
-      'fecha': date.toIso8601String(),
+      'fecha': batteryRecord.date.toIso8601String(),
       'id_perfil': profileId
     };
 
@@ -77,4 +79,15 @@ class HydrationRecord extends SQLiteModel {
 
     return map;
   }
+}
+
+class BatteryRecord {
+
+  const BatteryRecord( this.date, this.level );
+
+  final DateTime date;
+  final int level;
+
+  @override
+  String toString() => "BatteryLevel: { date: $date, level: $level% }";
 }
