@@ -2,8 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/enums/notification_types.dart';
+import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
