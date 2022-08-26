@@ -32,6 +32,22 @@ class Settings {
   bool areWeeklyFormsEnabled;
 
   @override
+  String toString() {
+    // Usar un StringBuffer para formar la representación en String de este 
+    // objeto.
+    StringBuffer strBuf = StringBuffer("[Settings]: {");
+
+    strBuf.writeAll(["appThemeMode: ", appThemeMode, ", "]);
+    strBuf.writeAll(["allowedNotifications: ", allowedNotifications, ", "]);
+    strBuf.writeAll(["shouldContributeData: ", shouldContributeData, ", "]);
+    strBuf.writeAll(["areWeeklyFormsEnabled: ", areWeeklyFormsEnabled, ", "]);
+
+    strBuf.write("}");
+
+    return strBuf.toString();
+  }
+
+  @override
   bool operator==(covariant Settings other) {
 
     final areThemesEqual = appThemeMode == other.appThemeMode;

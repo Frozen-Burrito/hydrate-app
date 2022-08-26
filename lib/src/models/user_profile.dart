@@ -35,30 +35,41 @@ class UserProfile extends SQLiteModel {
   static const maxFirstNameLength = 64;
   static const maxLastNameLength = 64;
 
-  UserProfile.unmodifiable(
-    this._id,
-    this._firstName,
-    this._lastName,
-    this. _birthDate,
-    this._sex,
-    this._height,
-    this._weight,
-    this._medicalCondition,
-    this._occupation,
-    this._userAccountID,
-    this._coins,
-    this._modificationCount,
-    this._selectedEnvId,
-    this._country,
-    this._unlockedEnvironments,
-  ): isReadonly = true;
+  UserProfile.unmodifiable({
+    int id = -1,
+    String firstName = "",
+    String lastName = "",
+    DateTime? birthDate,
+    UserSex sex = UserSex.notSpecified,
+    double height = 0.0,
+    double weight = 0.0,
+    MedicalCondition medicalCondition = MedicalCondition.notSpecified,
+    Occupation occupation = Occupation.notSpecified,
+    String userAccountID = "",
+    int coins = 0,
+    int modificationCount = 0,
+    int selectedEnvId = 0,
+    Country? country,
+    List<Environment> unlockedEnvironments = const <Environment>[]
+  }): isReadonly = true,
+      _id = id,
+      _firstName = firstName,
+      _lastName = lastName,
+      _birthDate = birthDate ?? DateTime.now(),
+      _sex = sex,
+      _height = height,
+      _weight = weight,
+      _medicalCondition = medicalCondition,
+      _occupation = occupation,
+      _userAccountID = userAccountID,
+      _coins = coins,
+      _modificationCount = modificationCount,
+      _selectedEnvId = selectedEnvId,
+      _country = country ?? Country(),
+      _unlockedEnvironments = unlockedEnvironments;
 
-  UserProfile.uncommited(Country defaultCountry, Environment defaultEnv, String userAccountId) 
-  : this.unmodifiable(
-    -1, '', '', null, UserSex.notSpecified, 0.0, 0.0, 
-    MedicalCondition.notSpecified, Occupation.notSpecified, userAccountId, 0, 0, 0, 
-    defaultCountry, <Environment>[ defaultEnv ],
-  );
+  UserProfile.uncommitted() 
+  : this.unmodifiable(id: -1,);
 
   UserProfile.modifiableCopyOf(UserProfile other)
     : isReadonly = false,
@@ -128,21 +139,21 @@ class UserProfile extends SQLiteModel {
     }
 
     return UserProfile.unmodifiable(
-      int.tryParse(map['id'].toString()) ?? -1,
-      map['nombre'].toString(),
-      map['apellido'].toString(),
-      DateTime.tryParse(map['fecha_nacimiento'].toString()),
-      UserSex.values[idxUserSex],
-      double.tryParse(map['estatura'].toString()) ?? 0.0,
-      double.tryParse(map['peso'].toString()) ?? 0.0,
-      MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
-      Occupation.values[idxOccupation],
-      map['id_usuario'].toString(),
-      int.tryParse(map['entorno_sel'].toString()) ?? 0,
-      int.tryParse(map['monedas'].toString()) ?? 0,
-      int.tryParse(map['num_modificaciones'].toString()) ?? 0,
-      country,
-      envList
+      id: int.tryParse(map['id'].toString()) ?? -1,
+      firstName: map['nombre'].toString(),
+      lastName: map['apellido'].toString(),
+      birthDate: DateTime.tryParse(map['fecha_nacimiento'].toString()),
+      sex: UserSex.values[idxUserSex],
+      height: double.tryParse(map['estatura'].toString()) ?? 0.0,
+      weight: double.tryParse(map['peso'].toString()) ?? 0.0,
+      medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
+      occupation: Occupation.values[idxOccupation],
+      userAccountID: map['id_usuario'].toString(),
+      selectedEnvId: int.tryParse(map['entorno_sel'].toString()) ?? 0,
+      coins: int.tryParse(map['monedas'].toString()) ?? 0,
+      modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
+      country: country,
+      unlockedEnvironments: envList
     );
   } 
 

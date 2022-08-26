@@ -42,11 +42,7 @@ class ProfileProvider extends ChangeNotifier {
   /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
   /// actual. Esta instancia de [UserProfile] es modificable.
   UserProfile _profileChanges = UserProfile.modifiableCopyOf(
-    UserProfile.uncommited(
-      Country(), 
-      Environment.firstUnlocked(), 
-      ''
-    )
+    UserProfile.uncommitted()
   );
 
   /// Un contenedor para el [UserProfile] del usuario actual.
@@ -262,11 +258,7 @@ class ProfileProvider extends ChangeNotifier {
     // todos los usuarios, desde el inicio de la app).
     final defaultCountry = countryResults.single;
 
-    final emptyProfile = UserProfile.uncommited(
-      defaultCountry, 
-      Environment.firstUnlocked(),
-      linkedAccountId ?? '',
-    );
+    final emptyProfile = UserProfile.uncommitted();
 
     return emptyProfile;
   }
