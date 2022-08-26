@@ -225,11 +225,13 @@ class ProfileProvider extends ChangeNotifier {
 
     if (profile != null && !profile.hasUnlockedEnv(environment.id)) {
       /// Desbloquear el entorno de forma no confirmada, usando profileChanges.
-      profileChanges.giveOrTakeCoins(-environment.price);
+      final wasEnvPurchased = profileChanges.spendCoins(environment.price);
 
-      profileChanges.unlockedEnvironments.add(environment);
+      if (wasEnvPurchased) {
+        profileChanges.unlockedEnvironments.add(environment);
+      }
 
-      return true;
+      return wasEnvPurchased;
     } else {
       return false;
     }

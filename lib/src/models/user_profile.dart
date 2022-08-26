@@ -242,21 +242,30 @@ class UserProfile extends SQLiteModel {
     return firstInitial + lastInitial;
   }
 
-  /// Modifica el número de monedas del perfil, incrementándolo si [amount] es 
-  /// positivo o reduciéndolo si [amount] es negativo.
+  /// Modifica el número de monedas del perfil, incrementándolo por [amount] 
+  /// monedas.
   /// 
-  /// El valor absoluto de las monedas del perfil después de la operación debe 
-  /// ser estar en el rango (0..[maxCoins]). Si no es así, este método produce 
-  /// un [RangeError].
-  void giveOrTakeCoins(int amount) {
+  /// Después de invocar este método, la cantidad total de monedas del perfil 
+  /// será igual a _cantidad previa de monedas_ + _[amount.abs()]_, o a 
+  /// [maxCoins] si la suma anterior sobrepasa el rango: 
+  /// 
+  /// monedas <= [maxCoins]
+  void addCoins(int amount) {
+    _coins = min(maxCoins, _coins + amount.abs());
+  }
 
-    int newCoinCount = coins + amount;
+  /// Modifica el número de monedas del perfil, decrementándolo por [amount]
+  /// monedas. 
+  /// 
+  /// Si [amount] es mayor que el número, la cantidad de monedas del 
+  /// perfil no es modificada y este método retorna **false**.
+  bool spendCoins(int amount) {
 
-    if (newCoinCount.abs() > maxCoins) {
-      throw RangeError.range(newCoinCount, 0, maxCoins, 'amount');
-    }
+    final hasEnoughCoins = _coins >= amount;
 
-    _coins = amount;
+    if (hasEnoughCoins) _coins -= amount.abs();
+
+    return hasEnoughCoins;
   }
 
   /// Registra una modificación a los datos sensibles de [UserProfile].

@@ -53,7 +53,7 @@ class NewActivityForm extends StatelessWidget {
     await giveActivityReward(
       activitiesToday, 
       newActivity, 
-      profileProvider.profileChanges.giveOrTakeCoins,
+      profileProvider.profileChanges.addCoins,
       profileProvider.saveProfileChanges
     );
 
