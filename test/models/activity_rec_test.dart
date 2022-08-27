@@ -193,9 +193,9 @@ void main() {
       expect(result, expectedError);
     });
 
-    test('validateDistanceInMeters(input) retorna NumericInputError.none si input es un String sin unidades que puede convertirse en número', () {
+    test('validateDistanceInMeters(input) retorna NumericInputError.none si input es un String sin unidades que puede convertirse en número double', () {
       // Arrange
-      const input = '290';
+      const input = '29.0';
       const expectedError = NumericInputError.none;
 
       // Act
@@ -207,7 +207,7 @@ void main() {
 
     test('validateDistanceInMeters(input, false) retorna NumericInputError.isNaN si input es un String con un número válido seguido de unidades', () {
       // Arrange
-      const input = '290 m';
+      const input = '29.0 km';
       const expectedError = NumericInputError.isNaN;
 
       // Act
@@ -219,7 +219,7 @@ void main() {
 
     test('validateDistanceInMeters(input, true) retorna NumericInputError.none si input es un String con un número válido seguido de unidades', () {
       // Arrange
-      const input = '290 m';
+      const input = '29.0 km';
       const expectedError = NumericInputError.none;
 
       // Act
@@ -231,7 +231,7 @@ void main() {
 
     test('validateDistanceInMeters(input) retorna NumericInputError.inputIsBeforeRange si input es un número negativo', () {
       // Arrange
-      const negativeInput = -1;
+      const double negativeInput = -0.1;
       const expectedError = NumericInputError.inputIsBeforeRange;
 
       // Act
@@ -243,7 +243,7 @@ void main() {
 
     test('validateDistanceInMeters(input) retorna NumericInputError.none si input es igual a distanceInMetersRange.min', () {
       // Arrange
-      final inputInRange = ActivityValidator.distanceInMetersRange.min;
+      final inputInRange = ActivityValidator.distanceInMetersRange.min.toDouble();
       const expectedError = NumericInputError.none;
 
       // Act
@@ -255,7 +255,7 @@ void main() {
 
     test('validateDistanceInMeters(input) retorna NumericInputError.inputIsAfterRange si input es mayor a distanceInMetersRange.max', () {
       // Arrange
-      final negativeInput = ActivityValidator.distanceInMetersRange.max + 1;
+      final negativeInput = ActivityValidator.distanceInMetersRange.max.toDouble() + 0.1;
       const expectedError = NumericInputError.inputIsAfterRange;
 
       // Act
@@ -267,7 +267,7 @@ void main() {
 
     test('validateDistanceInMeters(input) retorna NumericInputError.none si input es igual a distanceInMetersRange.max', () {
       // Arrange
-      final inputInRange = ActivityValidator.distanceInMetersRange.max;
+      final inputInRange = ActivityValidator.distanceInMetersRange.max.toDouble() / 1000;
       const expectedError = NumericInputError.none;
 
       // Act
