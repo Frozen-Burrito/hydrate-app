@@ -66,10 +66,12 @@ class UserProfile extends SQLiteModel {
       _modificationCount = modificationCount,
       _selectedEnvId = selectedEnvId,
       _country = country ?? Country(),
-      _unlockedEnvironments = unlockedEnvironments {
+      _unlockedEnvironments = <Environment>[] {
 
-        if (_unlockedEnvironments.isEmpty) {
+        if (unlockedEnvironments.isEmpty) {
           _unlockedEnvironments.add(Environment.firstUnlocked());
+        } else {
+           _unlockedEnvironments.addAll(unlockedEnvironments);
         }
 
         _selectedEnvId = !hasUnlockedEnv(selectedEnvId)
