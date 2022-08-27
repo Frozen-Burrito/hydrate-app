@@ -14,8 +14,10 @@ class Environment extends SQLiteModel {
     required this.price
   });
 
+  static const int firstUnlockedId = 0;
+
   Environment.firstUnlocked() : this(
-    id: 0,
+    id: firstUnlockedId,
     imagePath: 'assets/img/entorno_1_agua.png',
     price: 0,
   );
@@ -58,4 +60,22 @@ class Environment extends SQLiteModel {
   String toString() {
     return 'Image path: $imagePath, price: $price';
   }
+
+  @override
+  bool operator==(covariant Environment other) {
+
+    final areIdsEqual = id == other.id;
+    final areImgFilesEqual = imagePath == other.imagePath;
+    final arePricesEqual = price == other.price;
+
+    return areIdsEqual && areImgFilesEqual && arePricesEqual;
+  }
+  
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    imagePath,
+    price,
+  ]);
+  
 }

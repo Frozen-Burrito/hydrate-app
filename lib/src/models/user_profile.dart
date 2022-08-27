@@ -66,7 +66,16 @@ class UserProfile extends SQLiteModel {
       _modificationCount = modificationCount,
       _selectedEnvId = selectedEnvId,
       _country = country ?? Country(),
-      _unlockedEnvironments = unlockedEnvironments;
+      _unlockedEnvironments = unlockedEnvironments {
+
+        if (_unlockedEnvironments.isEmpty) {
+          _unlockedEnvironments.add(Environment.firstUnlocked());
+        }
+
+        _selectedEnvId = !hasUnlockedEnv(selectedEnvId)
+          ? Environment.firstUnlockedId
+          : selectedEnvId;
+      }
 
   UserProfile.uncommitted() 
   : this.unmodifiable(id: -1,);
@@ -89,7 +98,42 @@ class UserProfile extends SQLiteModel {
       _country = other._country ,
       _unlockedEnvironments = List.from(other._unlockedEnvironments);
 
-  static const String tableName = 'perfil';
+  static const String tableName = "perfil";
+
+  static const String idFieldName = "id";
+  static const String firstNameFieldName = "nombre";
+  static const String lastNameFieldName = "apellido";
+  static const String birthDateFieldName = "fecha_nacimiento";
+  static const String sexFieldName = "sexo";
+  static const String heightFieldName = "estatura";
+  static const String weightFieldName = "peso";
+  static const String medicalConditionFieldName = "padecimientos";
+  static const String occupationFieldName = "ocupacion";
+  static const String userAccountIdFieldName = "id_usuario";
+  static const String coinsFieldName = "monedas";
+  static const String modificationCountFieldName = "num_modificaciones";
+  static const String selectedEnvFieldName = "entorno_sel";
+  static const String countryFieldName = "id_pais";
+  static const String unlockedEnvsFieldName = "entornos";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    firstNameFieldName,
+    lastNameFieldName,
+    birthDateFieldName,
+    sexFieldName,
+    heightFieldName,
+    weightFieldName,
+    medicalConditionFieldName,
+    occupationFieldName,
+    userAccountIdFieldName,
+    coinsFieldName,
+    modificationCountFieldName,
+    selectedEnvFieldName,
+    countryFieldName,
+    unlockedEnvsFieldName,
+  ];
 
   @override
   String get table => tableName;
@@ -160,29 +204,52 @@ class UserProfile extends SQLiteModel {
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
 
-    //TODO: considerar validar ciertos campos (especialmente que 'entornos' y 
-    // 'entorno_sel' coincidan, además de revisar el valor de 'pais').
+    assert(
+      unlockedEnvironments.where((env) => env.id == selectedEnvId).length == 1,
+      "No hay un entorno de unlockedEnvironments con el selectedEnvId"
+    );
 
-    final Map<String, Object?> map = {
-      'nombre': firstName,
-      'apellido': lastName,
-      'fecha_nacimiento': birthDate?.toIso8601String() ?? '',
-      'sexo': sex.index,
-      'estatura': height,
-      'peso': weight,
-      'padecimientos': medicalCondition.index,
-      'ocupacion': occupation.index,
-      'id_usuario': userAccountID,
-      'entorno_sel': selectedEnvId,
-      'monedas': coins,
-      'num_modificaciones': modificationCount,
-      'pais': country,
-      'entornos': unlockedEnvironments
-    };
+    // Modificar los nombres de los atributos para el Map resultante, segun 
+    // [options].
+    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
 
-    if (id >= 0) map['id'] = id;
+    // Comprobar que hay una entrada por cada atributo de ActivityRecord.
+    assert(attributeNames.length == baseAttributeNames.length);
 
-    return map;
+    final Map<String, Object?> map = {};
+
+    if (id >= 0) map[attributeNames[idFieldName]!] = id;
+
+    map.addAll({
+      attributeNames[firstNameFieldName]!: firstName,
+      attributeNames[lastNameFieldName]!: lastName,
+      attributeNames[birthDateFieldName]!: birthDate?.toIso8601String() ?? '',
+      attributeNames[sexFieldName]!: sex.index,
+      attributeNames[heightFieldName]!: height,
+      attributeNames[weightFieldName]!: weight,
+      attributeNames[medicalConditionFieldName]!: medicalCondition.index,
+      attributeNames[occupationFieldName]!: occupation.index,
+      userAccountIdFieldName: userAccountID,
+      attributeNames[selectedEnvFieldName]!: selectedEnvId,
+      attributeNames[coinsFieldName]!: coins,
+      attributeNames[modificationCountFieldName]!: modificationCount,
+    });
+
+    if (options.includeCompleteSubEntities) {
+      // Incluir mapas (no objetos en sí) de entidades anidadas.
+      map[attributeNames[countryFieldName]!] = country.toMap(options:  options);
+      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments
+          .map((env) => env.toMap(options:  options))
+          .toList();
+    } else {
+      // Incluir mapas (no objetos en sí) de entidades anidadas.
+      map[attributeNames[countryFieldName]!] = country.id;
+      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments
+          .map((env) => env.id)
+          .toList();
+    }
+
+    return Map.unmodifiable(map);
   }
 
   int get id => _id;
@@ -284,6 +351,9 @@ class UserProfile extends SQLiteModel {
   void recordModification() {
     _modificationCount++;
   }
+
+  @override
+  String toString() => "$_firstName $_lastName's profile, ID = $_id";
 
   @override
   bool operator ==(Object? other) {
