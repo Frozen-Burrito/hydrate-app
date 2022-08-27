@@ -23,10 +23,10 @@ Una descripción detallada del funcionamiento que debería ocurrir.
 **Screenshots**
 Si aplican, agrega screenshots para ayudar a describir el problema.
 
-**Entorno **
- - Dispositivo: [ej. Galaxy S30]
- - OS: [ej. Android 13]
- - Versión de la app [ej. 1.0.0+1]
+**Entorno**
+ - Dispositivo: [ej. Galaxy A30]
+ - OS: [ej. Android 11]
+ - Versión de la app: [ej. 1.0.0+1]
 
 **Contexto Adicional**
 Incluye información suplementaria que ayude a profundizar la descripción del error.
