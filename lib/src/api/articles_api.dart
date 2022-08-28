@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:http/http.dart';
 import 'package:hydrate_app/src/api/api.dart';
 import 'package:hydrate_app/src/api/paged_result.dart';
 import 'package:hydrate_app/src/models/article.dart';
@@ -18,6 +19,13 @@ class ArticlesApi {
   /// [pageIndex] es el número de página de resultados que debería ser obtenido.
   /// Si es mayor que el número de páginas disponibles, este método retorna un
   /// resultado vacío. Debe ser mayor o igual a 0.
+  /// 
+  /// El usuario de este método es responsable de manejar adecuadamente las 
+  /// siguientes situaciones:
+  /// - La petición no puede ser completada, ya sea por mala conectividad o 
+  /// error en su creación.
+  /// - El servicio web no está disponible.
+  /// - El resultado no es el esperado.
   Future<PagedResult<Article>> fetchArticles({
     int pageIndex = 0,
     int articlesPerPage = defaultArticlesPerPage
@@ -49,14 +57,24 @@ class ArticlesApi {
 
       return pagedResult;
 
-    } else if (response.statusCode >= HttpStatus.internalServerError) {
-      return Future.error(Exception("Service is not available"));
+    } else {
+      return Future.error(_handleBadResponse(response));
+    }
+  }
+
+  Future<Error> _handleBadResponse(Response response) {
+    if (response.statusCode >= HttpStatus.internalServerError) {
+      // La respuesta indica un problema del servidor. No debería seguir 
+      // haciendo peticiones.
+      throw Exception("Service is not available");
 
     } else if (response.statusCode >= HttpStatus.badRequest) {
-      return Future.error(Exception("Articles could not be requested"));
+      // Por alguna razón, la petición tenía una forma incorrecta. 
+      throw Exception("Articles could not be requested");
+    } else {
+      // Algo más salió mal.
+      throw Exception("Unexpected HTTP status code in response: ${response.statusCode}");
     }
-
-    return Future.error(Exception("Something went wrong"));
   }
 
   /// Cierra el cliente HTTP usado para realizar peticiones a la API de 

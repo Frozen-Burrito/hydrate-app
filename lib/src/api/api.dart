@@ -23,6 +23,8 @@ class ApiClient {
   static const String acceptJson = 'application/json';
   static const String bearerToken = 'Bearer ';
 
+  static const String notValidUrl = "::Not valid URI::";
+
   /// Asocia nombres de rutas del servicio web con sus URIs específicas, 
   /// que llevan a cada recurso si se realiza una petición a ellas.
   static final Map<String, Uri> webPageMap = {
@@ -66,9 +68,9 @@ class ApiClient {
     Map<String, String> queryParameters
   ) {
 
-    String uri = _apiMap[resourceName] ?? "";
+    String uri = _apiMap[resourceName] ?? notValidUrl;
 
-    if (uri.trim().isNotEmpty && queryParameters.isNotEmpty) {
+    if (uri != notValidUrl && queryParameters.isNotEmpty) {
       final strBuf = StringBuffer("?");
 
       for (final parameter in queryParameters.entries) {
@@ -96,7 +98,7 @@ class ApiClient {
 
     final parsedUrl = uriForResource(resource, queryParameters ?? {});
 
-    if (parsedUrl != null) {
+    if (parsedUrl != null && parsedUrl.isScheme("HTTPS")) {
       // Enviar la petición a la URL especificada.
       return client.get(parsedUrl, headers: defaultHeaders);
     } else {

@@ -47,12 +47,14 @@ class ConnectionPage extends StatelessWidget {
                 ? const SliverToBoxAdapter(
                   child: BleDeviceList()
                 ) 
-                : SliverDataPlaceholder(
-                  message: localizations.bleNotAvailable + '\n' + localizations.tryLocAndBt,
-                  //TODO: Eliminar los detalles.
-                  details: '(state is "${state != null ? state.toString().substring(15) : 'not available'}")',
-                  icon: Icons.bluetooth_disabled
-              ),
+                : SliverToBoxAdapter(
+                  child: DataPlaceholder(
+                    message: localizations.bleNotAvailable + '\n' + localizations.tryLocAndBt,
+                    //TODO: Eliminar los detalles.
+                    details: '(state is "${state != null ? state.toString().substring(15) : 'not available'}")',
+                    icon: Icons.bluetooth_disabled
+                              ),
+                ),
             ]
           ),
           floatingActionButton: StreamBuilder<bool>(

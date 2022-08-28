@@ -55,20 +55,28 @@ class HydrationSliverList extends StatelessWidget {
                               ),
                             );
                           } else {
-                            return const SliverDataPlaceholder(
-                              message: 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.',
-                              icon: Icons.fact_check_rounded,
+                            return const SliverToBoxAdapter(
+                              child: DataPlaceholder(
+                                //TODO: agregar i18n.
+                                message: 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.',
+                                icon: Icons.fact_check_rounded,
+                              ),
                             );
                           }
                         } else if (snapshot.hasError) {
-                          return const SliverDataPlaceholder(
-                            message: 'Hubo un error al intentar obtener registros de hidratación.',
-                            icon: Icons.error_outline,
+                          return const SliverToBoxAdapter(
+                            child: DataPlaceholder(
+                              //TODO: agregar i18n.
+                              message: 'Hubo un error al intentar obtener registros de hidratación.',
+                              icon: Icons.error_outline,
+                            ),
                           );
                         }
 
-                        return const SliverDataPlaceholder(
-                          isLoading: true,
+                        return const SliverToBoxAdapter(
+                          child: DataPlaceholder(
+                            isLoading: true,
+                          ),
                         );
                       }
                     ),

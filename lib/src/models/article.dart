@@ -11,6 +11,24 @@ import 'package:hydrate_app/src/models/map_options.dart';
 /// representa este objeto.
 class Article extends SQLiteModel {
   
+  Article({
+    required this.id,
+    required this.title,
+    this.description,
+    required String articleUrl,
+    this.publishDate,
+    this.isBookmarked = false,
+  }) : url = Uri.tryParse(articleUrl);
+
+  Article.invalid() : this(
+    id: invalidArticleId,
+    title: "",
+    description: "",
+    articleUrl: "",
+    publishDate: null,
+    isBookmarked: false,
+  );
+
   final int id;
   final String title;
   final String? description;
@@ -18,14 +36,7 @@ class Article extends SQLiteModel {
   final DateTime? publishDate;
   bool isBookmarked;
 
-  Article({
-    this.id = -1,
-    this.title = '',
-    this.description,
-    String articleUrl = '',
-    this.publishDate,
-    this.isBookmarked = false,
-  }) : url = Uri.tryParse(articleUrl);
+  static const int invalidArticleId = -1;
 
   @override
   String get table => tableName;

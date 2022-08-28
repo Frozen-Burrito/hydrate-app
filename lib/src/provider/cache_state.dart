@@ -24,7 +24,8 @@ class CacheState<T> {
     void Function(T?)? onDataRefreshed,
     T? Function(T? oldData, T? newData)? dataUpdateHandler,
     Duration? maxDataAge,
-    Error? error,
+    Exception? error,
+    this.onError,
   }) 
     : _data = initialData,
       _fetchData = fetchData,
@@ -33,6 +34,7 @@ class CacheState<T> {
       _onDataRefreshed = onDataRefreshed,
       _dataUpdateHandler = dataUpdateHandler,
       _lastFetchTimestamp = DateTime.now(),
+      _error = error,
       _maxAge = maxDataAge;
 
   /// Inicializa un nuevo [CacheState<T>] con un valor inicial específico.
@@ -42,8 +44,9 @@ class CacheState<T> {
     initialData: value,
   );
 
-  /// Inicializa un nuevo [CacheState<T>] con un error inicial, [data] es nulo.
-  CacheState.error(Error error, Future<T> Function() onFetchData) : this(
+  /// Inicializa un nuevo [CacheState<T>] con un error inicial, en el que 
+  /// [data] es nulo y [hasError] es **true**.
+  CacheState.error(Exception error, Future<T> Function() onFetchData) : this(
     fetchData: onFetchData,
     isLoading: false,
     initialData: null,
@@ -58,18 +61,20 @@ class CacheState<T> {
   // El timestamp de la última actualización de los datos.
   DateTime _lastFetchTimestamp;
   // Una función asíncrona que actualiza los datos.
-  Future<T> Function() _fetchData;
+  final Future<T> Function() _fetchData;
   // Callback invocado cuando _fetchData() produce un valor, sin error.
-  void Function(T?)? _onDataRefreshed;
+  final void Function(T?)? _onDataRefreshed;
   // Un callback que controla la integración de nuevos datos con _data.
-  T? Function(T?, T?)? _dataUpdateHandler;
+  final T? Function(T?, T?)? _dataUpdateHandler;
+  // Un callback que es invocado cuando [refresh()] produce un error.
+  final Function(Exception e)? onError;
 
   // Es true si se le indicó a este CacheState que debe actualizar sus datos.
   bool _shouldRefresh;
   // Es true cuando una llamada a _fetchData() todavía no se completa.
   bool _alreadyLoading;
   // Contiene el error de la actualización de datos más reciente.
-  Error? _error;
+  Exception? _error;
 
   /// Es __true__ si ya está en proceso de actualizar sus datos.
   bool get isLoading => _alreadyLoading;
@@ -82,10 +87,6 @@ class CacheState<T> {
   /// Es __true__ si la última actualización produjo un error.
   bool get hasError => _error != null;
 
-  /// Retorna el [Error] de la actualización más reciente, o [null] si no han 
-  /// sucedido errores.
-  Error? get error => _error;
-
   /// Obtiene los datos almacenados en este [CacheState<T>]. 
   /// 
   /// Primero actualiza los datos, si los datos contenidos ya caducaron o si se
@@ -93,7 +94,6 @@ class CacheState<T> {
   /// datos obtenidos en ocasiones anteriores. 
   Future<T?> get data async {
 
-    try {
       // Revisar si los datos son viejos (ya han durando más que _dataDuration).
       bool isDataOutdated = _lastFetchTimestamp
         .add(_maxAge ?? const Duration(days: -1))
@@ -105,15 +105,7 @@ class CacheState<T> {
         await refresh();
       }
 
-      return Future.value(_data);
-      
-    } on Error catch (e) {
-      // _fetchData() resultó en un error.
-      _alreadyLoading = false;
-      _error = e;
-
-      return Future.error(e);
-    } 
+      return _data;
   }
 
   Future<void> refresh() async {
@@ -121,13 +113,25 @@ class CacheState<T> {
     if (!_alreadyLoading) {
       // Indicar que ya hay un proceso de carga de la información.
       _alreadyLoading = true;
+      _error = null;
 
-      // Obtener los datos.
-      final T newData = await _fetchData();
+      try {
+        // Intentar obtener los datos e integrarlos al cache.
+        final T newData = await _fetchData();
 
-      final updateHandler = _dataUpdateHandler ?? _defaultDataUpdateHandler;
+        final updateHandler = _dataUpdateHandler ?? _defaultDataUpdateHandler;
 
-      _data = updateHandler(_data, newData);
+        _data = updateHandler(_data, newData);
+
+      } on Exception catch (ex) {
+        // _fetchData() o updateHandler() resultó en un error.
+        _alreadyLoading = false;
+        _error = ex;
+
+        final errorHandler = onError ?? _defaultErrorHandler;
+
+        errorHandler(ex);
+      } 
 
       // Actualizar la información de estado de los datos.
       _lastFetchTimestamp = DateTime.now();
@@ -148,5 +152,9 @@ class CacheState<T> {
 
   T? _defaultDataUpdateHandler(T? _, T? newData) {
     return newData;
+  }
+
+  void _defaultErrorHandler(Exception ex) {
+    print("An error occurred during cache refresh: $ex");
   }
 }

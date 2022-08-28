@@ -5,11 +5,19 @@ import 'package:hydrate_app/src/models/article.dart';
 
 void main() {
 
+  final defaultArticle = Article(
+    id: 0,
+    title: "A test Article",
+    articleUrl: "https://article.com",
+    description: "A test description.",
+    publishDate: DateTime.now(),
+  );
+
   group("Functional Article tests", () {
 
     test('When a new Article is created, it is not bookmarked by default', () {
       // Arrange
-      final article = Article();
+      final article = defaultArticle;
 
       // Act
       final isBookmarked = article.isBookmarked;
@@ -23,7 +31,13 @@ void main() {
       const String invalidUrl = "::some invalid url::";
 
       // Act
-      final article = Article(articleUrl: invalidUrl);
+      final article = Article(
+        id: 0,
+        title: "A test Article",
+        articleUrl: invalidUrl,
+        description: "A test description.",
+        publishDate: DateTime.now(),
+      );
 
       // Assert
       expect(article.url, isNull);
@@ -35,7 +49,13 @@ void main() {
       final Uri expected = Uri.parse(acceptedUrl);
 
       // Act
-      final article = Article(articleUrl: acceptedUrl);
+      final article = Article(
+        id: 0,
+        title: "A test Article",
+        articleUrl: acceptedUrl,
+        description: "A test description.",
+        publishDate: DateTime.now(),
+      );
 
       // Assert
       expect(article.url, expected);
@@ -55,13 +75,7 @@ void main() {
         Article.publishDateFieldName: now.toIso8601String(),
       };
 
-      final expectedArticle = Article(
-        id: 0,
-        title: "A test Article",
-        articleUrl: "https://article.com",
-        description: "A test description.",
-        publishDate: now,
-      );
+      final expectedArticle = defaultArticle;
 
       // Act
       final result = Article.fromMap(sourceMap);
@@ -105,7 +119,13 @@ void main() {
       // Arrange
       final now = DateTime.now();
       final expectedDateStr = now.toIso8601String();
-      final article = Article(publishDate: now);
+      final article = Article(
+        id: 0,
+        title: "A test Article",
+        articleUrl: "https://article.com",
+        description: "A test description.",
+        publishDate: now,
+      );
 
       // Act
       final articleMap = article.toMap();
@@ -137,9 +157,9 @@ void main() {
       expect(mapEquals(expectedMap, result), isTrue);
     });
 
-    test("Article's table name is consistent between Article.tableName and Article().table", () {
+    test("Article's table name is consistent between Article.tableName and defaultArticle.table", () {
       // Arrange
-      final article = Article();
+      final article = defaultArticle;
 
       // Act 
       const staticTableName = Article.tableName;
@@ -153,7 +173,7 @@ void main() {
   group("Common object method overrides", () {
     test("Article.toString() returns a non-empty string representation", () {
       // Arrange
-      final article = Article();
+      final article = defaultArticle;
 
       // Act
       final articleAsString = article.toString();
@@ -165,7 +185,7 @@ void main() {
     test("Article.toString() does not return the default string representation of the object", () {
       // Arrange
       const defaultStrValue = "Instance of 'Article'";
-      final article = Article();
+      final article = defaultArticle;
 
       // Act
       final articleAsString = article.toString();
@@ -176,7 +196,7 @@ void main() {
 
     test("Article == operator implementation is reflexive", () {
       // Arrange
-      final a = Article();
+      final a = defaultArticle;
 
       // Act
       final comparisonResult = a == a;
@@ -187,8 +207,8 @@ void main() {
 
     test("Article == operator implementation is symmetric", () {
       // Arrange
-      final a = Article();
-      final b = Article();
+      final a = defaultArticle;
+      final b = defaultArticle;
 
       // Act
       final firstResult = a == b;
@@ -200,9 +220,9 @@ void main() {
 
     test("Article == operator implementation is transitive", () {
       // Arrange
-      final a = Article();
-      final b = Article();
-      final c = Article();
+      final a = defaultArticle;
+      final b = defaultArticle;
+      final c = defaultArticle;
 
       final expectedResult = (a == b) && (b == c);
 
@@ -215,7 +235,7 @@ void main() {
 
     test("Article == operator implementation is reflexive", () {
       // Arrange
-      final a = Article();
+      final a = defaultArticle;
 
       // Act
       final comparisonResult = a == a;
@@ -226,7 +246,7 @@ void main() {
 
     test("Comparing two article references with equal identities returns true", () {
       // Arrange
-      final a = Article();
+      final a = defaultArticle;
       final b = a;
 
       // Act
@@ -238,8 +258,8 @@ void main() {
 
     test("Comparing two article instances with equal values returns true", () {
       // Arrange
-      final a = Article();
-      final b = Article();
+      final a = defaultArticle;
+      final b = defaultArticle;
 
       // Act
       final comparisonResult = a == b;
@@ -250,8 +270,20 @@ void main() {
 
     test("Comparing two Article instances with different id values returns false", () {
       // Arrange
-      final a = Article(id: 0);
-      final b = Article(id: 1);
+      final a = Article(
+        id: 0,
+        title: "A test Article",
+        articleUrl: "https://article.com",
+        description: "A test description.",
+        publishDate: DateTime.now(),
+      );
+      final b = Article(
+        id: 1,
+        title: "A test Article",
+        articleUrl: "https://article.com",
+        description: "A test description.",
+        publishDate: DateTime.now(),
+      );
 
       // Act
       final comparisonResult = a == b;

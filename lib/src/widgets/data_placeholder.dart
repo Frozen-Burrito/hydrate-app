@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 /// - Carga
 /// - Error
 /// - Datos inexistentes
-class SliverDataPlaceholder extends StatelessWidget {
+class DataPlaceholder extends StatelessWidget {
 
   /// Si el contenido está cargando, sin haber un error. Se muestra un 
   /// [CircularProgressIndicator] si es [true].
@@ -29,7 +29,7 @@ class SliverDataPlaceholder extends StatelessWidget {
 
   final bool hasTopSpacing;
 
-  const SliverDataPlaceholder({
+  const DataPlaceholder({
     this.isLoading = false,
     this.message = '',
     this.details = '',
@@ -40,62 +40,60 @@ class SliverDataPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverToBoxAdapter(
-      child: IconTheme(
-        data: IconThemeData(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: isLoading 
-          ? <Widget> [
-            SizedBox( height: hasTopSpacing ? 64.0 : 0.0, ),
-            
-            const Center(
-              child: CircularProgressIndicator()
-            ),
-          ]
-          : <Widget>[
-            SizedBox( height: hasTopSpacing ? 64.0 : 0.0,),
-
-            Icon(
-              icon,
-              size: 100.0,
-            ),
+    return IconTheme(
+      data: IconThemeData(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: isLoading 
+        ? <Widget> [
+          SizedBox( height: hasTopSpacing ? 64.0 : 0.0, ),
           
-            const SizedBox( height: 16.0,),
+          const Center(
+            child: CircularProgressIndicator()
+          ),
+        ]
+        : <Widget>[
+          SizedBox( height: hasTopSpacing ? 64.0 : 0.0,),
 
-            // Texto del contenido principal.
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.8,
-              child: Text(
-                message,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyText1?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
-                ),
+          Icon(
+            icon,
+            size: 100.0,
+          ),
+        
+          const SizedBox( height: 16.0,),
+
+          // Texto del contenido principal.
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyText1?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
               ),
             ),
-      
-            const SizedBox( height: 8.0,),
+          ),
+    
+          const SizedBox( height: 8.0,),
 
-            // Texto del contenido detallado.
-            SizedBox(
-              width: MediaQuery.of(context).size.width * 0.8,
-              child: Text(
-                details,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyText2?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
-                ),
+          // Texto del contenido detallado.
+          SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            child: Text(
+              details,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)
               ),
             ),
+          ),
 
-            const SizedBox( height: 8.0,),
+          const SizedBox( height: 8.0,),
 
-            (action ?? const SizedBox( height: 0.0, ))
-          ],
-        ),
+          (action ?? const SizedBox( height: 0.0, ))
+        ],
       ),
     );
   }

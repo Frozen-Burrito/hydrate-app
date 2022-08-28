@@ -67,24 +67,32 @@ class ActivitySliverList extends StatelessWidget {
                             );
                           } else {
                             // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-                            return const SliverDataPlaceholder(
-                              message: 'Aún no hay actividad física registrada.',
-                              icon: Icons.fact_check_rounded,
+                            return const SliverToBoxAdapter(
+                              child: DataPlaceholder(
+                                //TODO: agregar i18n
+                                message: 'Aún no hay actividad física registrada.',
+                                icon: Icons.fact_check_rounded,
+                              ),
                             );  
                           }
                         } else if (snapshot.hasError) {
                           // Retornar un placeholder, indicando que hubo un error.
-                          return const SliverDataPlaceholder(
-                            isLoading: false,
-                            message: 'Hubo un error obteniendo tus registros de actividad.',
-                            icon: Icons.error,
+                          return const SliverToBoxAdapter(
+                            child: DataPlaceholder(
+                              isLoading: false,
+                              //TODO: agregar i18n
+                              message: 'Hubo un error obteniendo tus registros de actividad.',
+                              icon: Icons.error,
+                            ),
                           ); 
                         }
 
                         // El future no tiene datos ni error, aún no ha sido
                         // completado.
-                        return const SliverDataPlaceholder(
-                          isLoading: true,
+                        return const SliverToBoxAdapter(
+                          child: DataPlaceholder(
+                            isLoading: true,
+                          ),
                         );  
                       }
                     ),

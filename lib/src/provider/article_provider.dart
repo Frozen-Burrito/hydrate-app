@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 
 import 'package:hydrate_app/src/api/articles_api.dart';
 import 'package:hydrate_app/src/api/paged_result.dart';
@@ -41,7 +42,8 @@ class ArticleProvider with ChangeNotifier {
   late final CacheState<List<Article>> _allArticlesCache = CacheState(
     fetchData: _fetchArticles,
     dataUpdateHandler: _aggregateResults,
-    onDataRefreshed: _handleOnArticlesLoaded
+    onDataRefreshed: _handleOnArticlesLoaded,
+    onError: _handleFetchError,
   );
 
   late final CacheState<List<Article>> _bookmarkedArticlesCache = CacheState(
@@ -50,7 +52,8 @@ class ArticleProvider with ChangeNotifier {
       if (_isMounted && fetchedBookmarks != null) {
         notifyListeners();
       }
-    }
+    },
+    onError: _handleFetchError,
   );
 
   /// El estado de este provider. Métodos como [notifyListeners()] no deben 
@@ -81,12 +84,19 @@ class ArticleProvider with ChangeNotifier {
   /// Todos los [Article] obtenidos usando la API. Esta lista es actualizada
   /// por páginas, cada vez que el contenido de [scrollController] se 
   /// acerca al final de su extent
+  /// 
+  /// Si [allArticles.last.id] es igual a [Article.invalidArticleId], ya no hay
+  /// más recursos informativos por obtener.
   List<Article> get allArticles 
       => List.unmodifiable(_allArticlesCache.cachedData ?? <Article>[]);
 
   /// Es **true** cuando este provider está haciendo una petición
   /// para cargar más [Article]s.
   bool get isFetchingAllArticles => _allArticlesCache.isLoading;
+
+  /// Es **true** cuando la lista de todos los recursos informativos no 
+  /// pudo ser actualizada con más [Article]s.
+  bool get hasErrorForAllArticles => _allArticlesCache.hasError;
 
   /// Es **true** cuando este provider está haciendo una petición
   /// para cargar más bookmarks de [Article]s.
@@ -97,13 +107,20 @@ class ArticleProvider with ChangeNotifier {
   List<Article> get bookmarks 
       => List.unmodifiable(_bookmarkedArticlesCache.cachedData ?? <Article>[]);
 
+  /// Es **true** cuando la lista de bookmarks de los recursos informativos no 
+  /// pudo ser actualizada con más [Article]s.
+  bool get hasErrorForBookmarks => _bookmarkedArticlesCache.hasError;
+
   /// Obtiene los elementos de la siguiente página de resultados de [Article] 
   /// desde la API web. Luego, si pudo obtener el resultado paginado con éxito,
   /// actualiza el estado de este provider con los resultados.
   /// 
+  /// Esta función solo es invocada al refrescar [_allArticlesCache], por lo que 
+  /// delega el manejo de errores a [CacheState]. Para saber si ocurrió un error,
+  /// revisar el valor de [_allArticlesCache.error].
+  /// 
   /// NOTA: Este método requiere de conexión a internet.
   Future<List<Article>> _fetchArticles() async {
-    //TODO: (No esencial) remover articulos que ya no son necesarios (los que quedan hasta arriba en el scroll)
     final List<Article> fetchedArticles = <Article>[];
 
     print("Obteniendo recursos informativos...");
@@ -113,17 +130,17 @@ class ArticleProvider with ChangeNotifier {
 
     // Revisar si la API puede dar más resultados.
     if (hasNextPage) {
+      // Determinar el índice de la siguiente página.
+      final nextPageIndex = _latestArticleResults != null 
+        ? _latestArticleResults!.currentPage + 1
+        : 0;
+
+      assert(
+        (_latestArticleResults != null && nextPageIndex < _latestArticleResults!.totalPages) || true, 
+        "trying to fetch a page that does not exist"
+      );
+
       try {
-        // Determinar el índice de la siguiente página.
-        final nextPageIndex = _latestArticleResults != null 
-          ? _latestArticleResults!.currentPage + 1
-          : 0;
-
-        assert(
-          (_latestArticleResults != null && nextPageIndex < _latestArticleResults!.totalPages) || true, 
-          'trying to fetch a page that does not exist'
-        );
-
         // Intentar obtener los resultados de la siguiente pagina.
         final newArticles = await _articlesApi.fetchArticles(pageIndex: nextPageIndex);
 
@@ -136,19 +153,15 @@ class ArticleProvider with ChangeNotifier {
 
         fetchedArticles.addAll(resultsWithBookmarks);
 
-      } on IOException catch(ex) {
-        // Es lanzada por http si el dispositivo no tiene internet. 
-        print('El dispositivo no cuenta con conexion a internet: $ex');
-      } on FormatException catch (ex) {
-        //TODO: Revisar si FormatException puede ser lanzada por el codigo del try.
-        // Lanzada por http si no logra hacer el parse de la URL solicitada.
-        print('Error de formato en url: $ex');
+      } on ClientException catch (ex) {
+        // Propagar el error, 
+        return Future.error(ex);
       }
     } else {
-      // Indicar de alguna forma a los listeners del provider que ya no hay mas 
-      // resultados.
-      //TODO: avisar cuando ya no hay mas recursos informativos que obtener.
-      print("No more articles available");
+      // Indicar a los listeners del provider que ya no hay más resultados, 
+      // enviando una instancia inválida (con ID negativo) de un recurso 
+      // informativo.
+      fetchedArticles.add(Article.invalid());
     }
 
     print("${fetchedArticles.length} articles fetched.");
@@ -172,14 +185,20 @@ class ArticleProvider with ChangeNotifier {
     final bookmarkedArticles = queryResults.map((article) {
       article.isBookmarked = true;
       return article;
-    });
+    }).toList();
+
+    if (bookmarkedArticles.isEmpty) {
+      final emptyBookmarksMarker = Article.invalid();
+      emptyBookmarksMarker.isBookmarked = true;
+      bookmarkedArticles.add(emptyBookmarksMarker);
+    }
 
     assert(
       bookmarkedArticles.every((a) => a.isBookmarked), 
       'Not every bookmark is marked as such'
     );
 
-    return bookmarkedArticles.toList();
+    return bookmarkedArticles;
   }
 
   /// Obtiene los [Article] que fueron guardados con un marcador. Si un 
@@ -331,6 +350,15 @@ class ArticleProvider with ChangeNotifier {
         curve: Curves.fastOutSlowIn,
       );
     }
+  }
+
+  /// Notifica a los listeners de este provider cuando ocurre un error
+  /// al intentar obtener recursos informativos, ya sean bookmarks o
+  /// artículos nuevos.
+  void _handleFetchError(Exception ex) {
+    // Simplemente notificar y mostrar el error.
+    print("An error occurred while fetching articles: $ex");
+    notifyListeners();
   }
 
   @override

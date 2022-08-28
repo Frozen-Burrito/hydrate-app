@@ -48,15 +48,17 @@ class GoalSliverList extends StatelessWidget {
             } else {
               // Retornar un placeholder si los datos están cargando, o no hay datos aín.
               //TODO: Agregar i18n.
-              return SliverDataPlaceholder(
-                message: "Aún no has creado metas de hidratación.",
-                icon: Icons.flag,
-                hasTopSpacing: false,
-                action: ElevatedButton(
-                  onPressed: () => Navigator.pushNamed(context, RouteNames.newHydrationGoal), 
-                  child: const Text("Crea una meta"),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.blue,
+              return SliverToBoxAdapter(
+                child: DataPlaceholder(
+                  message: "Aún no has creado metas de hidratación.",
+                  icon: Icons.flag,
+                  hasTopSpacing: false,
+                  action: ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, RouteNames.newHydrationGoal), 
+                    child: const Text("Crea una meta"),
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.blue,
+                    ),
                   ),
                 ),
               );  
@@ -64,19 +66,23 @@ class GoalSliverList extends StatelessWidget {
           } else if (snapshot.hasError) {
             // Retornar un placeholder, indicando que hubo un error.
             print(snapshot.error);
-            return const SliverDataPlaceholder(
-              isLoading: false,
-              //TODO: agregar i18n
-              message: "Hubo un error obteniendo tus metas de hidratación.",
-              icon: Icons.error,
-              hasTopSpacing: false,
+            return const SliverToBoxAdapter(
+              child: DataPlaceholder(
+                isLoading: false,
+                //TODO: agregar i18n
+                message: "Hubo un error obteniendo tus metas de hidratación.",
+                icon: Icons.error,
+                hasTopSpacing: false,
+              ),
             ); 
           } else {
             // El future no tiene datos ni error, aún no ha sido
             // completado.
-            return const SliverDataPlaceholder(
-              isLoading: true,
-              hasTopSpacing: false,
+            return const SliverToBoxAdapter(
+              child: DataPlaceholder(
+                isLoading: true,
+                hasTopSpacing: false,
+              ),
             );  
           }
         },

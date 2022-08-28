@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
@@ -27,6 +28,8 @@ class ArticleSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final localizations = AppLocalizations.of(context)!;
+
     return SafeArea(
       top: false,
       bottom: false,
@@ -41,6 +44,10 @@ class ArticleSliverList extends StatelessWidget {
             ? articleProvider.isFetchingAllArticles
             : articleProvider.isFetchingBookmarks;
 
+          final hasError = articleSource == ArticleSource.network
+            ? articleProvider.hasErrorForAllArticles
+            : articleProvider.hasErrorForBookmarks;
+
           return Stack(
             children: [
               CustomScrollView(
@@ -51,17 +58,28 @@ class ArticleSliverList extends StatelessWidget {
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.all(8.0),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int i) {
-                          return _ArticleCard(
-                            article: articles[i],
-                          );
-                        },
-                        childCount: articles.length
+                    sliver: hasError 
+                      // Mostrar un placeholder de error.
+                      ? SliverToBoxAdapter(
+                          child: DataPlaceholder(
+                            message: localizations.resourcesErr,
+                            icon: articleSource == ArticleSource.bookmarks
+                              ? Icons.folder_open 
+                              : Icons.cloud_off_rounded,
+                          ),
+                        )
+                      : SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int i) {
+                            return _ArticleCard(
+                              article: articles[i],
+                              source: articleSource,
+                            );
+                          },
+                          childCount: articles.length
+                        )
                       ),
-                    ),
-                  ),
+                  )
                 ]
               ),
 
@@ -88,7 +106,13 @@ class _ArticleCard extends StatelessWidget {
   /// EL [Article] de la tarjeta.
   final Article article;
 
-  const _ArticleCard({ required this.article, Key? key }) : super(key: key);
+  final ArticleSource source;
+
+  const _ArticleCard({ 
+    Key? key,
+    required this.article, 
+    required this.source,
+  }) : super(key: key);
 
   /// Activa o desactiva una marca de leer más tarde de un [Artículo]
   /// 
@@ -135,6 +159,16 @@ class _ArticleCard extends StatelessWidget {
     final articleDateStr = (article.publishDate != null)
       ? rawPublishDateStr.substring(0, min(article.publishDate.toString().length, 10))
       : localizations.noDate;
+
+    if (article.id == Article.invalidArticleId) {
+      return DataPlaceholder(
+        //TODO: revisar y actualizar i18n si es necesario.
+        message: source == ArticleSource.bookmarks
+          ? localizations.noBookmarks
+          : localizations.resourcesUnavailable,
+        icon: Icons.inbox,
+      );
+    }
 
     return Card(
       child: Column(
