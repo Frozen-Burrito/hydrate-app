@@ -42,7 +42,7 @@ class GoalProvider extends ChangeNotifier {
   bool get hasGoalData => _goalCache.hasData;
 
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
-  Future<List<Goal>?> get goals => _goalCache.data;
+  Future<List<Goal>> get goals async => (await _goalCache.data) ?? const <Goal>[];
 
   /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
   bool get hasTagData => _tagsCache.hasData;
@@ -298,12 +298,28 @@ class GoalProvider extends ChangeNotifier {
     final queryResults = await SQLiteDB.instance.select<Goal>(
       Goal.fromMap,
       Goal.tableName,
-      where: [ WhereClause('id_perfil', _profileId.toString() )],
+      where: [ WhereClause(Goal.profileIdFieldName, _profileId.toString() )],
       includeOneToMany: true,
       queryManyToMany: true,
     );
 
-    return Future.value(queryResults.toList());
+    if (queryResults.isEmpty) return <Goal>[];
+
+    final goalList = queryResults.toList();
+
+    // Ordenar metas para que la meta principal sea la primera.
+    final mainGoalIdx = goalList.indexWhere((goal) => goal.isMainGoal);
+
+    if (mainGoalIdx >= 0) {
+      // Si hay una meta principal, reordenarla para ponerla como primera 
+        // Si hay una meta principal, reordenarla para ponerla como primera 
+      // Si hay una meta principal, reordenarla para ponerla como primera 
+      // en la lista de metas.
+      final mainGoal = goalList.removeAt(mainGoalIdx);
+      goalList.insert(0, mainGoal);
+    }
+
+    return List.unmodifiable(goalList);
   }
 
   /// Obtener todos los [Habits] de hidratación del perfil de 

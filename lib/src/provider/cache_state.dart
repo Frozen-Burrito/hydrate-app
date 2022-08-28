@@ -102,7 +102,7 @@ class CacheState<T> {
       // Obtener datos actualizados, si los datos son viejos o si le indicaron 
       // al CacheState que debe refrescar sus datos.
       if (isDataOutdated || _shouldRefresh) {
-        refresh();
+        await refresh();
       }
 
       return Future.value(_data);

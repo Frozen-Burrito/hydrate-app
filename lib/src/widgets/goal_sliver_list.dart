@@ -16,53 +16,17 @@ class GoalSliverList extends StatelessWidget {
 
   const GoalSliverList({Key? key}) : super(key: key);
 
-  Future<Map<Goal, int>> getGoalsWithProgress(
-    BuildContext context, 
-    Future<List<Goal>?> goalsFuture,
-    Future<Map<Goal, int>> Function(List<Goal>) getProgressValuesForGoals
-  ) async {
-
-    final goals = await goalsFuture ?? <Goal>[];
-
-    if (goals.isNotEmpty) {
-      // Ordenar metas para que la meta principal sea la primera.
-      final mainGoalIdx = goals.indexWhere((goal) => goal.isMainGoal);
-
-      if (mainGoalIdx >= 0) {
-        // Si hay una meta principal, reordenarla para ponerla como primera 
-        // en la lista de metas.
-        final mainGoal = goals.removeAt(mainGoalIdx);
-        goals.insert(0, mainGoal);
-      }
-
-      // Obtener los progresos hacia las metas de hidratación.
-      final progressTowardsGoals = await getProgressValuesForGoals(goals);
-
-      assert(progressTowardsGoals.length == goals.length);
-
-      return progressTowardsGoals;
-    }
-
-    return <Goal, int>{};
-  }
-
   @override
   Widget build(BuildContext context) {
 
-    final goalsProvider = Provider.of<GoalProvider>(context);
-    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
     final profileId = Provider.of<ProfileProvider>(context).profileId;
-
+    final goalsProvider = Provider.of<GoalProvider>(context);
     goalsProvider.activeProfileId = profileId;
     
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
-      sliver: FutureBuilder<Map<Goal, int>>(
-        future: getGoalsWithProgress(
-          context, 
-          goalsProvider.goals,
-          hydrationProvider.getGoalsProgressValuesInMl,
-        ),
+      sliver: FutureBuilder<List<Goal>?>(
+        future: goalsProvider.goals,
         builder: (context, snapshot) {
           
           if (snapshot.hasData) {
@@ -71,14 +35,11 @@ class GoalSliverList extends StatelessWidget {
 
             if (goals != null && goals.isNotEmpty) {
 
-              final goalList = goals.entries.toList();
-
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int i) {
                     return _GoalCard(
-                      goal: goalList[i].key,
-                      progress: goalList[i].value,
+                      goal: goals[i],
                     );
                   },
                   childCount: goals.length,
@@ -88,26 +49,25 @@ class GoalSliverList extends StatelessWidget {
               // Retornar un placeholder si los datos están cargando, o no hay datos aín.
               //TODO: Agregar i18n.
               return SliverDataPlaceholder(
-                message: 'Aún no has creado metas de hidratación.',
+                message: "Aún no has creado metas de hidratación.",
                 icon: Icons.flag,
                 hasTopSpacing: false,
                 action: ElevatedButton(
                   onPressed: () => Navigator.pushNamed(context, RouteNames.newHydrationGoal), 
-                  child: const Text('Crea una meta'),
+                  child: const Text("Crea una meta"),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.blue,
                   ),
                 ),
               );  
             }
-
           } else if (snapshot.hasError) {
-
-            print(snapshot.error);
             // Retornar un placeholder, indicando que hubo un error.
+            print(snapshot.error);
             return const SliverDataPlaceholder(
               isLoading: false,
-              message: 'Hubo un error obteniendo tus metas de hidratación.',
+              //TODO: agregar i18n
+              message: "Hubo un error obteniendo tus metas de hidratación.",
               icon: Icons.error,
               hasTopSpacing: false,
             ); 
@@ -127,19 +87,9 @@ class GoalSliverList extends StatelessWidget {
 
 class _GoalCard extends StatelessWidget {
 
-  _GoalCard({ 
-    required this.goal, 
-    required this.progress,
-    Key? key 
-  }) : _currentProgress = max(min(progress, goal.quantity), 0) / goal.quantity.toDouble(), 
-       _isComplete = (max(min(progress, goal.quantity), 0) > goal.quantity),
-       super(key: key);
+  const _GoalCard({ required this.goal, Key? key }) : super(key: key);
 
   final Goal goal;
-  final int progress;
-
-  final double _currentProgress;
-  final bool _isComplete;
 
   //TODO: Agregar i18n para plazos de tiempo
   static const termLabels = <String>['Diario','Semanal','Mensual'];
@@ -270,28 +220,7 @@ class _GoalCard extends StatelessWidget {
               textAlign: TextAlign.left
             ),
 
-            Container(
-              margin: const EdgeInsets.only( top: 16.0 ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: LinearProgressIndicator(
-                      value: _currentProgress,
-                    ),
-                  ),
-
-                  (_isComplete) 
-                  ? Container(
-                      margin: const EdgeInsets.only( left: 8.0 ),
-                      child: Icon(
-                        Icons.check,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    )
-                  : const SizedBox( width: 0, ),
-                ],
-              ),
-            ),
+            _GoalProgressBar(goal: goal),
           ],
         ),
       ),
@@ -305,7 +234,8 @@ class _GoalCard extends StatelessWidget {
           width: double.maxFinite,
           margin: const EdgeInsets.only( bottom: 8.0, left: 8.0 ),
           child: Text(
-            'Tu Meta Principal', 
+            //TODO: agregar i18n
+            "Tu Meta Principal", 
             style: Theme.of(context).textTheme.headline5,
           )
         ),
@@ -323,6 +253,58 @@ class _GoalCard extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: columnItems,
+    );
+  }
+}
+
+class _GoalProgressBar extends StatelessWidget {
+
+  const _GoalProgressBar({
+    Key? key,
+    required this.goal,
+  }) : super(key: key);
+
+  final Goal goal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<HydrationRecordProvider>(
+      builder: (_, hydrationProvider, __) {
+        return FutureBuilder<int>(
+          future: hydrationProvider.getGoalProgressInMl(goal),
+          initialData: 0,
+          builder: (context, snapshot) {
+
+            final progressInMl = max(min(snapshot.data!, goal.quantity), 0);
+
+            final adjustedProgress = progressInMl / goal.quantity.toDouble();
+            final isGoalComplete = progressInMl >= goal.quantity;
+
+            return Container(
+              margin: const EdgeInsets.only( top: 16.0 ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: adjustedProgress,
+                    ),
+                  ),
+        
+                  (isGoalComplete) 
+                  ? Container(
+                      margin: const EdgeInsets.only( left: 8.0 ),
+                      child: Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : const SizedBox( width: 0, ),
+                ],
+              ),
+            );
+          }
+        );
+      }
     );
   }
 }

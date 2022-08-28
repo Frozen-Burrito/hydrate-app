@@ -8,14 +8,16 @@ enum TimeTerm {
 
 extension TimeTermExtension on TimeTerm {
 
+  static const avgDaysPerMonth = 30;
+
   int get inDays {
     switch(this) {
       case TimeTerm.daily: 
         return 1;
       case TimeTerm.weekly: 
-        return 7;
+        return DateTime.daysPerWeek;
       case TimeTerm.monthly: 
-        return 30;
+        return avgDaysPerMonth;
     }
   } 
 }

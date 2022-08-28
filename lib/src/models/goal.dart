@@ -48,20 +48,45 @@ class Goal extends SQLiteModel {
 
   static const String tableName = 'meta';
 
+  static const String idFieldName = "id";
+  static const String profileIdFieldName = "id_perfil";
+  static const String termFieldName = "plazo";
+  static const String startDateFieldName = "fecha_inicio";
+  static const String endDateFieldName = "fecha_final";
+  static const String rewardFieldName = "recompensa";
+  static const String quantityFieldName = "cantidad";
+  static const String isMainGoalFieldName = "es_principal";
+  static const String notesFieldName = "notas";
+  static const String tagsFieldName = "${Tag.tableName}s";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    profileIdFieldName,
+    termFieldName,
+    startDateFieldName,
+    endDateFieldName,
+    rewardFieldName,
+    quantityFieldName,
+    isMainGoalFieldName,
+    notesFieldName,
+    tagsFieldName,
+  ];
+
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteKeywords.idType},
-      plazo ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      fecha_inicio ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      fecha_final ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      recompensa ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      es_principal ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      notas ${SQLiteKeywords.textType},
-      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $termFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $startDateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $endDateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $rewardFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $quantityFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $isMainGoalFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $notesFieldName ${SQLiteKeywords.textType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}

@@ -57,7 +57,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
       final goalProvider = Provider.of<GoalProvider>(context, listen: false);
 
       // Obtener el número de metas creadas.
-      final numOfExistingGoals = (await goalProvider.goals)?.length ?? 0;
+      final numOfExistingGoals = (await goalProvider.goals).length;
       
       final hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
       bool userChoseGoalsToDelete = false;

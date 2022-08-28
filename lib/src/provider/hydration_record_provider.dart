@@ -12,14 +12,8 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   late final CacheState<List<HydrationRecord>> _hydrationRecordsCache = CacheState(
     fetchData: _fetchHydrationRecords,
-    onDataRefreshed: (updatedRecords) {
-
-      _sortRecordsByDay(updatedRecords ?? <HydrationRecord>[]);
-      notifyListeners();
-    }
+    onDataRefreshed: (_) => notifyListeners(),
   );
-
-  final Map<DateTime, List<HydrationRecord>> _dailyHydration = {};
 
   bool get hasHydrationData => _hydrationRecordsCache.hasData;
 
@@ -27,14 +21,18 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   Future<List<BatteryRecord>> get last24hBatteryUsage => _getBatteryRecordsSinceYesterday();
 
-  Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration async {
+  Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration => _groupDailyHydration();
 
-    await _hydrationRecordsCache.data;
+  Future<List<int>> get pastWeekMlTotals {
 
-    return _dailyHydration;
+    final now = DateTime.now();
+
+    return _totalsFromPrevDaysInMl(
+      begin: now.subtract(const Duration( days: 7 )).onlyDate, 
+      end: now,
+      sortByDateAscending: false
+    );
   }
-
-  Future<List<int>> get pastWeekMlTotals => _totalsFromPrevDaysInMl(7, isSortByDateAscending: false);
 
   //TODO: Quitar esta funcion helper temporal.
   Future<void> insertTestRecords() async {
@@ -96,10 +94,7 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// 
   /// Retorna el ID del [HydrationRecord] persistido con éxito, o -1 si el 
   /// registro no pudo ser guardado.
-  Future<int> saveHydrationRecord(
-    HydrationRecord newRecord, 
-    { refreshImmediately = true }
-  ) async {
+  Future<int> saveHydrationRecord(HydrationRecord newRecord, { refreshImmediately = true }) async {
     
     try {
       int result = await SQLiteDB.instance.insert(newRecord);
@@ -147,23 +142,31 @@ class HydrationRecordProvider extends ChangeNotifier {
     } 
   }
 
+  Future<Map<DateTime, List<HydrationRecord>>> _groupDailyHydration() async {
+    // Obtener los registros de hidratación más recientes y ordenarlos.
+    final hydrationRecords = await _hydrationRecordsCache.data;
+
+    return _sortRecordsByDay(hydrationRecords ?? <HydrationRecord>[]);
+  }
+
   /// Crea un mapa en donde todos los valores de [_hydrationRecords] son agrupados
   /// por día.
   Map<DateTime, List<HydrationRecord>> _sortRecordsByDay(List<HydrationRecord> records) {
 
-    _dailyHydration.clear();
+    final dailyHydration = <DateTime, List<HydrationRecord>>{};
 
-    for (var hydrationRecord in records) {
+    for (final hydrationRecord in records) {
 
-      DateTime recordDate = hydrationRecord.date;
-      DateTime day = DateTime(recordDate.year, recordDate.month, recordDate.day);
+      final DateTime recordDate = hydrationRecord.date.onlyDate;
 
-      if (_dailyHydration[day] == null) _dailyHydration[day] = <HydrationRecord>[]; 
+      if (dailyHydration[recordDate] == null) {
+        dailyHydration[recordDate] = <HydrationRecord>[];
+      } 
 
-      _dailyHydration[day]?.add(hydrationRecord);
+      dailyHydration[recordDate]?.add(hydrationRecord);
     }
 
-    return _dailyHydration;
+    return dailyHydration;
   }
 
   /// Calcula el progreso de varios [Goal], invocando [getGoalProgressInMl()] 
@@ -232,33 +235,41 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// 
   /// Si __[daysOffset]__ es mayor a 0, en vez de comenzar por el día actual, los
   /// totales comenzarán en la fecha del día de hoy menos __[daysOffset]__ días.  
-  Future<List<int>> _totalsFromPrevDaysInMl(
-    int numberOfDays, { 
-      int daysOffset = 0, 
-      bool isSortByDateAscending = true, 
+  /// //TODO: Arreglar funcionamiento de rangos de fechas, en vez de usar numberOfDays.
+  Future<List<int>> _totalsFromPrevDaysInMl({
+    required DateTime begin, 
+    required DateTime end,
+    bool sortByDateAscending = true, 
   }) async {
 
-    // Comprobar que [daysOffset] no sea negativo.
-    assert(daysOffset >= 0);
+    // Determinar si hace falta invertir las fechas para que beginDate sea antes
+    // que endDate.
+    if (begin.isAfter(end)) {
+      // Invertir las fechas para formar un rango de fechas válido.
+      final tempDate = begin;
+      begin = end;
+      end = tempDate;
+    }
 
-    // Obtener la fecha de inicio de selección de totales.
-    final DateTime startDate = DateTime.now().onlyDate
-      .subtract(Duration( days: daysOffset ));
+    // Comprobar que el rango de fechas sea correcto.
+    assert(begin.isBefore(end), "'beginDate' debe ser antes que 'endDate'");
+
+    final int daysBetweenDates = (end.difference(begin).inHours / 24).ceil();
 
     // Inicializar la lista con los totales.
-    final List<int> recentTotals = List.filled(numberOfDays, 0, growable: false);
+    final List<int> recentTotals = List.filled(daysBetweenDates, 0, growable: false);
 
     // Obtener registros de hidratación, ordenados por día.
-    await _hydrationRecordsCache.data;
+    final hydrationRecords = await _groupDailyHydration();
 
-    for (int i = 0; i < numberOfDays; i++) {
+    for (int i = 0; i < daysBetweenDates; i++) {
 
-      final DateTime previousDay = startDate.subtract(Duration( days: i));
+      final DateTime previousDay = end.subtract(Duration( days: i)).onlyDate;
 
-      if (_dailyHydration[previousDay] != null) {
+      if (hydrationRecords[previousDay] != null) {
         // Existen registros de hidratación para el día. 
         // Obtener las cantidades de los registros de hidratacion y agregarlas. 
-        int totalMililiters = _dailyHydration[previousDay]!
+        int totalMililiters = hydrationRecords[previousDay]!
             .map((registroHidratacion) => registroHidratacion.amount)
             .reduce((total, cantidadConsumida) => total += cantidadConsumida);
 
@@ -268,11 +279,11 @@ class HydrationRecordProvider extends ChangeNotifier {
     }
 
     // Asegurar que la lista de totales tenga un elemento por cada día.
-    assert(recentTotals.length == numberOfDays);
+    assert(recentTotals.length == daysBetweenDates);
 
     // Retornar los totales, ordenados con fecha ascendiente o descendiente, según
     // isSortByDateDescending.
-    return isSortByDateAscending 
+    return sortByDateAscending 
       ? recentTotals
       : recentTotals.reversed.toList(); 
   }
@@ -284,31 +295,37 @@ class HydrationRecordProvider extends ChangeNotifier {
   /// se puede especificar el total para el número de días de la meta anterior.
   /// Así, si una meta previa diaria lleva 70 ml de progreso en 1 día, una fecha
   /// semanal puede usar ese total para su primer día. 
-  Future<int> getGoalProgressInMl(Goal goal, { int? previousTotal, int dayOffset = 0 }) async {
+  Future<int> getGoalProgressInMl(Goal goal) async {
 
     // Determinar el número de días de registros necesarios (segun plazo, fecha
     // de inicio de la meta y la fecha de hoy).
-    final DateTime today = DateTime.now();
+    final DateTime now = DateTime.now();
     final DateTime goalStartDate = goal.startDate!;
-    final diffBetweenDates = today.difference(goalStartDate);
-    
+    final diffBetweenDates = now.difference(goalStartDate);
+
     // El número de días de registros de hidratación necesarios para calcular 
     // el progreso.
-    int daysOfRecords = min(diffBetweenDates.inDays, goal.term.inDays);
+    final int daysOfRecords = diffBetweenDates.inDays % goal.term.inDays;
+
+    assert(daysOfRecords >= 0, "No es posible obtener el progreso para una cantidad negativa de días.");
+
+    final goalProgressBegin = now.subtract(Duration( days: daysOfRecords )).onlyDate;
+    // final bool isCompleteTerm = diffBetweenDates.inDays > 0
+    //                          && diffBetweenDates.inDays >= goal.term.inDays;
 
     // Obtener los totales de registros de hidratación con la antiguedad para 
     // la meta.
-    final totals = await _totalsFromPrevDaysInMl(daysOfRecords, daysOffset: dayOffset);
+    final totals = await _totalsFromPrevDaysInMl(
+      // begin: (isCompleteTerm) ? goalProgressBegin.onlyDate : goalProgressBegin, 
+      begin: goalProgressBegin, 
+      end: now,
+      sortByDateAscending: true
+    );
 
     // Agregar los totales diarios.
-    int currentProgressMl = totals.isNotEmpty
+    final int currentProgressMl = totals.isNotEmpty
       ? totals.reduce((value, dayTotal) => value + dayTotal)
       : 0;
-
-    if (previousTotal != null) {
-      // Si hay un total ya calculado, agregarlo a currentProgressMl.
-      currentProgressMl += previousTotal;
-    }
 
     // Retornar el progreso del usuario hacia la meta, en mililitros.
     return currentProgressMl;
