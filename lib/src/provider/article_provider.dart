@@ -6,6 +6,7 @@ import 'package:http/http.dart';
 import 'package:hydrate_app/src/api/articles_api.dart';
 import 'package:hydrate_app/src/api/paged_result.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/provider/cache_state.dart';
 
@@ -153,7 +154,19 @@ class ArticleProvider with ChangeNotifier {
 
         fetchedArticles.addAll(resultsWithBookmarks);
 
+      } on IOException catch (ex) {
+
+        return Future.error(ApiException(
+          ApiErrorType.unreachableHost,
+          ex.toString(),
+        ));
       } on ClientException catch (ex) {
+
+        return Future.error(ApiException(
+          ApiErrorType.unreachableHost,
+          ex.message,
+        ));
+      } on ApiException catch (ex) {
         // Propagar el error, 
         return Future.error(ex);
       }

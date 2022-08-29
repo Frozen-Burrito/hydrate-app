@@ -3,10 +3,15 @@ import 'dart:io';
 import 'package:http/http.dart';
 import 'package:hydrate_app/src/api/api.dart';
 import 'package:hydrate_app/src/api/paged_result.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 
-//TODO: Documentación
+/// Sirve como un wrapper para hacer operaciones con la api de recursos 
+/// informativos, usando un [ApiClient].
+/// 
+/// Por el momento, la única acción soportada es obtener recursos informativos
+/// por páginas, usando [PagedResult].
 class ArticlesApi {
 
   static const int defaultArticlesPerPage = 5;
@@ -62,18 +67,28 @@ class ArticlesApi {
     }
   }
 
+  /// Produce un error correspondiente 
   Future<Error> _handleBadResponse(Response response) {
     if (response.statusCode >= HttpStatus.internalServerError) {
       // La respuesta indica un problema del servidor. No debería seguir 
       // haciendo peticiones.
-      throw Exception("Service is not available");
+      throw const ApiException(
+        ApiErrorType.serviceUnavailable, 
+        "Service is not available"
+      );
 
     } else if (response.statusCode >= HttpStatus.badRequest) {
       // Por alguna razón, la petición tenía una forma incorrecta. 
-      throw Exception("Articles could not be requested");
+      throw const ApiException(
+        ApiErrorType.requestError,
+        "Articles could not be requested",
+      );
     } else {
       // Algo más salió mal.
-      throw Exception("Unexpected HTTP status code in response: ${response.statusCode}");
+      throw ApiException(
+        ApiErrorType.unknown,
+        "Unexpected HTTP status code in response: ${response.statusCode}"
+      );
     }
   }
 
