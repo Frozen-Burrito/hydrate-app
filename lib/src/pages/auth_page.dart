@@ -55,7 +55,7 @@ class AuthPage extends StatelessWidget {
                         ),
                       ),
 
-                      (isSignIn ? const LoginForm() : const SignupForm()),
+                      (isSignIn ? LoginForm() : SignupForm()),
 
                       const SizedBox( height: 32.0,),
 

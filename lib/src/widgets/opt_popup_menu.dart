@@ -86,6 +86,16 @@ class AuthOptionsMenu extends StatelessWidget {
               arguments: AuthActionType.signIn
             ),
           ),
+
+          MenuItem(
+            icon: Icons.badge_rounded, 
+            label: localizations.signUp,
+            onSelected: () => Navigator.pushNamed(
+              context, 
+              RouteNames.authentication, 
+              arguments: AuthActionType.signUp
+            ),
+          ),
         ]
         : <MenuItem> [
 

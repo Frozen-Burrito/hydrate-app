@@ -8,24 +8,13 @@ import 'package:hydrate_app/src/models/validators/validation_message_builder.dar
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
 
 class SignupForm extends StatelessWidget {
-  const SignupForm({Key? key}) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return FormStateProvider(
-      model: AuthFormBloc.emailSignUp(), 
-      child: const _SignupForm(),
-    );
-  }
-}
+  SignupForm({Key? key}) : super(key: key);
 
-class _SignupForm extends StatelessWidget {
-
-  const _SignupForm({Key? key}) : super(key: key);
+  final AuthFormBloc bloc = AuthFormBloc.emailSignUp();
 
   Future<void> _handleFormSubmit(BuildContext context) async {
     // Submit the form.
-    final bloc = FormStateProvider.of(context).model;
     bloc.formSubmit.add(context);
 
     // Wait for the result of the submit event.
@@ -45,109 +34,120 @@ class _SignupForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final bloc = FormStateProvider.of(context).model;
     final localizations = AppLocalizations.of(context)!;
 
-    return Form(
-      key: bloc.formKey,
-      autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: Card(
-        margin: const EdgeInsets.only( top: 48.0 ),
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.9,
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  localizations.createAccount, 
-                  style: Theme.of(context).textTheme.headline4,
-                ),
+    return FormStateProvider(
+      model: bloc, 
+      child: Form(
+        key: bloc.formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        child: Card(
+          margin: const EdgeInsets.only( top: 48.0 ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    localizations.createAccount, 
+                    style: Theme.of(context).textTheme.headline4,
+                  ),
 
-                const SizedBox( height: 32.0, ),
+                  const SizedBox( height: 32.0, ),
 
-                const _SignUpFormFields(),
+                  const _SignUpFormFields(),
 
-                StreamBuilder<AuthResult>(
-                  initialData: AuthResult.none,
-                  stream: bloc.formState,
-                  builder: (context, snapshot) {
+                  StreamBuilder<AuthResult>(
+                    initialData: AuthResult.none,
+                    stream: bloc.formState,
+                    builder: (context, snapshot) {
 
-                    final isAuthErrorResult = snapshot.data == AuthResult.credentialsError
-                      || snapshot.data == AuthResult.serviceUnavailable;
+                      final isAuthErrorResult = snapshot.data == AuthResult.credentialsError
+                        || snapshot.data == AuthResult.serviceUnavailable;
 
-                    if (isAuthErrorResult) {
-                      final isServiceUnavailable = snapshot.data == AuthResult.serviceUnavailable;
+                      if (isAuthErrorResult) {
+                        final isServiceUnavailable = snapshot.data == AuthResult.serviceUnavailable;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Icon(isServiceUnavailable
-                              ? Icons.cloud_off
-                              : Icons.error
-                            ),
-    
-                            const SizedBox( width: 8.0, ),
-                            
-                            Expanded(
-                              child: Text(
-                                isServiceUnavailable 
-                                  ? localizations.errCheckInternetConn
-                                  //TODO: Add i18n
-                                  : 'Your credentials are incorrect.', 
-                                textAlign: TextAlign.start,
-                                maxLines: 2,
-                                softWrap: true,
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(isServiceUnavailable
+                                ? Icons.cloud_off
+                                : Icons.error
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      return const SizedBox( height: 32.0, );
-                    }
-                  }
-                ),
-
-                StreamBuilder<bool>(
-                  initialData: false,
-                  stream: bloc.isLoading,
-                  builder: (context, snapshot) {
-
-                    final isFormLoading = snapshot.data ?? false;
-
-                    final onBtnPressed = isFormLoading 
-                      ? null 
-                      : () => _handleFormSubmit(context);
-
-                    return ElevatedButton(
-                      child: isFormLoading 
-                        ? const SizedBox(
-                            height: 24.0,
-                            width: 24.0,
-                            child: CircularProgressIndicator()
-                          )
-                        : Text(
-                            localizations.continueAction,
-                            textAlign: TextAlign.center,
+      
+                              const SizedBox( width: 8.0, ),
+                              
+                              Expanded(
+                                child: Text(
+                                  isServiceUnavailable 
+                                    ? localizations.errCheckInternetConn
+                                    //TODO: Add i18n
+                                    : 'Your credentials are incorrect.', 
+                                  textAlign: TextAlign.start,
+                                  maxLines: 2,
+                                  softWrap: true,
+                                ),
+                              ),
+                            ],
                           ),
-                      style: ElevatedButton.styleFrom(
-                        primary: Theme.of(context).colorScheme.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                        textStyle: Theme.of(context).textTheme.bodyText1,
-                      ),
-                      onPressed: onBtnPressed,
-                    );
-                  }
-                ),
-              ],
+                        );
+                      } else {
+                        return const SizedBox( height: 32.0, );
+                      }
+                    }
+                  ),
+
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.5,
+                    child: StreamBuilder<bool>(
+                      initialData: false,
+                      stream: bloc.isLoading,
+                      builder: (context, snapshot) {
+
+                        final isFormLoading = snapshot.data ?? false;
+
+                        if (isFormLoading) {
+                          return ElevatedButton(
+                            child: const SizedBox(
+                              height: 24.0,
+                              width: 24.0,
+                              child: CircularProgressIndicator()
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              primary: Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                              textStyle: Theme.of(context).textTheme.bodyText1,
+                            ),
+                            onPressed: null,
+                          );
+                        } else {
+                          return ElevatedButton(
+                            child: Text(
+                              localizations.continueAction,
+                              textAlign: TextAlign.center,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              primary: Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                              textStyle: Theme.of(context).textTheme.bodyText1,
+                            ),
+                            onPressed: () => _handleFormSubmit(context),
+                          );
+                        }
+                      }
+                    ),
+                  ),
+                ],
+              )
             )
           )
         )
-      )
+      ),
     );
   }
 }
@@ -158,6 +158,7 @@ class _SignUpFormFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     final bloc = FormStateProvider.of(context).model;
     final localizations = AppLocalizations.of(context)!;
     final validationMsgBuilder = ValidationMessageBuilder.of(context);
@@ -167,7 +168,8 @@ class _SignUpFormFields extends StatelessWidget {
       stream: bloc.isLoading,
       builder: (context, snapshot) {
 
-        final shouldEnableFields = snapshot.data ?? false;
+        // Si está cargando, desactivar los campos.
+        final shouldEnableFields = !(snapshot.data ?? false);
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -201,6 +203,7 @@ class _SignUpFormFields extends StatelessWidget {
               builder: (context, snapshot) {
                 return TextFormField(
                   autocorrect: false,
+                  enabled: shouldEnableFields,
                   keyboardType: TextInputType.text,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
@@ -243,6 +246,7 @@ class _SignUpFormFields extends StatelessWidget {
               builder: (context, snapshot) {
                 return TextFormField(
                   autocorrect: false,
+                  enabled: shouldEnableFields,
                   obscureText: true,
                   keyboardType: TextInputType.visiblePassword,
                   decoration: InputDecoration(
