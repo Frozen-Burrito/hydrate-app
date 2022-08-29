@@ -19,19 +19,26 @@ class MainPage extends StatelessWidget {
 
   const MainPage({ Key? key }) : super(key: key);
 
-    void checkNumOfAppStartups(BuildContext context) async {
+  /// Muestra un [GuidesDialog] si la app ha sido abierta menos de 
+  /// [SettingsProvider.appStartupsToShowGuides] veces.
+  Future<void> _showGuidesDialog(BuildContext context) async {
 
+    // Incrementar la cuenta del número de veces que ha sido abierta la app.
     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-    settingsProvider.appStartups++;
 
-    if (settingsProvider.appStartups < 5) {
+    // Determinar si es adecuado mostrar el dialog con el link a las guías 
+    // de usuario.
+    if (settingsProvider.appStartups <= SettingsProvider.appStartupsToShowGuides) {
       final result = await showDialog<bool>(
         context: context,
         builder: (context) => const GuidesDialog(),
       );
 
+      // Si el usuario especifica que no quiere volver a ver GuidesDialog, 
+      // incrementar el número de inicios de la app para que la condición 
+      // anterior no se cumpla.
       if (result != null && !result) {
-        settingsProvider.appStartups += 5;
+        settingsProvider.appStartups += SettingsProvider.appStartupsToShowGuides;
       }
     }
   } 
@@ -51,10 +58,14 @@ class MainPage extends StatelessWidget {
       final settings = Provider.of<SettingsProvider>(context, listen: false);
 
       if (settings.areWeeklyFormsEnabled) {
-        showDialog(
+        final result = await showDialog<bool>(
           context: context, 
           builder: (context) =>  const ReportAvailableDialog.weekly(),
         );
+
+        if (result != null) {
+          goalsProvider.appAskedForPeriodicalData();
+        }
       }
     } else if (isMedicalReportAvailable) {
 
@@ -64,10 +75,14 @@ class MainPage extends StatelessWidget {
       final hasNephroticSyndrome = profile?.hasNephroticSyndrome ?? false;
 
       if (hasRenalInsufficiency || hasNephroticSyndrome) {
-        showDialog(
+        final medicalResult = await showDialog<bool>(
           context: context, 
           builder: (context) =>  const ReportAvailableDialog.medical(),
         );
+
+        if (medicalResult != null) {
+          goalsProvider.appAskedForMedicalData();
+        }
       }
     }
   }
@@ -76,7 +91,7 @@ class MainPage extends StatelessWidget {
   Widget build(BuildContext context) {
 
     Future.delayed(const Duration(seconds: 1), () {
-      checkNumOfAppStartups(context);
+      _showGuidesDialog(context);
       _showDialogIfReportAvailable(context);
     });
 
@@ -94,6 +109,7 @@ class MainPage extends StatelessWidget {
         floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.directions_run),
+          //TODO: agregar i18n.
           tooltip: 'Registrar actividad',
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Theme.of(context).colorScheme.onPrimary,

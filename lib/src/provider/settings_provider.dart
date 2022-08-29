@@ -9,7 +9,7 @@ import 'package:hydrate_app/src/utils/jwt_parser.dart';
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
 class SettingsProvider with ChangeNotifier {
 
-  static late SharedPreferences? _sharedPreferences;
+  static late final SharedPreferences? _sharedPreferences;
 
   factory SettingsProvider() => SettingsProvider._internal();
 
@@ -20,7 +20,9 @@ class SettingsProvider with ChangeNotifier {
     _sharedPreferences = await SharedPreferences.getInstance();
   }
 
-  final String versionName = "1.0.0-beta+2";
+  static const String versionName = "1.0.0-beta+3";
+
+  static const int appStartupsToShowGuides = 5;
 
   Settings get currentSettings => Settings(
     appThemeMode,

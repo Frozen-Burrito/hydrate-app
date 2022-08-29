@@ -243,7 +243,7 @@ class SettingsItems extends StatelessWidget {
             child: Consumer<SettingsProvider>(
               builder: (_, settingsProvider, __) {
                 // Mostrar el identificador de la versión actual.
-                final versionText = "${localizations.version}: ${settingsProvider.versionName}";
+                final versionText = "${localizations.version}: ${SettingsProvider.versionName}";
 
                 return Text(
                   versionText,

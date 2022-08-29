@@ -21,8 +21,7 @@ Future<void> main() async {
   // Inicializar internamente a SettingsProvider.
   await SettingsProvider.init();
 
-  // Incrementar el número de veces que ha sido abierta la app.
-  ++SettingsProvider().appStartups;
+  SettingsProvider().appStartups++;
 
   // Inicializar la instancia de workmanager.
   Workmanager().initialize(

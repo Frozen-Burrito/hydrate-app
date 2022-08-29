@@ -43,13 +43,14 @@ class ReportAvailableDialog extends StatelessWidget {
       content: const Text('Ha pasado un tiempo desde tu último reporte. ¿Quieres agregar datos sobre tu progreso?'),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context), 
+          onPressed: () => Navigator.pop(context, false), 
           child: const Text('Por ahora no'),
         ),
         TextButton(
-          onPressed: () => Navigator.pushNamed(
+          onPressed: () => Navigator.popAndPushNamed(
             context, 
-            isMedical ? RouteNames.medicalForm : RouteNames.weeklyForm
+            isMedical ? RouteNames.medicalForm : RouteNames.weeklyForm,
+            result: true,
           ),
           child: const Text('Responder'),
         ),

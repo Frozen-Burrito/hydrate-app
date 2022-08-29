@@ -34,9 +34,14 @@ class GoalProvider extends ChangeNotifier {
 
   bool _hasAskedForPeriodicalData = false;
   bool _hasAskedForMedicalData = false;
-  //TODO: Dos setters que no hacen 'set' a las variables que posiblemente deben controlar
-  set hasAppAskedForPeriodicalData(bool hasAppAsked) => _hasAskedForPeriodicalData;
-  set hasAppAskedForMedicalData(bool hasAppAsked) => _hasAskedForMedicalData;
+  
+  void appAskedForPeriodicalData() {
+    _hasAskedForPeriodicalData = true;
+  }
+
+  void appAskedForMedicalData() {
+    _hasAskedForMedicalData = true;
+  }
 
   /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
   bool get hasGoalData => _goalCache.hasData;
@@ -78,7 +83,7 @@ class GoalProvider extends ChangeNotifier {
   Future<DateTime?> get lastWeeklyReportDate async => (await lastPeriodicReport)?.date;
 
   /// Es [true] si ha pasado más de una semana desde el último reporte con 
-  /// [Habits].
+  /// [Habits], y todavía no ha solicitado al usuario responder el reporte.
   Future<bool> get isWeeklyReportAvailable async {
     final lastReportDate = await lastWeeklyReportDate;
 
