@@ -35,20 +35,39 @@ class Habits extends SQLiteModel {
 
   static const String tableName = 'reporte_habitos';
 
+  static const String idFieldName = "id";
+  static const String profileIdFieldName = "id_perfil";
+  static const String hoursOfSleepFieldName = "horas_sueno";
+  static const String hoursOfActivityFieldName = "horas_act_fisica";
+  static const String hoursOfOccupationFieldName = "horas_ocupacion";
+  static const String maxTemperatureFieldName = "temperatura_max";
+  static const String dateFieldName = "fecha";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    profileIdFieldName,
+    hoursOfSleepFieldName,
+    hoursOfActivityFieldName,
+    hoursOfOccupationFieldName,
+    maxTemperatureFieldName,
+    dateFieldName,
+  ];
+
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteKeywords.idType},
-      horas_sueno ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      horas_act_fisica ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      horas_ocupacion ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      temperatura_max ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      fecha ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $hoursOfSleepFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $hoursOfActivityFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $hoursOfOccupationFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $maxTemperatureFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $dateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+      ${SQLiteKeywords.fk} ($profileIdFieldName) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';

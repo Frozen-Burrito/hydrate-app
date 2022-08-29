@@ -9,6 +9,10 @@ import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/utils/background_tasks.dart';
 
+/// Un componente que controla los cambios de ajustes a la app y permite 
+/// al usuario confirmarlos o descartarlos. 
+/// 
+/// Esta clase sigue el patrón BLoC. 
 class EditSettingsBloc {
 
   EditSettingsBloc(Settings currentSettings) 

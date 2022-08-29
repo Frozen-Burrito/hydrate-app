@@ -45,7 +45,7 @@ class EnvironmentSelectDialog extends StatelessWidget {
           final activeProfile = snapshot.data;
           final profileChanges = profileProvider.profileChanges;
 
-          if (activeProfile != null && profileChanges != null) {
+          if (activeProfile != null) {
 
             final hasToPurchaseEnv = activeProfile
                 .hasUnlockedEnv(profileChanges.selectedEnvId);

@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 
 /// Sirve como intermediario con una API web, permitiendo acceder a sus
 /// recursos y realizar operaciones con verbos GET, POST, PUT y DELETE sobre
 /// ellos.
-/// TODO: Refactorizar la interfaz de esta clase, no tiene buena abstracción.
 class ApiClient {
 
   final client = http.Client();  
@@ -93,10 +93,10 @@ class ApiClient {
   /// la petición a ese recurso usando [ApiClient.defaultHeaders].  
   Future<http.Response> get(
     String resource, 
-    { Map<String, String>? queryParameters
-  }) {
+    { Map<String, String> queryParameters = const {} }
+  ) {
 
-    final parsedUrl = uriForResource(resource, queryParameters ?? {});
+    final parsedUrl = uriForResource(resource, queryParameters);
 
     if (parsedUrl != null && parsedUrl.isScheme("HTTPS")) {
       // Enviar la petición a la URL especificada.
@@ -106,36 +106,59 @@ class ApiClient {
     }
   }
 
-  /// Envía una petición POST al [endpoint] especificado. Serializa el [body] a 
+  /// Envía una petición POST al [resource] especificado. Serializa el [body] a 
   /// JSON y lo incluye como el cuerpo de la petición
   /// 
-  /// Agrega el [endpoint] al final de [ApiClient.apiUrl], para luego hacer
-  /// la petición a ese recurso usando [ApiClient.defaultHeaders]. 
+  /// Obtiene la URI completa de [resource] invocando a [uriForResource]. Si
+  /// la URI completa no es válida o no usa el esquema HTTPS, lanza un 
+  /// [FormatException]. 
   /// 
-  /// Si [authorization] no está vacío y [authType] no es nulo, incluye el 
-  /// header [ApiClient.authorizationHeader] en la petición, usando el valor de 
-  /// [authorization] como credenciales.
-  static Future<http.Response> post(
-    String endpoint, 
-    dynamic body,
-    { String authorization = '', ApiAuthType? authType }
-  ) {
-    final parsedUrl = Uri.parse(_apiUrl + endpoint);
-
-    final jsonBody = json.encode(body);
-
-    final reqHeaders = Map<String, String>.from(defaultHeaders);
-
-    if (authorization.isNotEmpty && authType != null) {
-      // Si recibe opciones de autenticación, incluirlas en la petición.
-      final authCredential = authType == ApiAuthType.bearerToken 
-        ? bearerToken + authorization
-        : authorization;
-
-      reqHeaders[authorizationHeader] = authCredential;
+  /// Si [authorization] no está vacío y [authType] es [ApiAuthType.bearerToken],
+  /// incluye el header [ApiClient.authorizationHeader] en la petición,
+  /// usando el valor de [authorization] como el token de autorización.
+  Future<http.Response> post(
+    String resource, 
+    dynamic body, { 
+      String authorization = '', 
+      Map<String, String> queryParameters = const {},
+      ApiAuthType authType = ApiAuthType.anonymous,
     }
+  ) {
 
-    return http.post(parsedUrl, body: jsonBody, headers: reqHeaders);
+    final parsedUrl = uriForResource(resource, queryParameters);
+
+    final isUrlValid = parsedUrl != null && parsedUrl.isScheme("HTTPS");
+
+    if (isUrlValid) {
+      // Serializar el cuerpo a JSON y configurar los headers, incluyendo 
+      // los de autenticación.
+      final jsonBody = json.encode(body);
+
+      final reqHeaders = Map<String, String>.from(defaultHeaders);
+
+      final requiredAuthHeader = authorization.isNotEmpty && 
+                                 authType == ApiAuthType.bearerToken;
+
+      if (requiredAuthHeader) {
+        // Si recibe opciones de autenticación, incluirlas en la petición.
+        final authCredential = authType == ApiAuthType.bearerToken 
+          ? bearerToken + authorization
+          : authorization;
+
+        reqHeaders[authorizationHeader] = authCredential;
+      }
+
+      // Enviar la petición a la URL especificada, usando el cliente HTTP.
+      return client.post(
+        parsedUrl!, 
+        body: jsonBody, 
+        headers: reqHeaders
+      );
+    } else {
+      return Future.error(
+        const FormatException("requested url could not be parsed")
+      );
+    }
   }
 
   /// Envía una petición PUT al [endpoint] especificado. Serializa [body] 
@@ -160,6 +183,30 @@ class ApiClient {
     return http.delete(parsedUrl, headers: defaultHeaders);
   }
 
+  Future<void> defaultErrorResponseHandler(http.Response response) {
+    if (response.statusCode >= HttpStatus.internalServerError) {
+      // La respuesta indica un problema del servidor. No debería seguir 
+      // haciendo peticiones.
+      throw const ApiException(
+        ApiErrorType.serviceUnavailable, 
+        "Service is not available"
+      );
+
+    } else if (response.statusCode >= HttpStatus.badRequest) {
+      // Por alguna razón, la petición tenía una forma incorrecta. 
+      throw const ApiException(
+        ApiErrorType.requestError,
+        "Articles could not be requested",
+      );
+    } else {
+      // Algo más salió mal.
+      throw ApiException(
+        ApiErrorType.unknown,
+        "Unexpected HTTP status code in response: ${response.statusCode}"
+      );
+    }
+  }
+
   void close() {
     client.close();
   }
@@ -173,6 +220,7 @@ extension HttpResponseExtensions on http.Response {
 }
 
 enum ApiAuthType {
+  anonymous,
   bearerToken,
   paramsApiKey,
   pathApiKey,

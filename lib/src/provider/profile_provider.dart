@@ -54,7 +54,7 @@ class ProfileProvider extends ChangeNotifier {
       // un perfil vacío.
       _profileChanges = profile != null 
         ? UserProfile.modifiableCopyOf(profile)
-        : await _buildEmptyProfile(linkedAccountId: '');
+        : UserProfile.uncommitted();
 
       notifyListeners();
     },
@@ -81,7 +81,10 @@ class ProfileProvider extends ChangeNotifier {
   UserProfile get profileChanges => _profileChanges;
 
   bool get hasCountriesData => _countriesCache.hasData;
-  Future<List<Country>?> get countries => _countriesCache.data;
+
+  /// Retorna una lista con todos los [Country] disponibles.
+  Future<List<Country>> get countries async => 
+      (await _countriesCache.data) ?? const <Country>[];
 
   bool get hasEnvironmentsData => _environmentsCache.hasData;
   Future<List<Environment>?> get environments => _environmentsCache.data;
@@ -172,32 +175,6 @@ class ProfileProvider extends ChangeNotifier {
     } 
   }
 
-  /// Guarda un nuevo [UserProfile] en la BD, a partir de los cambios en 
-  /// profileChanges. 
-  //TODO: Por ahora, este método ya no es usado. Determinar si es necesario mantenerlo.
-  Future<int> _remove() async {
-    
-    try {
-      final profileChanges = _profileChanges;
-
-      int result = await SQLiteDB.instance.insert(profileChanges);
-
-      if (result >= 0) {
-        _profileCache.shouldRefresh();
-        return result;
-      } else {
-        //TODO: Eviar lanzar una excepción genérica para cacharla inmediatamente después.
-        throw Exception('No se pudo crear el nuevo perfil.');
-      }
-    }
-    on Exception catch (e) {
-      return Future.error(e);
-
-    } finally {
-      notifyListeners();
-    }
-  }
-
   void changeSelectedEnv(Environment environment) {
 
     final isEnvUnlocked = profileChanges.hasUnlockedEnv(environment.id);
@@ -241,28 +218,6 @@ class ProfileProvider extends ChangeNotifier {
     _profileCache.shouldRefresh();
   }
 
-  Future<UserProfile> _buildEmptyProfile({ String? linkedAccountId }) async {
-    // Obtener el país y el entorno principal por defecto. 
-    final whereDefault = [ WhereClause("id", "0"), ];
-
-    final countryResults = await SQLiteDB.instance.select<Country>(
-      Country.fromMap,
-      Country.tableName,
-      where: whereDefault,
-      limit: 1
-    );
-
-    assert(countryResults.isNotEmpty, 'No hay un país por defecto configurado');
-    
-    // Obtener el pais y el entorno por defecto (deberian ser accesibles para
-    // todos los usuarios, desde el inicio de la app).
-    final defaultCountry = countryResults.single;
-
-    final emptyProfile = UserProfile.uncommitted();
-
-    return emptyProfile;
-  }
-
   /// Persiste un nuevo [UserProfile] en la base de datos y cambia la sesión
   /// al nuevo perfil. Retorna el ID del perfil creado, o un entero negativo
   /// si el perfil no pudo ser creado.
@@ -274,7 +229,7 @@ class ProfileProvider extends ChangeNotifier {
 
     // Obtener los datos del nuevo perfil, según el valor de saveEmpty.
     final newProfile = saveEmpty 
-      ? await _buildEmptyProfile()
+      ? UserProfile.uncommitted()
       : _profileChanges;
 
     // Persistir el nuevo perfil en la base de datos

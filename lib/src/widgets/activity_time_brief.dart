@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/habits.dart';
 import 'package:hydrate_app/src/provider/goals_provider.dart';
-import 'package:provider/provider.dart';
 
 class ActivityTimeBrief extends StatelessWidget {
 

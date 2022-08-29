@@ -1,4 +1,3 @@
-import "package:collection/collection.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import 'package:hydrate_app/src/db/sqlite_model.dart';
@@ -334,8 +333,6 @@ void main() {
   });
 
   group("Test UserProfile as an SQLiteModel", () {
-
-    const MapEquality mapEquality = MapEquality();
 
     test("UserProfile implements SQLiteModel", () {
       // Arrange

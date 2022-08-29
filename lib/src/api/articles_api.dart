@@ -63,32 +63,7 @@ class ArticlesApi {
       return pagedResult;
 
     } else {
-      return Future.error(_handleBadResponse(response));
-    }
-  }
-
-  /// Produce un error correspondiente 
-  Future<Error> _handleBadResponse(Response response) {
-    if (response.statusCode >= HttpStatus.internalServerError) {
-      // La respuesta indica un problema del servidor. No debería seguir 
-      // haciendo peticiones.
-      throw const ApiException(
-        ApiErrorType.serviceUnavailable, 
-        "Service is not available"
-      );
-
-    } else if (response.statusCode >= HttpStatus.badRequest) {
-      // Por alguna razón, la petición tenía una forma incorrecta. 
-      throw const ApiException(
-        ApiErrorType.requestError,
-        "Articles could not be requested",
-      );
-    } else {
-      // Algo más salió mal.
-      throw ApiException(
-        ApiErrorType.unknown,
-        "Unexpected HTTP status code in response: ${response.statusCode}"
-      );
+      return Future.error(_apiClient.defaultErrorResponseHandler(response));
     }
   }
 

@@ -25,9 +25,9 @@ class CountryDropdown extends StatelessWidget {
 
     final profileChanges = profileProvider.profileChanges;
     
-    return FutureBuilder<List<Country>?>(
+    return FutureBuilder<List<Country>>(
       initialData: [Country(id: 0)],
-      future: profileProvider.countries, //TODO: make this future return a non-nullable list
+      future: profileProvider.countries,
       builder: (context, snapshot) {
 
         final countries = snapshot.data ?? [Country(id: 0)];

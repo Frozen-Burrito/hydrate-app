@@ -19,6 +19,18 @@ class HydrationRecordProvider extends ChangeNotifier {
 
   Future<List<HydrationRecord>?> get allRecords => _hydrationRecordsCache.data;
 
+  Future<List<HydrationRecord>> get recordsInPast24h async {
+    final now = DateTime.now();
+    final yesterday = now.subtract(const Duration(days: 1));
+
+    final hydrationRecords = (await _hydrationRecordsCache.data) ?? const <HydrationRecord>[];
+
+    final recordsAfterYesterday = hydrationRecords
+        .where((r) => r.date.isAfter(yesterday) && r.date.isBefore(now));
+
+    return recordsAfterYesterday.toList();
+  }
+
   Future<List<BatteryRecord>> get last24hBatteryUsage => _getBatteryRecordsSinceYesterday();
 
   Future<Map<DateTime, List<HydrationRecord>>> get dailyHidration => _groupDailyHydration();
@@ -221,21 +233,34 @@ class HydrationRecordProvider extends ChangeNotifier {
     return List.unmodifiable(batteryRecords);
   }
 
-  /// Obtiene el consumo total de agua diario para __[numberOfDays]__ días anteriores 
-  /// al día de hoy. 
-  /// 
-  /// La longitud de la lista retornada será __igual__ a __[numberOfDays]__.
-  /// 
-  /// Por ejemplo, si el día actual es martes y __[numberOfDays]__ = 3, este método
-  /// retornará una lista con tres elementos, en la que el primer elemento es el
-  /// total del día actual (martes) y el último es el total del domingo pasado.
+  /// Obtiene el consumo total de agua diario, en mililitros, durante el 
+  /// periodo de tiempo entre __[begin]__ y __[end]__.
   /// 
   /// Si el usuario no consumió agua en uno de los días incluidos en el rango, 
   /// el elemento de la lista que corresponde a ese día tendrá un valor de 0.
   /// 
-  /// Si __[daysOffset]__ es mayor a 0, en vez de comenzar por el día actual, los
-  /// totales comenzarán en la fecha del día de hoy menos __[daysOffset]__ días.  
-  /// //TODO: Arreglar funcionamiento de rangos de fechas, en vez de usar numberOfDays.
+  /// La longitud de la lista retornada será __igual__ al número de días 
+  /// entre __[begin]__ y __[end]__, redondeado hacia arriba. 
+  /// 
+  /// Por ejemplo, si la diferencia entre __[begin]__ y __[end]__ son cuatro 
+  /// días y tres horas, este método producirá resultados para cinco días:
+  /// 
+  /// ```dart
+  /// final totals = _totalsFromPrevDaysInMl({
+  ///   begin: DateTime(2022, 8, 17),
+  ///   end: DateTime(2022, 8, 21, 3)
+  /// });
+  /// 
+  /// print(totals.length); // 5
+  /// ```
+  /// 
+  /// En el ejemplo anterior, __totals__ tiene los totales para los días 
+  /// [17,21], inclusivo.
+  /// 
+  /// Si __[sortByDateAscending]__ es __true__, los totales serán ordenados 
+  /// con los más antiguos primero (el más antiguo será el primero). Si este 
+  /// argumento es __false__, los totales serán ordenados con los más recientes 
+  /// primero. 
   Future<List<int>> _totalsFromPrevDaysInMl({
     required DateTime begin, 
     required DateTime end,
@@ -254,7 +279,7 @@ class HydrationRecordProvider extends ChangeNotifier {
     // Comprobar que el rango de fechas sea correcto.
     assert(begin.isBefore(end), "'beginDate' debe ser antes que 'endDate'");
 
-    final int daysBetweenDates = (end.difference(begin).inHours / 24).ceil();
+    final int daysBetweenDates = (end.difference(begin).inDays / 24).ceil();
 
     // Inicializar la lista con los totales.
     final List<int> recentTotals = List.filled(daysBetweenDates, 0, growable: false);

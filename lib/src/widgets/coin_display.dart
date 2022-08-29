@@ -20,7 +20,7 @@ class CoinDisplay extends StatelessWidget {
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.all(8.0),
-              child: const CoinShape(radius: 14.0,),
+              child: CoinShape(radius: 14.0,),
             ),
   
             const SizedBox( width: 4.0,),

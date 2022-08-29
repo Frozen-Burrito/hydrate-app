@@ -127,24 +127,21 @@ class GoalProvider extends ChangeNotifier {
     return (!_hasAskedForMedicalData && nextAppointmentHasPassed);
   }
       
-
-  /// Agrega una nueva meta de hidratación.
+  /// Persiste a [newGoal] en la base de datos local. 
+  /// 
+  /// Cuando [newGoal] es persistida con éxito, este método refresca la lista 
+  /// de metas [goals] y retorna el ID de [newGoal]. 
+  /// 
+  /// Si [newGoal] no pudo ser persistida, retorna un entero negativo.
   Future<int> createHydrationGoal(Goal newGoal) async {
     
-    try {
-      int result = await SQLiteDB.instance.insert(newGoal);
+    int result = await SQLiteDB.instance.insert(newGoal);
 
-      if (result >= 0) {
-        _goalCache.shouldRefresh();
-        return result;
-      } else {
-        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
-        throw Exception('No se pudo crear la meta de hidratación.');
-      }
+    if (result >= 0) {
+      _goalCache.shouldRefresh();
     }
-    on Exception catch (e) {
-      return Future.error(e);
-    } 
+
+    return result;
   }
 
   /// Cambia la meta principal a la meta que tenga [newMainGoalId] como su ID.
@@ -243,46 +240,38 @@ class GoalProvider extends ChangeNotifier {
     }
   }
 
-  /// Crea un nuevo reporte semanal con [Habits].
+  /// Persiste a [newReport] en la base de datos local. 
   /// 
-  /// Retorna el ID del reporte guardado localmente.
+  /// Cuando [newReport] es persistido con éxito, este método refresca la lista 
+  /// de reportes habituales de [weeklyData] y retorna el ID de [newReport]. 
+  /// 
+  /// Si [newReport] no pudo ser persistido, retorna un entero negativo.
   Future<int> saveWeeklyReport(Habits newReport) async {
     
-    try {
-      int result = await SQLiteDB.instance.insert(newReport);
+    int result = await SQLiteDB.instance.insert(newReport);
 
-      if (result >= 0) {
-        _weeklyDataCache.shouldRefresh();
-        return result;
-      } else {
-        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
-        throw Exception('No se pudo registrar el reporte semanal.');
-      }
+    if (result >= 0) {
+      _weeklyDataCache.shouldRefresh();
     }
-    on Exception catch (e) {
-      return Future.error(e);
-    } 
+
+    return result;
   }
 
-  /// Crea un nuevo reporte de [MedicalData].
+  /// Persiste a [newReport] en la base de datos local. 
   /// 
-  /// Retorna el ID del reporte guardado localmente.
+  /// Cuando [newReport] es persistido con éxito, este método refresca la lista 
+  /// de reportes médicos de [medicalData] y retorna el ID de [newReport]. 
+  /// 
+  /// Si [newReport] no pudo ser persistido, retorna un entero negativo.
   Future<int> saveMedicalReport(MedicalData newReport) async {
     
-    try {
-      int result = await SQLiteDB.instance.insert(newReport);
+    int result = await SQLiteDB.instance.insert(newReport);
 
-      if (result >= 0) {
-        _weeklyDataCache.shouldRefresh();
-        return result;
-      } else {
-        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
-        throw Exception('No se pudo registrar el reporte semanal.');
-      }
+    if (result >= 0) {
+      _medicalCache.shouldRefresh();
     }
-    on Exception catch (e) {
-      return Future.error(e);
-    } 
+
+    return result;
   }
 
   Future<List<Tag>> _fetchTags() async {
@@ -334,8 +323,8 @@ class GoalProvider extends ChangeNotifier {
     final queryResults = await SQLiteDB.instance.select<Habits>(
       Habits.fromMap,
       Habits.tableName,
-      where: [ WhereClause('id_perfil', _profileId.toString() )],
-      orderByColumn: 'fecha',
+      where: [ WhereClause(Habits.profileIdFieldName, _profileId.toString() )],
+      orderByColumn: Habits.dateFieldName,
       orderByAsc: false,
     );
 

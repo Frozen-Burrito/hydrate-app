@@ -408,9 +408,8 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: const OutlineInputBorder(),
-                          //TODO: Cambiar mensaje para metros, en vez de kilometros
                           labelText: localizations.distance,
-                          hintText: '100 m',
+                          hintText: '1.2 km',
                           helperText: ' ',
                         ),
                         onChanged: (value) {

@@ -69,15 +69,17 @@ class SettingsPage extends StatelessWidget {
             Consumer<HydrationRecordProvider>(
               builder: (_, hydrationProvider, __) {
                 return FutureBuilder<List<HydrationRecord>?>(
-                  future: hydrationProvider.allRecords, //TODO: solo usar los registros de las ultimas 24h.
+                  future: hydrationProvider.recordsInPast24h,
                   initialData: const [],
                   builder: (context, snapshot) {
 
-                    String lastBatteryUpdate = 'Nunca'; //TODO: Localizacion de 'nunca'
+                    String lastBatteryUpdate = 'Nunca'; //TODO: Agregar i18n de 'nunca'
 
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                       // Determinar actualización más reciente de nivel de batería.
-                      lastBatteryUpdate = snapshot.data!.first.date.toString().substring(0,16);
+                      lastBatteryUpdate = snapshot.data!.first.date
+                          .toString()
+                          .substring(0,16);
                     } 
 
                     return SliverToBoxAdapter(

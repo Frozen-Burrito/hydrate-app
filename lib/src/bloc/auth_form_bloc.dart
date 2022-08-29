@@ -1,27 +1,34 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/models/api.dart';
+import 'package:hydrate_app/src/api/auth_api.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 
+/// Un componente BLoC que puede recibir los valores de cada campo de un 
+/// formulario de autenticación, validarlos, enviar el formulario, y 
+/// determinar si el formulariotiene errores, está cargando, o fue enviado
+/// con éxito.
+/// 
+/// Para realizar la autenticación, utiliza la API web de Hydrate.
 class AuthFormBloc {
-
+  /// Una referencia al formulario.
   final formKey = GlobalKey<FormState>();
 
-  final AuthActionType _authAction;
-  final String _apiEndpoint;
+  /// Un cliente HTTP con la implementación de la API web de Hydrate 
+  /// para la autenticación y autorización de usuarios.
+  final _authApi = AuthApi();
 
-  String _username= '';
-  String _email= '';
-  String _password = '';
-  String _passwordConfirm = '';
+  final AuthActionType _authAction;
+
+  String _username= "";
+  String _email= "";
+  String _password = "";
 
   bool _isLoading = false;
   AuthResult _formState = AuthResult.none;
@@ -31,18 +38,34 @@ class AuthFormBloc {
   PasswordError _passwordError = PasswordError.none;
   PasswordError _passwordConfirmError = PasswordError.none;
 
+  /// Es __true__ cuando el formulario fue enviado, o está obteniendo
+  /// información.
   Stream<bool> get isLoading => _loadingController.stream;
+  /// Contiene el resultado de cada envío del formulario.
   Stream<AuthResult> get formState => _authResultController.stream;
 
+  /// Si el valor de nombre de usuario recibido tiene un error de 
+  /// validación, este stream tendrá ese [UsernameError].
   Stream<UsernameError> get usernameError => _usernameErrorController.stream;
   Stream<UsernameError> get emailError => _emailErrorController.stream;
   Stream<PasswordError> get passwordError => _passwordErrorController.stream;
   Stream<PasswordError> get passwordConfirmError => _passwordConfirmErrorController.stream;
 
+  /// Recibe los valores para el nombre de usuario. Este sink debería ser usado
+  /// cuando las credenciales acepten nombre de usuario o email.
   Sink<String> get usernameSink => _usernameController.sink;
+
+  /// Recibe los valores para el correo electrónico.
   Sink<String> get emailSink => _emailController.sink;
+
+  /// Recibe los valores para el password, si es necesario para el 
+  /// [AuthActionType] de este componente.
   Sink<String> get passwordSink => _passwordController.sink;
+
+  /// Recibe los valores para la confirmación de password, si la hay.
   Sink<String> get passwordConfirmSink => _passwordConfirmController.sink;
+  
+  /// Permite enviar el formulario, pasando el [BuildContext] del mismo.
   Sink<BuildContext> get formSubmit => _formSubmitController.sink;
 
   final StreamController<BuildContext> _formSubmitController = StreamController();
@@ -60,25 +83,25 @@ class AuthFormBloc {
   final StreamController<PasswordError> _passwordErrorController = StreamController.broadcast();
   final StreamController<PasswordError> _passwordConfirmErrorController = StreamController.broadcast();
 
+  /// Crea una nueva instancia, dedicada a mantener el estado de 
+  /// un formulario de inicio de sesión usando email (o nombre de 
+  /// usuario) y password.
   factory AuthFormBloc.emailSignIn() {
     return AuthFormBloc._internal(
-      authEndpoint: 'login',
       authAction: AuthActionType.signIn,
     );
   }
 
+  /// Crea una nueva instancia, dedicada a mantener el estado de un 
+  /// formulario de creación de cuenta con email. 
   factory AuthFormBloc.emailSignUp() {
     return AuthFormBloc._internal(
-      authEndpoint: 'signUp',
       authAction: AuthActionType.signUp,
     );
   }
 
-  AuthFormBloc._internal({ 
-    String authEndpoint = '',
-    AuthActionType authAction = AuthActionType.none 
-  }) : _apiEndpoint = authEndpoint,
-       _authAction = authAction {
+  AuthFormBloc._internal({ required AuthActionType authAction}) 
+    : _authAction = authAction {
     // Send current value to each new subscription on listen.
     _authResultController.onListen = () {
       _authResultController.add(_formState);
@@ -127,20 +150,59 @@ class AuthFormBloc {
     if (isFormInInvalidSate) return;
 
     try {
-      // Try to login.
-      await _sendAuthRequest(context);
+      // Intentar autenticar al usuario.
+      final authToken = await _sendAuthRequest();
+
+      // Guardar el token de autenticación en los ajustes de la app.
+      Provider.of<SettingsProvider>(context, listen: false).authToken = authToken;
+  
+      // Obtener o crear un perfil para la cuenta de usuario. 
+      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+
+      final linkResult = await profileProvider.handleAccountLink(authToken, isNewAccount: false);
+
+      switch (linkResult) { 
+        case AccountLinkResult.noAccountId:
+          _authResultController.add(AuthResult.serviceUnavailable);
+          break;
+        case AccountLinkResult.alreadyLinked:
+          _authResultController.add(AuthResult.authenticated);
+          break;
+        case AccountLinkResult.newProfileCreated:
+          _authResultController.add(AuthResult.newProfileCreated);
+          break;
+      }
       
-    } on SocketException {
-      // La conexión a internet fue interrumpida, o hubo algún otro error de 
-      // conexión.
-      _authResultController.add(AuthResult.serviceUnavailable);
+    } on ApiException catch (ex) {
+      
+      switch (ex.type) {
+        case ApiErrorType.unreachableHost:
+        case ApiErrorType.serviceUnavailable:
+          _authResultController.add(AuthResult.serviceUnavailable);
+          break;
+        case ApiErrorType.requestError:
+          // Existe un error en las credenciales del usuario.
+          _authResultController.add(AuthResult.credentialsError);
+          break;
+        default:
+          print("Warning: unknown API exception (${ex.message})");
+          _authResultController.add(AuthResult.serviceUnavailable);
+          break;
+      }
+      
     } finally {
       _isLoading = false;
       _loadingController.add(false);
     }
   }
 
-  Future<void> _sendAuthRequest(BuildContext context) async {
+  /// Envía una solicitud de autenticación al servicio web, usando el 
+  /// [AuthActionType] de este componente para especificar el tipo de 
+  /// solicitud.
+  /// 
+  /// Este método puede lanzar un [ApiException] si ocurre un problema al
+  /// enviar la petición, o la respuesta es una de error.
+  Future<String> _sendAuthRequest() async {
 
     final authCredentials = UserCredentials.forAction(
       _authAction, 
@@ -148,53 +210,12 @@ class AuthFormBloc {
       email: _email, 
       password: _password
     );
-
-    final res = await API.post(_apiEndpoint, authCredentials.toMap());
-
-    final isResponseOk = res.statusCode == HttpStatus.ok;
-    final responseHasBody = res.body.isNotEmpty;
-
-    if (isResponseOk && res.body.isNotEmpty) {
-
-    }
-
-    if (isResponseOk && responseHasBody) {
-      // Try to obtain the JWT from the response body.
-      final decodedBody = json.decode(res.body);
-      final authToken = decodedBody[UserCredentials.jwtPropIdentifier];
-
-      if (authToken is String) {
-        // La autenticación fue exitosa. Guardar el token JWT.
-        Provider.of<SettingsProvider>(context, listen: false).authToken = authToken;
       
-        final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final authToken = _authAction == AuthActionType.signIn
+      ? await _authApi.signInWithEmail(authCredentials)
+      : await _authApi.createAccountWithEmail(authCredentials);
 
-        final linkResult = await profileProvider.handleAccountLink(authToken, isNewAccount: false);
-
-        switch (linkResult) { 
-          case AccountLinkResult.noAccountId:
-            _authResultController.add(AuthResult.serviceUnavailable);
-            break;
-          case AccountLinkResult.alreadyLinked:
-            _authResultController.add(AuthResult.authenticated);
-            break;
-          case AccountLinkResult.newProfileCreated:
-            _authResultController.add(AuthResult.newProfileCreated);
-            break;
-        }
-      } else {
-        // El token JWT no es un String, posiblemente hubo un error en el servidor.
-      _authResultController.add(AuthResult.serviceUnavailable);
-      }    
-
-    } else if (res.statusCode >= HttpStatus.internalServerError) {
-      // Hubo un error en el servidor.
-      _authResultController.add(AuthResult.serviceUnavailable);
-
-    } else if (res.statusCode >= HttpStatus.badRequest) {
-      // Existe un error en las credenciales del usuario.
-      _authResultController.add(AuthResult.credentialsError);
-    }
+    return authToken; 
   }
 
   void _handleUsernameChange(String inputUsername) {
@@ -231,8 +252,6 @@ class AuthFormBloc {
     _passwordConfirmError = AuthValidators.validatePasswordConfirm(_password, inputPasswordConfirm);
 
     _passwordConfirmErrorController.add(_passwordConfirmError);
-
-    _passwordConfirm = inputPasswordConfirm;
   }
 
   @override
@@ -247,6 +266,11 @@ class AuthFormBloc {
   @override
   int get hashCode => Object.hashAll([
     formKey,
-    
+    _authAction,
+    _formState,
+    _isLoading,
+    _username,
+    _email,
+    _password,
   ]);
 }

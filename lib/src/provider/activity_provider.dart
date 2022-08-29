@@ -198,21 +198,14 @@ class ActivityProvider extends ChangeNotifier {
 
   /// Agrega una nueva rutina de actividad física.
   Future<int> createRoutine(Routine newRoutine) async {
-    
-    try {
-      int result = await SQLiteDB.instance.insert(newRoutine);
+  
+    int result = await SQLiteDB.instance.insert(newRoutine);
 
-      if (result >= 0) {
-        _routinesCache.shouldRefresh();
-        return result;
-      } else {
-        //TODO: Evitar lanzar una excepción genérica solo para cacharla inmediatamente.
-        throw Exception('No se pudo crear la nueva rutina.');
-      }
-    }
-    on Exception catch (e) {
-      return Future.error(e);
-    }
+    if (result >= 0) {
+      _routinesCache.shouldRefresh();
+    } 
+    
+    return result;
   }
 
   Future<List<ActivityType>> _queryActivityTypes() async {

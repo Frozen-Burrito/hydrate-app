@@ -22,7 +22,7 @@ class BleProvider extends ChangeNotifier {
   Iterable<ScanResult> filterScanResults(List<ScanResult> scanResults) {
     return scanResults.where((result) {
       bool hasService = result.advertisementData.serviceUuids
-        .contains(BleBottleExtension.primaryServiceUUID);
+        .contains(BleBottleExtension.primaryServiceUUID.toString());
 
       bool isNotCurrentDevice = (_connectedExtension == null ||
         _connectedExtension?.id == result.device.id.toString());

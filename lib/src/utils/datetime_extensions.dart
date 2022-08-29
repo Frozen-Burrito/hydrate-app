@@ -74,9 +74,9 @@ extension DayOfWeekExtensions on int {
     
     int flagSet = this;
 
-    daysOfWeek.forEach((day) { 
+    for (var day in daysOfWeek) { 
       flagSet |= dayFlagValues[day];
-    });
+    }
 
     return flagSet;
   }
