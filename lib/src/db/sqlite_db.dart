@@ -152,8 +152,8 @@ class SQLiteDB {
     T Function(Map<String, Object?>) mapper,
     final String table,
     { 
-      final List<WhereClause>? where,
-      final List<String>? whereUnions,
+      final List<WhereClause> where = const <WhereClause>[],
+      final List<String> whereUnions = const <String>[],
       final int? limit,
       final bool queryManyToMany = false,
       final bool includeOneToMany = false,
@@ -163,9 +163,13 @@ class SQLiteDB {
   ) async 
   {
 
+    if (where.isNotEmpty) {
+      assert(where.length == (whereUnions.length + 1), "There must be 1 less union than where clauses");
+    }
+
     final db = await database;
 
-    final fullWhere = (where != null && whereUnions != null) 
+    final fullWhere = where.isNotEmpty
       ? MultiWhereClause.fromConditions(where, whereUnions)
       : null;
 
