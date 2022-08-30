@@ -360,38 +360,22 @@ class _TagFormFieldState extends State<_TagFormField> {
       initialData: const <Tag>[],
       builder: (context, snapshot) {
 
-        if (snapshot.hasData) {
-
-          final existingTags = snapshot.data;
-
-          if (existingTags != null) {
-            
-            return TextFormField(
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: 'Etiquetas',
-                helperText: ' ',
-                counterText: '${numberOfTags.toString()}/3'
-              ),
-              onChanged: (value) => setState(() {
-                numberOfTags = widget.onTagsChanged(value, existingTags);
-              }),
-              validator: (value) => widget.onValidate(value),
-            );
-          }
-
-        }
+        final existingTags = snapshot.hasData 
+          ? snapshot.data!
+          : const <Tag>[];
 
         return TextFormField(
           keyboardType: TextInputType.text,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
             labelText: 'Etiquetas',
             helperText: ' ',
-            counterText: '0/3'
+            counterText: '${numberOfTags.toString()}/3'
           ),
-          validator: (value) => Goal.validateTags(value),
+          onChanged: (value) => setState(() {
+            numberOfTags = widget.onTagsChanged(value, existingTags);
+          }),
+          validator: (value) => widget.onValidate(value),
         );
       }
     );

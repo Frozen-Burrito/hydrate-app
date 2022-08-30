@@ -154,36 +154,55 @@ class Goal extends SQLiteModel {
 
     if (inputValue == null) return 0;
 
-    final strTags = inputValue.split(',');
+    final strTags = inputValue.split(',').toList();
 
-    if (strTags.isNotEmpty) {
+    if (strTags.isNotEmpty && strTags.first.isNotEmpty) {
 
       int tagCount = tags.length;
       int newTagCount = strTags.length;
 
       if (tagCount == newTagCount) {
         // Si el numero de tags es el mismo, solo cambió el valor de la última.
-        tags.last.value = strTags.last;
+        tags.last = _tryToFindExistingTag(strTags.last, existingTags);
       
-      } else if (tagCount < newTagCount && strTags.last.isNotEmpty) {
-        // Revisar si la etiqueta introducida ya fue creado por el usuario.
-        final tagsFound = existingTags.where((t) => t.value == strTags.last);
-
-        if (tagsFound.isNotEmpty) {
-          // Ya existe una etiqueta con el valor, hacer referencia a ella.
-          tags.add(tagsFound.first);
-        } else {
-          // Crear una nueva etiqueta para el usuario.
-          tags.add(Tag(strTags.last));
+      } else {
+        if (strTags.last.isNotEmpty) {
+          if (tagCount < newTagCount) {
+            // Crear una nueva etiqueta para el usuario.
+            tags.add(_tryToFindExistingTag(strTags.last, existingTags));
+          } else {
+            // Si hay un tag menos, quita el último.
+            tags.removeLast();
+          }
         }
-
-      } else if (strTags.last.isNotEmpty) {
-        // Si hay un tag menos, quita el último.
-        tags.removeLast();
       }
+    } else {
+      tags.clear();
     }
 
     return inputValue.isEmpty ? 0 : tags.length;
+  }
+
+  Tag _tryToFindExistingTag(String inputTagValue, List<Tag> existingTags) {
+    // Revisar si la etiqueta introducida ya fue creado por el usuario.
+    final matchingTags = existingTags.where((tag) => tag.value == inputTagValue);
+
+    if (matchingTags.isNotEmpty) {
+      // Ya existe una etiqueta con el valor, hacer referencia a ella.
+      final existingTag = matchingTags.first;
+
+      return Tag(
+        existingTag.value, 
+        id: existingTag.id, 
+        profileId: existingTag.profileId
+      );
+    } else {
+      return Tag(
+        inputTagValue,
+        id: -1,
+        profileId: -1,
+      );
+    }
   }
 
   static String? validateTerm(int? termIndex) {
