@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'package:hydrate_app/src/provider/activity_provider.dart';
@@ -22,6 +23,15 @@ Future<void> main() async {
   await SettingsProvider.init();
 
   SettingsProvider().appStartups++;
+
+  print("Started app");
+
+  final Map<Permission, PermissionStatus> permissionStatuses = await [
+    Permission.locationWhenInUse,
+    Permission.bluetooth,
+  ].request();
+
+  permissionStatuses.forEach((permission, status) => print("$permission: $status"));
 
   // Inicializar la instancia de workmanager.
   Workmanager().initialize(
