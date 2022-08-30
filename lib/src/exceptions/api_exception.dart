@@ -10,7 +10,15 @@ enum ApiErrorType {
   /// de implementación y no una condición externa).
   requestError,
   /// La URL es incorrecta.
-  unknownResource,
+  resourceNotFound,
+  /// La respuesta del servidor no pudo ser interpretada. Este error no debería 
+  /// ser manejado (es un error de programación, no una excepción).
+  responseFormatError,
+  /// El usuario debe autenticarse para acceder al recurso.
+  unauthorized,
+  /// El usuario pudo ser autenticado, pero no tiene permiso para acceder 
+  /// al recurso.
+  forbidden,
 }
 
 /// Es usada por el cliente HTTP de la API web para identificar posibles

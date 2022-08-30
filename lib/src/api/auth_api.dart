@@ -5,7 +5,9 @@ import 'package:http/http.dart';
 
 import 'package:hydrate_app/src/api/api.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
+import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 class AuthApi {
 
@@ -44,6 +46,10 @@ class AuthApi {
           throw const ApiException(ApiErrorType.serviceUnavailable);
         }
 
+        // Asegurar que authToken puede ser descompuesto en claims. Si esta
+        // función falla, lanza un FormatException.
+        parseJWT(authToken);
+
         return authToken;
         
       } else {
@@ -62,38 +68,68 @@ class AuthApi {
       // El dispositivo no tiene conexión a internet y no puede descubrir
       // el host de la API web, o la API web no está disponible.
       throw ApiException(ApiErrorType.unreachableHost, ex.message);
+    } on FormatException catch (ex) {
+      // FormatException solo es producida cuando el JWT no puede ser 
+      // interpretado o sus claims no tienen la forma correcta.
+      throw ApiException(ApiErrorType.responseFormatError, ex.message);
     }
   }
 
-    /// Envía una petición para crear una nueva cuenta con email y password. 
+  /// Envía una petición para crear una nueva cuenta con email y password. 
   /// Si obtiene una respuesta exitosa, retorna el JWT de autenticación.
   /// 
   /// Si el token no puede ser obtenido por un problema de API, este 
   /// método lanza un [ApiException]. 
   Future<String> createAccountWithEmail(UserCredentials authCredentials) async {
-    // Enviar petición POST para iniciar sesión. 
-    final response = await _apiClient.post(
-      _createAccountWithEmailEndpoint, 
-      authCredentials.toMap()
-    );
 
-    final isResponseOk = response.statusCode == HttpStatus.ok;
-    final responseHasBody = response.body.isNotEmpty;
+    try {
+      // Enviar petición POST para iniciar sesión. 
+      final response = await _apiClient.post(
+        _createAccountWithEmailEndpoint, 
+        authCredentials.toMap()
+      );
 
-    if (isResponseOk && responseHasBody) {
-      // Intentar obtener el JWT desde el cuerpo JSON de response.
-      final String authToken = _decodeAuthToken(response);
+      final isResponseOk = response.statusCode == HttpStatus.ok;
+      final responseHasBody = response.body.isNotEmpty;
 
-      if (authToken.isEmpty) {
-        throw const ApiException(ApiErrorType.serviceUnavailable);
+      if (isResponseOk && responseHasBody) {
+        // Intentar obtener el JWT desde el cuerpo JSON de response.
+        final String authToken = _decodeAuthToken(response);
+
+        if (authToken.isEmpty) {
+          throw const ApiException(ApiErrorType.serviceUnavailable);
+        }
+
+        // Asegurar que authToken puede ser descompuesto en claims. Si esta
+        // función falla, lanza un FormatException.
+        parseJWT(authToken);
+
+        return authToken;
+
+      } else {
+        // Usar el manejador por defecto de errores en respuesta.
+        return Future.error(_apiClient.defaultErrorResponseHandler(response));
       }
+    } on ClientException catch (ex) {
+      // Probablmente, la conexión a internet fue interrumpida, haciendo 
+      // que la petición no pudiera ser completada.
+      return Future.error(
+        ApiException(ApiErrorType.unreachableHost, ex.message)
+      );
 
-      return authToken;
-
-    } else {
-      // Usar el manejador por defecto de errores en respuesta.
-      return Future.error(_apiClient.defaultErrorResponseHandler(response));
+    } on SocketException catch (ex) {
+      // El dispositivo no tiene conexión a internet y no puede descubrir
+      // el host de la API web, o la API web no está disponible.
+      throw ApiException(ApiErrorType.unreachableHost, ex.message);
+    } on FormatException catch (ex) {
+      // FormatException solo es producida cuando el JWT no puede ser 
+      // interpretado o sus claims no tienen la forma correcta.
+      throw ApiException(ApiErrorType.responseFormatError, ex.message);
     }
+  }
+
+  Future<UserProfile> fetchProfileForAccount(String userAccountId) async {
+    return UserProfile.defaultProfile;
   }
 
   /// Decodifica un JWT de autenticación desde el cuerpo JSON de [response].

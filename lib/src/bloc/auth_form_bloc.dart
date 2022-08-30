@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
@@ -147,29 +148,39 @@ class AuthFormBloc {
 
     final isFormInInvalidSate = !(formKey.currentState?.validate() ?? false);
 
+    // Si el formulario no está en un estado válido, interrumpir el submit
+    // inmediatamente.
     if (isFormInInvalidSate) return;
 
     try {
       // Intentar autenticar al usuario.
       final authToken = await _sendAuthRequest();
 
+      // Obtener el ID de la cuenta de usuario desde los claims del token.
+      final tokenClaims = parseJWT(authToken);
+
+      // Si parseJWT no lanzó una FormatException, y _sendAuthRequest no lanzó 
+      // una ApiException, se asume que el token contiene claims válidos, 
+      // incluyendo el "id".
+      String accountId = tokenClaims["id"] as String;
+
       // Guardar el token de autenticación en los ajustes de la app.
       Provider.of<SettingsProvider>(context, listen: false).authToken = authToken;
-  
+
       // Obtener o crear un perfil para la cuenta de usuario. 
       final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
 
-      final linkResult = await profileProvider.handleAccountLink(authToken, isNewAccount: false);
+      final linkResult = await profileProvider.handleAccountLink(accountId);
 
       switch (linkResult) { 
-        case AccountLinkResult.noAccountId:
-          _authResultController.add(AuthResult.serviceUnavailable);
-          break;
-        case AccountLinkResult.alreadyLinked:
+        case AccountLinkResult.localProfileInSync:
           _authResultController.add(AuthResult.authenticated);
           break;
-        case AccountLinkResult.newProfileCreated:
+        case AccountLinkResult.requiresInitialData:
           _authResultController.add(AuthResult.newProfileCreated);
+          break;
+        case AccountLinkResult.error:
+          _authResultController.add(AuthResult.serviceUnavailable);
           break;
       }
       
@@ -185,7 +196,7 @@ class AuthFormBloc {
           _authResultController.add(AuthResult.credentialsError);
           break;
         default:
-          print("Warning: unknown API exception (${ex.message})");
+          print("Warning: API exception type was not handled (${ex.message})");
           _authResultController.add(AuthResult.serviceUnavailable);
           break;
       }

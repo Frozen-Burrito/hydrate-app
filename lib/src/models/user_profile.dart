@@ -35,6 +35,8 @@ class UserProfile extends SQLiteModel {
   static const maxFirstNameLength = 64;
   static const maxLastNameLength = 64;
 
+  static final defaultProfile = UserProfile.uncommitted(); 
+
   UserProfile.unmodifiable({
     int id = -1,
     String firstName = "",
@@ -239,10 +241,8 @@ class UserProfile extends SQLiteModel {
 
     if (options.includeCompleteSubEntities) {
       // Incluir mapas (no objetos en sí) de entidades anidadas.
-      map[attributeNames[countryFieldName]!] = country.toMap(options:  options);
-      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments
-          .map((env) => env.toMap(options:  options))
-          .toList();
+      map[attributeNames[countryFieldName]!] = country;
+      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments;
     } else {
       // Incluir mapas (no objetos en sí) de entidades anidadas.
       map[attributeNames[countryFieldName]!] = country.id;
@@ -300,6 +300,10 @@ class UserProfile extends SQLiteModel {
       )
       : Environment.firstUnlocked();
   }
+
+  // Retorna **true** si este perfil tiene datos por default y no ha sido 
+  // modificado.
+  bool get isDefaultProfile => modificationCount == 0 && this == defaultProfile;
 
   /// Determina si este perfil de usuario ha desbloqueado el entorno con [envId].
   /// 
