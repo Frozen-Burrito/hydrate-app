@@ -40,7 +40,7 @@ class HydrationRecordProvider extends ChangeNotifier {
     final now = DateTime.now();
 
     return _totalsFromPrevDaysInMl(
-      begin: now.subtract(const Duration( days: 7 )).onlyDate, 
+      begin: now.subtract(const Duration( days: 6 )).onlyDate, 
       end: now,
       sortByDateAscending: false
     );
@@ -279,7 +279,7 @@ class HydrationRecordProvider extends ChangeNotifier {
     // Comprobar que el rango de fechas sea correcto.
     assert(begin.isBefore(end), "'beginDate' debe ser antes que 'endDate'");
 
-    final int daysBetweenDates = (end.difference(begin).inDays / 24).ceil();
+    final int daysBetweenDates = (end.difference(begin).inHours / 24).ceil();
 
     // Inicializar la lista con los totales.
     final List<int> recentTotals = List.filled(daysBetweenDates, 0, growable: false);
