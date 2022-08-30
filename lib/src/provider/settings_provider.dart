@@ -1,10 +1,13 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/utils/background_tasks.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hydrate_app/src/models/enums/notification_types.dart';
 import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
+import 'package:workmanager/workmanager.dart';
 
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
 class SettingsProvider with ChangeNotifier {
@@ -31,6 +34,83 @@ class SettingsProvider with ChangeNotifier {
     areWeeklyFormsEnabled,
   );
 
+  set currentSettings(Settings changes) {
+
+    final currentSettings = Settings(
+      appThemeMode,
+      notificationSettings,
+      isSharingData,
+      areWeeklyFormsEnabled,
+    );
+
+    final hasThemeChanged = currentSettings.appThemeMode != changes.appThemeMode;
+
+    if (hasThemeChanged) {
+      appThemeMode = changes.appThemeMode;
+    }
+
+    final hasNotificationsChanged = currentSettings.allowedNotifications != changes.allowedNotifications;
+
+    if (hasNotificationsChanged) {
+      final notifsWereDisabled = changes.allowedNotifications == NotificationTypes.disabled;
+      
+      Permission.notification.request().isGranted.then((isPermissionGranted) {
+        // Si las notificaciones fueron desactivadas, no hay ningún requisito 
+        // para el cambio. Si fueron activadas, es necesario que la app tenga 
+        // el permiso de recibir notificaciones
+        if (notifsWereDisabled || isPermissionGranted) {
+          // Actualizar las preferencias de notificaciones.
+          notificationSettings = changes.allowedNotifications;
+        }
+      });
+    }
+
+    final hasWeeklyFormsChanged = currentSettings.areWeeklyFormsEnabled != changes.areWeeklyFormsEnabled;
+
+    if (hasWeeklyFormsChanged) {
+      areWeeklyFormsEnabled = changes.areWeeklyFormsEnabled;
+    }
+
+    final hasDataContributionChanged = currentSettings.shouldContributeData != changes.shouldContributeData;
+
+    if (hasDataContributionChanged) {
+      isSharingData = changes.shouldContributeData;
+
+      // Registrar o eliminar la tarea periodica para aportar datos 
+      // estadísticos a la API web.
+      if (isSharingData) {
+        // Obtener el ID de la cuenta de usuario actual.
+        final String userAccountId = authToken.isNotEmpty 
+            ? parseJWT(authToken)["id"] 
+            : "";
+
+        // Registrar tarea para aportar datos cada semana.
+        Workmanager().registerPeriodicTask(
+          BackgroundTasks.sendStatsData.uniqueName,
+          BackgroundTasks.sendStatsData.taskName,
+          frequency: BackgroundTasks.sendStatsData.frequency,
+          initialDelay: BackgroundTasks.sendStatsData.initialDelay,
+          constraints: BackgroundTasks.sendStatsData.constraints,
+          inputData: <String, dynamic>{
+            BackgroundTasks.taskInputProfileId: currentProfileId,
+            BackgroundTasks.taskInputAccountId: userAccountId,
+          },
+        );
+
+      } else {
+        // Cancelar tarea que aporta datos.
+        Workmanager().cancelByUniqueName(BackgroundTasks.sendStatsDataTaskName);
+      }
+    }
+
+    // Solo notificar a los listeners cuando realmente sucedieron cambios
+    // de configuración.
+    if (hasThemeChanged || hasNotificationsChanged || 
+        hasDataContributionChanged || hasWeeklyFormsChanged) {
+      notifyListeners();
+    }
+  }
+
   // SharedPreferences Get/Set
 
   static const String appThemeModeKey = "tema";
@@ -51,8 +131,6 @@ class SettingsProvider with ChangeNotifier {
   /// Guarda el nuevo [themeMode] en Shared Preferences.
   set appThemeMode (ThemeMode themeMode) {
     _sharedPreferences?.setInt(appThemeModeKey, themeMode.index);
-    
-    notifyListeners();
   }
 
   /// Obtiene de Shared Preferences la configuración de aporte a datos abiertos.
@@ -65,7 +143,9 @@ class SettingsProvider with ChangeNotifier {
   /// 
   /// [share] es [true] si el usuario desea aportar sus datos de hidratación y [false]
   /// si no desea compartirlos. El valor por defecto es [false].
-  set isSharingData (bool share) => _sharedPreferences?.setBool(contributeDataKey, share);
+  set isSharingData (bool share) {
+    _sharedPreferences?.setBool(contributeDataKey, share);
+  }
 
   /// La configuración del usuario de los formularios semanales.
   /// 
@@ -74,7 +154,9 @@ class SettingsProvider with ChangeNotifier {
   bool get areWeeklyFormsEnabled => _sharedPreferences?.getBool(weeklyFormsEnabledKey) ?? false;
 
   /// Guarda en Shared Preferences una nueva configuración de formularios semanales.
-  set areWeeklyFormsEnabled (bool formsEnabled) => _sharedPreferences?.setBool(weeklyFormsEnabledKey, formsEnabled);
+  set areWeeklyFormsEnabled (bool formsEnabled) {
+    _sharedPreferences?.setBool(weeklyFormsEnabledKey, formsEnabled);
+  }
 
   /// Obtiene de Shared Preferences los tipos de notificaciones que ha activado 
   /// el usuario.
@@ -88,7 +170,6 @@ class SettingsProvider with ChangeNotifier {
 
   /// Guarda la configuración de notificaciones del usuario.
   set notificationSettings (NotificationTypes notifSettings) {
-
     _sharedPreferences?.setInt(allowedNotificationsKey, notifSettings.index);
   }
 
@@ -98,6 +179,7 @@ class SettingsProvider with ChangeNotifier {
   /// Guarda un nuevo código de región del usuario.
   set localeCode (String code) {
     _sharedPreferences?.setString(localeCodeKey, code.substring(0,2));
+    notifyListeners();
   }
 
   /// El identificador de la botella conectada previamente. Por defecto, es un 
@@ -105,7 +187,10 @@ class SettingsProvider with ChangeNotifier {
   String get deviceId => _sharedPreferences?.getString(deviceIdKey) ?? '';
 
   /// Guarda un nuevo ID BLE de una botella.  
-  set deviceId (String newDeviceId) => _sharedPreferences?.setString(deviceIdKey, newDeviceId);
+  set deviceId (String newDeviceId) {
+    _sharedPreferences?.setString(deviceIdKey, newDeviceId);
+    notifyListeners();  
+  }
 
   /// El JsonWebToken de autenticación del usuario. Es posible que ya haya expirado.
   String get authToken {

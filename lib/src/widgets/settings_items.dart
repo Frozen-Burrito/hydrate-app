@@ -15,8 +15,10 @@ class SettingsItems extends StatelessWidget {
 
   SettingsItems({ 
     Key? key, 
-    required Settings currentSettings,
+    required this.currentSettings,
   }) : _editSettings = EditSettingsBloc(currentSettings), super(key: key);
+
+  final Settings currentSettings;
 
   final EditSettingsBloc _editSettings;
 
@@ -101,6 +103,7 @@ class SettingsItems extends StatelessWidget {
                 width: MediaQuery.of(context).size.width * 0.4,
                 child: StreamBuilder<ThemeMode>(
                   stream: _editSettings.appThemeMode,
+                  initialData: currentSettings.appThemeMode,
                   builder: (context, snapshot) {
 
                     final currentTheme = snapshot.data ?? ThemeMode.system;
@@ -140,6 +143,7 @@ class SettingsItems extends StatelessWidget {
                   padding: const EdgeInsets.symmetric( vertical: 16.0, ),
                   child: StreamBuilder<bool>(
                     stream: _editSettings.shouldContributeData,
+                    initialData: currentSettings.shouldContributeData,
                     builder: (context, snapshot) {
 
                       final isSharingData = snapshot.data ?? false;
@@ -177,6 +181,7 @@ class SettingsItems extends StatelessWidget {
                 width: MediaQuery.of(context).size.width * 0.4,
                 child: StreamBuilder<NotificationTypes>(
                   stream: _editSettings.allowedNotifications,
+                  initialData: currentSettings.allowedNotifications,
                   builder: (context, snapshot) {
 
                     final allowedNotifications = snapshot.data ?? NotificationTypes.disabled;
@@ -204,7 +209,7 @@ class SettingsItems extends StatelessWidget {
             padding: const EdgeInsets.symmetric( vertical: 16.0, ),
             child: StreamBuilder<bool>(
               stream: _editSettings.areWeeklyFormsEnabled,
-              initialData: false,
+              initialData: currentSettings.areWeeklyFormsEnabled,
               builder: (context, snapshot) {
 
                 final areWeeklyFormsEnabled = snapshot.data ?? false;
