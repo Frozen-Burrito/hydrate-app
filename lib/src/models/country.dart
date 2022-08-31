@@ -7,7 +7,16 @@ class Country extends SQLiteModel {
   final int id;
   final String code;
 
-  Country({ this.id = -1, this.code = '--' });
+  Country({ required this.id, required this.code });
+
+  Country.uncommitted() : this( id: -1, code: "--" );
+
+  static const unspecifiedCountryId = 0;
+
+  static final countryNotSpecified = Country( 
+    id: unspecifiedCountryId, 
+    code: "--" 
+  );
 
   static const String tableName = 'pais';
 

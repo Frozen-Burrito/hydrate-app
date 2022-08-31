@@ -96,7 +96,7 @@ class ProfileProvider extends ChangeNotifier {
     _profileId = newProfileId;
     _accountId = userAccountId;
 
-    _profileCache.shouldRefresh();
+    _profileCache.refresh();
   }
 
   /// Obtiene un [UserProfile] local con un ID igual a [_profileId] o, si hay 
@@ -175,7 +175,7 @@ class ProfileProvider extends ChangeNotifier {
   /// una [ApiException] con la causa del problema.
   /// 
   /// Si hay un error de persistencia local, retorna [AccountLinkResult.error].
-  Future<AccountLinkResult> handleAccountLink(String userAccountId) async {
+  Future<AccountLinkResult> handleAccountLink(String userAccountId, { bool wasAccountJustCreated = false}) async {
 
     final existingLinkedProfileId = await findProfileLinkedToAccount(userAccountId); 
     final localProfileExists = existingLinkedProfileId >= 0;
@@ -188,7 +188,13 @@ class ProfileProvider extends ChangeNotifier {
     AccountLinkResult linkResult = AccountLinkResult.error;
 
     // Determinar si la app debería completar el perfil de usuario obtenido.
-    if (!profile.isDefaultProfile) {
+    if (wasAccountJustCreated || profile.isDefaultProfile) {
+      // Si el perfil de usuario obtenido desde la API web es un perfil 
+      // default, retornar AccountLinkResult.newProfileCreated para indicar que 
+      // el perfil debería ser completado con el formulario inicial.
+      linkResult = AccountLinkResult.requiresInitialData;
+
+    } else {
       // El perfil ya tiene datos; sincronizar el perfil local.
       _profileChanges = profile;
 
@@ -211,12 +217,6 @@ class ProfileProvider extends ChangeNotifier {
           syncResult == SaveProfileResult.changesSaved) {
         linkResult = AccountLinkResult.localProfileInSync;     
       }
-
-    } else {
-      // Si el perfil de usuario obtenido desde la API web es un perfil 
-      // default, retornar AccountLinkResult.newProfileCreated para indicar que 
-      // el perfil debería ser completado con el formulario inicial.
-      linkResult = AccountLinkResult.requiresInitialData;
     }
 
     if (linkResult != AccountLinkResult.error) {
