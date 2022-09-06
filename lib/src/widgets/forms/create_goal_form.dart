@@ -145,6 +145,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               helperText: ' ',
+              //TODO: agregar i18n
               hintText: '¿Cuál es el plazo de tu meta?' 
             ),
             items: _termDropdownItems,
@@ -169,6 +170,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   controller: startDateController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Inicio',
                     helperText: ' ', // Para evitar cambios en la altura del widget
                     suffixIcon: Icon(Icons.event_rounded)
@@ -198,6 +200,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   controller: endDateController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Término',
                     helperText: ' ',
                     suffixIcon: Icon(Icons.event_rounded)
@@ -232,6 +235,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Recompensa',
                     hintText: '20',
                     helperText: ' ',
@@ -250,6 +254,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Cantidad (ml)',
                     hintText: '100ml',
                     helperText: ' ',
@@ -276,6 +281,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             maxLength: 100,
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
+              //TODO: agregar i18n
               labelText: 'Anotaciones',
               hintText: 'Debo recordar tomar agua antes de...',
               helperText: ' ',
@@ -295,6 +301,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             children: <Widget>[
               Expanded(
                 child: ElevatedButton(
+                  //TODO: agregar i18n
                   child: const Text('Cancelar'),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.grey.shade700,
@@ -307,6 +314,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
               Expanded(
                 child: ElevatedButton(
+                  //TODO: agregar i18n
                   child: const Text('Crear'),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.blue,
@@ -364,10 +372,13 @@ class _TagFormFieldState extends State<_TagFormField> {
           ? snapshot.data!
           : const <Tag>[];
 
+        //TODO: usar el widget Autocomplete para mostrar posibles etiquetas
+        // ver tambien: https://api.flutter.dev/flutter/material/Autocomplete-class.html
         return TextFormField(
           keyboardType: TextInputType.text,
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
+            //TODO: agregar i18n
             labelText: 'Etiquetas',
             helperText: ' ',
             counterText: '${numberOfTags.toString()}/3'

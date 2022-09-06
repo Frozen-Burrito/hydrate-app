@@ -24,8 +24,6 @@ Future<void> main() async {
 
   SettingsProvider().appStartups++;
 
-  print("Started app");
-
   final Map<Permission, PermissionStatus> permissionStatuses = await [
     Permission.locationWhenInUse,
     Permission.bluetooth,
@@ -49,58 +47,72 @@ class HydrateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<SettingsProvider>(
-      create: (_) => SettingsProvider(),
-      child: Consumer<SettingsProvider>(
-        builder: (_, settingsProvider, __) {
-          // Configurar las rutas para el perfil actual.
-          Routes.currentProfileId = settingsProvider.currentProfileId;
+    return FutureBuilder<ProfileProvider>(
+      future: ProfileProvider.fromSharedPrefs(),
+      builder: (context, snapshot) {
 
-          return MultiProvider(
-            providers: [
-              ChangeNotifierProvider<HydrationRecordProvider>(
-                create: (_) => HydrationRecordProvider(),
-              ),
-              ChangeNotifierProvider<ActivityProvider>(
-                create: (_) => ActivityProvider(),
-              ),
-              ChangeNotifierProvider<GoalProvider>(
-                create: (_) => GoalProvider(),
-              ),
-              ChangeNotifierProvider<ProfileProvider>(
-                create: (_) => ProfileProvider.withProfile(
-                  profileId: settingsProvider.currentProfileId,
-                  authToken: settingsProvider.authToken
+        final profileProvider = snapshot.data!;
+
+        // Configurar las rutas para el perfil actual.
+        Routes.currentProfileId = profileProvider.profileId;
+
+        return ChangeNotifierProvider(
+          create: (_) => profileProvider,
+          child: ChangeNotifierProvider<SettingsProvider>(
+            create: (_) => SettingsProvider(),
+            child: MultiProvider(
+              providers: [
+                ChangeNotifierProvider<SettingsProvider>(
+                  create: (_) => SettingsProvider(),
                 ),
-              )
-            ],
-            child: MaterialApp(
-              title: 'Hydrate App',
-              initialRoute: settingsProvider.currentProfileId < 0
-                ? RouteNames.initialForm
-                : RouteNames.home,
-              // Configuracion del tema de color.
-              theme: AppThemes.appLightTheme,
-              darkTheme: AppThemes.appDarkTheme,
-              themeMode: settingsProvider.appThemeMode,
-              // Rutas de la app
-              routes: Routes.appRoutes,
-              onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
-              // Localización e internacionalización
-              localizationsDelegates: const [
-                AppLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
+                ChangeNotifierProvider<HydrationRecordProvider>(
+                  create: (_) => HydrationRecordProvider.withProfile(
+                    profileProvider.profileId,
+                  ),
+                ),
+                ChangeNotifierProvider<ActivityProvider>(
+                  create: (_) => ActivityProvider.withProfile(
+                    profileProvider.profileId,
+                  ),
+                ),
+                ChangeNotifierProvider<GoalProvider>(
+                  create: (_) => GoalProvider.withProfile(
+                    profileProvider.profileId,
+                  ),
+                ),
               ],
-              supportedLocales: const [
-                Locale('en', ' '),
-                Locale('es', ' '),
-              ],
-            )
-          );
-        }
-      ),
+              child: Consumer<SettingsProvider>(
+                builder: (_, settingsProvider, __) {
+                  return MaterialApp(
+                    title: "Hydrate App",
+                    initialRoute: settingsProvider.appStartups > 0
+                      ? RouteNames.home
+                      : RouteNames.initialForm,
+                    // Configuracion del tema de color.
+                    theme: AppThemes.appLightTheme,
+                    darkTheme: AppThemes.appDarkTheme,
+                    themeMode: settingsProvider.appThemeMode,
+                    // Rutas de la app
+                    routes: Routes.appRoutes,
+                    onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
+                    // Localización e internacionalización
+                    localizationsDelegates: const [
+                      AppLocalizations.delegate,
+                      GlobalMaterialLocalizations.delegate,
+                      GlobalCupertinoLocalizations.delegate,
+                      GlobalWidgetsLocalizations.delegate,
+                    ],
+                    supportedLocales: const [
+                      Locale("en", " "),
+                      Locale("es", " "),
+                    ],
+                  );
+                }
+              ),
+            ),
+          ),
+        );
+      }
     );
   }
 }

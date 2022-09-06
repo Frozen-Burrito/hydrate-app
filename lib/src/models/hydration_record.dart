@@ -37,19 +37,36 @@ class HydrationRecord extends SQLiteModel {
 
   static const String tableName = 'consumo';
 
+  static const String idFieldName = "id";
+  static const String amountFieldName = "cantidad";
+  static const String batteryLvlFieldName = "porcentaje_bateria";
+  static const String dateFieldName = "fecha";
+  static const String temperatureFieldName = "temperatura";
+  static const String profileIdFieldName = "id_perfil";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    amountFieldName,
+    batteryLvlFieldName,
+    dateFieldName,
+    temperatureFieldName,
+    profileIdFieldName,
+  ];
+
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE ${HydrationRecord.tableName} (
-      id ${SQLiteKeywords.idType},
-      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      porcentaje_bateria ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      fecha ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      temperatura ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $amountFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $batteryLvlFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $dateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $temperatureFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+      ${SQLiteKeywords.fk} ($profileIdFieldName) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';

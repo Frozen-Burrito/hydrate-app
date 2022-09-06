@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/api/auth_api.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:hydrate_app/src/api/auth_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
@@ -14,16 +15,45 @@ class ProfileProvider extends ChangeNotifier {
 
   /// El UUID de la cuenta de usuario del servicio web asociada con el 
   /// perfil. 
-  String? _accountId;
+  String _accountId;
 
   /// El número máximo de veces que el usuario puede modificar su perfil, en un 
   /// año.
   static const int maxYearlyProfileModifications = 3;
+
+  static const String authTokenKey = "jwt";
+  static const String lastUsedProfileIdKey = "perfil_actual";
   
   /// Crea una instancia de [ProfileProvider] que es inicializada con el 
   /// [UserProfile] por defecto.
-  ProfileProvider()
-    : _profileId = UserProfile.defaultProfileId;
+  ProfileProvider() 
+    : _profileId = UserProfile.defaultProfileId,
+      _accountId = "";
+
+  /// Crea un nuevo [ProfileProvider] que es inicializado con un [profileId] y 
+  /// [linkedAccountId] obtenidos desde SharedPreferences.
+  /// 
+  /// Si no existen keys para el [profileId] o el [linkedAccountId] en Shared 
+  /// Preferences, usa sus valores por defecto ([UserProfile.defaultProfileId] 
+  /// y un [String] vacío, respectivamente).
+  static Future<ProfileProvider> fromSharedPrefs() async {
+
+    final sharedPreferences = await SharedPreferences.getInstance();
+
+    final int prefsProfileId = sharedPreferences.getInt(lastUsedProfileIdKey) ?? UserProfile.defaultProfileId;
+
+    String prefsAuthToken = sharedPreferences.getString(authTokenKey) ?? "";
+
+    if (prefsAuthToken.isNotEmpty && isTokenExpired(prefsAuthToken)) {
+      sharedPreferences.setString(authTokenKey, "");
+      prefsAuthToken = "";
+    }
+
+    return ProfileProvider.withProfile(
+      profileId: prefsProfileId,
+      authToken: prefsAuthToken
+    );
+  }
 
   /// Crea una instancia de [ProfileProvider] que es inicializada con un 
   /// [UserProfile]. 
@@ -36,9 +66,9 @@ class ProfileProvider extends ChangeNotifier {
   /// incluido en el token. 
   ProfileProvider.withProfile({ 
     int profileId = UserProfile.defaultProfileId, 
-    String authToken = '', 
+    String authToken = "", 
   }): _profileId = profileId,
-      _accountId = authToken.isNotEmpty ? parseJWT(authToken)['id'] : null;
+      _accountId = authToken.isNotEmpty ? parseJWT(authToken)['id'] : "";
 
   /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
   /// actual. Esta instancia de [UserProfile] es modificable.
@@ -72,7 +102,7 @@ class ProfileProvider extends ChangeNotifier {
   bool get hasProfileData => _profileCache.hasData;
 
   int get profileId => _profileId;
-  String get linkedAccountId => _accountId ?? '';
+  String get linkedAccountId => _accountId;
 
   /// Retorna una instancia de solo lectura del [UserProfile] del usuario actual.
   Future<UserProfile?> get profile => _profileCache.data;
@@ -88,15 +118,40 @@ class ProfileProvider extends ChangeNotifier {
   bool get hasEnvironmentsData => _environmentsCache.hasData;
   Future<List<Environment>?> get environments => _environmentsCache.data;
 
-  /// Cambia el perfil actual al perfil identificado por [newProfileId] o 
-  /// asociado con [userAccountId]. Luego, refresca el caché de 
-  /// perfiles de usuario.
-  void _changeProfile(int newProfileId, { String? userAccountId }) {
+  Future<void> logOut() => _changeProfile(UserProfile.defaultProfileId, authToken: "");
 
-    _profileId = newProfileId;
-    _accountId = userAccountId;
+  /// Cambia el perfil actual de esta instancia por el perfil identificado por 
+  /// [newProfileId]. 
+  /// 
+  /// Si [authToken] no es un String vacío y es un JWT sin expirar, el perfil al 
+  /// que se cambie además será el asociado a la cuenta de usuario con el ID obtenido 
+  /// desde [authToken].
+  /// 
+  /// Retorna [true] si [newProfileId] es un ID de perfil válido, [authToken]
+  /// es un JWT sin expirar (solo se revisa esto si authToken no es un String
+  /// vacío) y finalmente, si el perfil fue cambiado con éxito. 
+  /// Retorna [false] en caso contrario. 
+  Future<bool> _changeProfile(int newProfileId, { String authToken = "" }) async {
 
-    _profileCache.refresh();
+    final bool isNewProfileIdValid = newProfileId >= UserProfile.defaultProfileId;
+    final bool isNewAuthTokenValid = authToken.isEmpty || !isTokenExpired(authToken);
+
+    final shouldChangeProfile = newProfileId != _profileId && isNewProfileIdValid && isNewAuthTokenValid;
+
+    if (shouldChangeProfile) {
+
+      _profileId = newProfileId;
+      _accountId = authToken;
+
+      final sharedPreferences = await SharedPreferences.getInstance();
+
+      sharedPreferences.setInt(lastUsedProfileIdKey, profileId);
+      sharedPreferences.setString(authTokenKey, authToken);
+
+      _profileCache.refresh();
+    }
+
+    return shouldChangeProfile;
   }
 
   /// Obtiene un [UserProfile] local con un ID igual a [_profileId] o, si hay 
@@ -110,15 +165,14 @@ class ProfileProvider extends ChangeNotifier {
     final whereQuery = [ WhereClause(UserProfile.idFieldName, _profileId.toString()), ];
     final unions = <String>[];
 
-    final isAccountIdSet = _accountId?.isNotEmpty ?? false;
+    final isAccountIdSet = _accountId.isNotEmpty;
 
     // Determinar si hay un ID de cuenta de usuario en _accountId.
     if (isAccountIdSet) {
       // Si el usuario inició sesión con una cuenta, obtener el perfil que, además
       // de tener el ID de perfil especificado, tenga el id de la cuenta del usuario.
-      whereQuery.add(WhereClause(UserProfile.userAccountIdFieldName, _accountId!));
-      //TODO: revisar uso de OR en vez de AND.
-      unions.add("OR");
+      whereQuery.add(WhereClause(UserProfile.userAccountIdFieldName, _accountId));
+      unions.add("AND");
     }
 
     final queryResults = await SQLiteDB.instance.select<UserProfile>(
@@ -175,7 +229,10 @@ class ProfileProvider extends ChangeNotifier {
   /// una [ApiException] con la causa del problema.
   /// 
   /// Si hay un error de persistencia local, retorna [AccountLinkResult.error].
-  Future<AccountLinkResult> handleAccountLink(String userAccountId, { bool wasAccountJustCreated = false}) async {
+  Future<AccountLinkResult> handleAccountLink(String authToken, { bool wasAccountJustCreated = false}) async {
+
+    // Obtener el ID de la cuenta de usuario desde los claims del token.
+    final String userAccountId = getAccountIdFromJwt(authToken);
 
     final existingLinkedProfileId = await findProfileLinkedToAccount(userAccountId); 
     final localProfileExists = existingLinkedProfileId >= 0;
@@ -206,7 +263,7 @@ class ProfileProvider extends ChangeNotifier {
       } else {
         // Cuando no hay un perfil local para la cuenta, crear uno nuevo con sus 
         // datos:
-        final newLocalProfileId = await saveNewProfile( saveEmpty: false );
+        final newLocalProfileId = await saveNewProfile( authToken: authToken );
 
         syncResult = newLocalProfileId >= 0 
           ? SaveProfileResult.changesSaved
@@ -221,7 +278,7 @@ class ProfileProvider extends ChangeNotifier {
 
     if (linkResult != AccountLinkResult.error) {
       // En ambos casos, cambiar al perfil de la cuenta.
-      _changeProfile(existingLinkedProfileId, userAccountId: userAccountId);
+      _changeProfile(existingLinkedProfileId, authToken: authToken);
     }
 
     return linkResult;
@@ -273,7 +330,7 @@ class ProfileProvider extends ChangeNotifier {
   /// Si [saveEmpty] es **true**, el nuevo perfil será creado como un perfil 
   /// vacío (por defecto, sin datos). Si es **false**, el perfil tendrá los 
   /// valores encontrados en [_profileChanges]. 
-  Future<int> saveNewProfile({ bool saveEmpty = false, }) async {
+  Future<int> saveNewProfile({ bool saveEmpty = false, String authToken = "", }) async {
 
     // Obtener los datos del nuevo perfil, según el valor de saveEmpty.
     final newProfile = saveEmpty 
@@ -287,7 +344,7 @@ class ProfileProvider extends ChangeNotifier {
 
     if (wasProfileCreated) {
       // Update the active profile to the newly created one.
-      _changeProfile(resultId, userAccountId: newProfile.userAccountID);
+      _changeProfile(resultId, authToken: authToken);
     }
 
     return resultId;

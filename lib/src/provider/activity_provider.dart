@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
 import 'package:hydrate_app/src/provider/cache_state.dart';
@@ -13,6 +14,11 @@ import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 /// También permite sincronizar la información, ya sea de forma local en la BD o 
 /// externa con el servicio web, cuando sea necesario.
 class ActivityProvider extends ChangeNotifier {
+
+  ActivityProvider.withProfile(int profileId) : _profileId = profileId;
+
+  /// El ID del perfil local del usuario actual.
+  final int _profileId;
 
   late final CacheState<List<ActivityRecord>> _activitiesCache = CacheState(
     fetchData: _queryActivityRecords,
@@ -147,13 +153,19 @@ class ActivityProvider extends ChangeNotifier {
 
   Future<List<ActivityRecord>> _queryActivityRecords() async {
     try {
+      // Obtener solo los registros de actividad asociados con el perfil.
+      final where = [
+        WhereClause(ActivityRecord.profileIdPropName, _profileId.toString())
+      ];
+
       // Query a la BD, ordenando resultados por fecha y orden descendiente.
       final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
         ActivityRecord.fromMap, 
         ActivityRecord.tableName, 
-        orderByColumn: 'fecha',
+        orderByColumn: ActivityRecord.datePropName,
         orderByAsc: false,
         includeOneToMany: true,
+        where: where,
       );
 
       return queryResults.toList();

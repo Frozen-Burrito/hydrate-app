@@ -156,21 +156,13 @@ class AuthFormBloc {
       // Intentar autenticar al usuario.
       final authToken = await _sendAuthRequest();
 
-      // Obtener el ID de la cuenta de usuario desde los claims del token.
-      final tokenClaims = parseJWT(authToken);
-
-      // Si parseJWT no lanzó una FormatException, y _sendAuthRequest no lanzó 
-      // una ApiException, se asume que el token contiene claims válidos, 
-      // incluyendo el "id".
-      String accountId = tokenClaims["id"] as String;
-
-      // Guardar el token de autenticación en los ajustes de la app.
-      Provider.of<SettingsProvider>(context, listen: false).authToken = authToken;
-
       // Obtener o crear un perfil para la cuenta de usuario. 
       final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
 
-      final linkResult = await profileProvider.handleAccountLink(accountId);
+      final linkResult = await profileProvider.handleAccountLink(
+        authToken,
+        wasAccountJustCreated: _authAction == AuthActionType.signUp,
+      );
 
       switch (linkResult) { 
         case AccountLinkResult.localProfileInSync:

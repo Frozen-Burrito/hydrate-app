@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/enums/occupation_type.dart';
-import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
+import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/provider/settings_provider.dart';
@@ -46,17 +46,9 @@ class _ProfileFormState extends State<ProfileForm> {
 
       // Actualizar el perfil de usuario (ya sea recién creado o existente) con 
       // los cambios de este formulario.
-      final savedProfileId = await profileProvider.saveNewProfile();
+      final savedProfileId = await profileProvider.saveNewProfile(saveEmpty: false);
 
       if (savedProfileId >= 0) {
-        // Si es el formulario inicial, configurar el ID del perfil activo por 
-        // defecto en los ajustes.
-        if (!widget.isModifyingExistingProfile) {
-          // Configurar el ID del perfil por defecto para settings.
-          final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-          settingsProvider.currentProfileId = savedProfileId;
-        } 
-
         if (redirectRoute != null) {
           Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
         } else {
@@ -72,10 +64,8 @@ class _ProfileFormState extends State<ProfileForm> {
   void _skipInitialForm(BuildContext context) async {
 
     final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
 
-    final newProfileId = await profileProvider.saveNewProfile(saveEmpty: true);
-    settingsProvider.currentProfileId = newProfileId;
+    await profileProvider.saveNewProfile(saveEmpty: true);
 
     Navigator.pushReplacementNamed(context, RouteNames.home);
   }
@@ -102,7 +92,7 @@ class _ProfileFormState extends State<ProfileForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         //TODO: agregar i18n para error creando perfil inicial.
-        content: Text('Tu perfil no pudo ser creado'),
+        content: Text("Tu perfil no pudo ser creado"),
         duration: Duration(seconds: 3),
       )
     );

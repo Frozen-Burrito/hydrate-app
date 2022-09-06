@@ -8,6 +8,11 @@ import 'package:hydrate_app/src/provider/cache_state.dart';
 /// Maneja el estado para los [Goal], [Tag], [Habits] y [MedicalData].
 class GoalProvider extends ChangeNotifier {
 
+  GoalProvider.withProfile(int profileId) : _profileId = profileId;
+
+  /// El ID del perfil local del usuario actual.
+  final int _profileId;
+
   late final CacheState<List<Goal>> _goalCache = CacheState(
     fetchData: _fetchGoals,
     onDataRefreshed: (_) => notifyListeners(),
@@ -27,10 +32,6 @@ class GoalProvider extends ChangeNotifier {
     fetchData: _fetchMedicalData,
     onDataRefreshed: (_) => notifyListeners()
   );
-
-  int _profileId = -1;
-
-  set activeProfileId(int profileId) => _profileId = profileId;
 
   bool _hasAskedForPeriodicalData = false;
   bool _hasAskedForMedicalData = false;
@@ -135,13 +136,16 @@ class GoalProvider extends ChangeNotifier {
   /// Si [newGoal] no pudo ser persistida, retorna un entero negativo.
   Future<int> createHydrationGoal(Goal newGoal) async {
     
-    int result = await SQLiteDB.instance.insert(newGoal);
+    // Asegurar que la nueva meta sea asociada con el perfil de usuario actual.
+    newGoal.profileId = _profileId;
 
-    if (result >= 0) {
+    final int newGoalId = await SQLiteDB.instance.insert(newGoal);
+
+    if (newGoalId >= 0) {
       _goalCache.shouldRefresh();
     }
 
-    return result;
+    return newGoalId;
   }
 
   /// Cambia la meta principal a la meta que tenga [newMainGoalId] como su ID.
@@ -164,8 +168,8 @@ class GoalProvider extends ChangeNotifier {
       Goal.fromMap, 
       Goal.tableName,
       where: [
-        WhereClause('es_principal', '1' ),
-        WhereClause('id', newMainGoalId.toString() )
+        const WhereClause(Goal.isMainGoalFieldName, "1" ),
+        WhereClause(Goal.idFieldName, newMainGoalId.toString() )
       ],
       whereUnions: [ 'OR' ]
     );
@@ -219,25 +223,13 @@ class GoalProvider extends ChangeNotifier {
   /// Elimina una meta de hidratación existente.
   Future<int> deleteHydrationGoal(int id) async {
     
-    try {
-      int result = await SQLiteDB.instance.delete(
-        Goal.tableName,
-        id
-      );
+    final modifiedRowsCount = await SQLiteDB.instance.delete(Goal.tableName, id);
 
-      if (result >= 0) {
-        _goalCache.shouldRefresh();
-        return result;
-      } else {
-        throw Exception('No se pudo eliminar la meta de hidratación.');
-      }
-    }
-    on Exception catch (e) {
-      return Future.error(e);
+    if (modifiedRowsCount >= 0) {
+      _goalCache.shouldRefresh();
+    } 
 
-    } finally {
-      notifyListeners();
-    }
+    return modifiedRowsCount;
   }
 
   /// Persiste a [newReport] en la base de datos local. 
@@ -247,14 +239,16 @@ class GoalProvider extends ChangeNotifier {
   /// 
   /// Si [newReport] no pudo ser persistido, retorna un entero negativo.
   Future<int> saveWeeklyReport(Habits newReport) async {
+    // Asegurar que el reporte sea guardado con el perfil del usuario actual.
+    newReport.profileId = _profileId;
     
-    int result = await SQLiteDB.instance.insert(newReport);
+    final int newReportId = await SQLiteDB.instance.insert(newReport);
 
-    if (result >= 0) {
+    if (newReportId >= 0) {
       _weeklyDataCache.shouldRefresh();
     }
 
-    return result;
+    return newReportId;
   }
 
   /// Persiste a [newReport] en la base de datos local. 

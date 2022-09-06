@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/utils/background_tasks.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,7 +35,7 @@ class SettingsProvider with ChangeNotifier {
     areWeeklyFormsEnabled,
   );
 
-  set currentSettings(Settings changes) {
+  void setCurrentSettings(Settings changes, int profileId, { String userAccountId = "" }) {
 
     final currentSettings = Settings(
       appThemeMode,
@@ -79,11 +80,6 @@ class SettingsProvider with ChangeNotifier {
       // Registrar o eliminar la tarea periodica para aportar datos 
       // estadísticos a la API web.
       if (isSharingData) {
-        // Obtener el ID de la cuenta de usuario actual.
-        final String userAccountId = authToken.isNotEmpty 
-            ? parseJWT(authToken)["id"] 
-            : "";
-
         // Registrar tarea para aportar datos cada semana.
         Workmanager().registerPeriodicTask(
           BackgroundTasks.sendStatsData.uniqueName,
@@ -92,7 +88,7 @@ class SettingsProvider with ChangeNotifier {
           initialDelay: BackgroundTasks.sendStatsData.initialDelay,
           constraints: BackgroundTasks.sendStatsData.constraints,
           inputData: <String, dynamic>{
-            BackgroundTasks.taskInputProfileId: currentProfileId,
+            BackgroundTasks.taskInputProfileId: profileId,
             BackgroundTasks.taskInputAccountId: userAccountId,
           },
         );
@@ -119,8 +115,6 @@ class SettingsProvider with ChangeNotifier {
   static const String allowedNotificationsKey = "notificaciones";
   static const String localeCodeKey = "codigoFormato";
   static const String deviceIdKey = "idDispositivo";
-  static const String authTokenKey = "jwt";
-  static const String currentProfileIdKey = "perfil_actual";
   static const String appStartupCountKey = "inicios_app";
 
   /// Obtiene el [ThemeMode] de la app desde Shared Preferences.
@@ -191,35 +185,6 @@ class SettingsProvider with ChangeNotifier {
     _sharedPreferences?.setString(deviceIdKey, newDeviceId);
     notifyListeners();  
   }
-
-  /// El JsonWebToken de autenticación del usuario. Es posible que ya haya expirado.
-  String get authToken {
-    final String token = _sharedPreferences?.getString(authTokenKey) ?? '';
-
-    if (token.isNotEmpty && isTokenExpired(token)) {
-      _sharedPreferences?.setString(authTokenKey, '');
-      return '';
-    }
-
-    return token;
-  }
-
-  /// Guarda un nuevo JWT de autenticación en Shared Preferences.
-  set authToken (String newJwt) {
-    if (newJwt.isNotEmpty && !isTokenExpired(newJwt)) {
-      _sharedPreferences?.setString(authTokenKey, newJwt);
-      notifyListeners();
-    }
-  }
-
-  Future<void> logOut() async {
-    await _sharedPreferences?.setString(authTokenKey, '');
-    notifyListeners();
-  }
-
-  int get currentProfileId => _sharedPreferences?.getInt(currentProfileIdKey) ?? -1;
-
-  set currentProfileId(int profileId) => _sharedPreferences?.setInt(currentProfileIdKey, profileId);
 
   int get appStartups => _sharedPreferences?.getInt(appStartupCountKey) ?? 0;
 

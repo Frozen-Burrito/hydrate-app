@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
@@ -19,9 +18,7 @@ class GoalSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileId = Provider.of<ProfileProvider>(context).profileId;
     final goalsProvider = Provider.of<GoalProvider>(context);
-    goalsProvider.activeProfileId = profileId;
     
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),

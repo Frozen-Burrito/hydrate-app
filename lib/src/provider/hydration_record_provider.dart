@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
@@ -9,6 +10,11 @@ import 'package:hydrate_app/src/provider/cache_state.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
 class HydrationRecordProvider extends ChangeNotifier {
+
+  HydrationRecordProvider.withProfile(int profileId) : _profileId = profileId;
+
+  /// El ID del perfil local del usuario actual.
+  final int _profileId;
 
   late final CacheState<List<HydrationRecord>> _hydrationRecordsCache = CacheState(
     fetchData: _fetchHydrationRecords,
@@ -71,7 +77,7 @@ class HydrationRecordProvider extends ChangeNotifier {
 
       lastDate = lastDate.subtract(Duration(hours: 8 - rand.nextInt(3)));
 
-      final randRecord = HydrationRecord.random(rand, lastDate, 0);
+      final randRecord = HydrationRecord.random(rand, lastDate, _profileId);
 
       newRecords.add(randRecord);
     }
@@ -139,12 +145,16 @@ class HydrationRecordProvider extends ChangeNotifier {
   Future<List<HydrationRecord>> _fetchHydrationRecords() async {
 
     try {
+      // Formar el WHERE para el query.
+      final where = WhereClause(HydrationRecord.profileIdFieldName, _profileId.toString());
+
       // Query a la BD.
       final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
         HydrationRecord.fromMap, 
         HydrationRecord.tableName, 
-        orderByColumn: 'fecha',
-        orderByAsc: false
+        orderByColumn: HydrationRecord.dateFieldName,
+        orderByAsc: false,
+        where: [ where ],
       );
 
       return queryResults.toList();

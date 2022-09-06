@@ -67,7 +67,7 @@ class UserProfile extends SQLiteModel {
       _coins = coins,
       _modificationCount = modificationCount,
       _selectedEnvId = selectedEnvId,
-      _country = country ?? Country(),
+      _country = country ?? Country.countryNotSpecified,
       _unlockedEnvironments = <Environment>[] {
 
         if (unlockedEnvironments.isEmpty) {

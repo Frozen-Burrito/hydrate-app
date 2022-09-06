@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/enums/notification_types.dart';
@@ -79,8 +80,13 @@ class EditSettingsBloc {
   void saveChanges(BuildContext context) async {
 
     final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
 
-    settingsProvider.currentSettings = _settingsChanges;
+    settingsProvider.setCurrentSettings(
+      _settingsChanges, 
+      profileProvider.profileId,
+      userAccountId: profileProvider.linkedAccountId
+    );
     
     _isSavePromptActive = false;
     _isSavePromptActiveController.add(_isSavePromptActive);
