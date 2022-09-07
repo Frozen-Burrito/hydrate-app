@@ -8,10 +8,20 @@ import 'package:hydrate_app/src/provider/cache_state.dart';
 /// Maneja el estado para los [Goal], [Tag], [Habits] y [MedicalData].
 class GoalProvider extends ChangeNotifier {
 
-  GoalProvider.withProfile(int profileId) : _profileId = profileId;
-
   /// El ID del perfil local del usuario actual.
-  final int _profileId;
+  int _profileId = -1;
+
+  void forProfile(int newProfileId) {
+    if (newProfileId != _profileId) {
+      _profileId = newProfileId;
+
+      // Refrescar los datos que dependen del perfil de usuario activo.
+      _goalCache.shouldRefresh();
+      _tagsCache.shouldRefresh();
+      _weeklyDataCache.shouldRefresh();
+      _medicalCache.shouldRefresh();
+    }
+  }
 
   late final CacheState<List<Goal>> _goalCache = CacheState(
     fetchData: _fetchGoals,

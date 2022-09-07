@@ -29,7 +29,7 @@ class UserProfile extends SQLiteModel {
 
   final bool isReadonly;
 
-  static const defaultProfileId = 0;
+  static const defaultProfileId = 1;
   static const maxCoins = 9999;
 
   static const maxFirstNameLength = 64;
@@ -57,7 +57,7 @@ class UserProfile extends SQLiteModel {
       _id = id,
       _firstName = firstName,
       _lastName = lastName,
-      _birthDate = birthDate ?? DateTime.now(),
+      _birthDate = birthDate,
       _sex = sex,
       _height = height,
       _weight = weight,

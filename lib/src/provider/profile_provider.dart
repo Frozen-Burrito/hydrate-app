@@ -30,22 +30,27 @@ class ProfileProvider extends ChangeNotifier {
     : _profileId = UserProfile.defaultProfileId,
       _accountId = "";
 
+  static late final SharedPreferences? _sharedPreferences;
+
+  /// Inicializa y asigna la instancia de Shared Preferences.
+  static Future<void> init() async {
+    _sharedPreferences = await SharedPreferences.getInstance();
+  }
+
   /// Crea un nuevo [ProfileProvider] que es inicializado con un [profileId] y 
   /// [linkedAccountId] obtenidos desde SharedPreferences.
   /// 
   /// Si no existen keys para el [profileId] o el [linkedAccountId] en Shared 
   /// Preferences, usa sus valores por defecto ([UserProfile.defaultProfileId] 
   /// y un [String] vacío, respectivamente).
-  static Future<ProfileProvider> fromSharedPrefs({ bool createDefaultProfile = false }) async {
+  factory ProfileProvider.fromSharedPrefs({ bool createDefaultProfile = false }) {
 
-    final sharedPreferences = await SharedPreferences.getInstance();
+    int prefsProfileId = _sharedPreferences?.getInt(lastUsedProfileIdKey) ?? -1;
 
-    final int prefsProfileId = sharedPreferences.getInt(lastUsedProfileIdKey) ?? -1;
-
-    String prefsAuthToken = sharedPreferences.getString(authTokenKey) ?? "";
+    String prefsAuthToken = _sharedPreferences?.getString(authTokenKey) ?? "";
 
     if (prefsAuthToken.isNotEmpty && isTokenExpired(prefsAuthToken)) {
-      sharedPreferences.setString(authTokenKey, "");
+      _sharedPreferences?.setString(authTokenKey, "");
       prefsAuthToken = "";
     }
 
@@ -53,16 +58,19 @@ class ProfileProvider extends ChangeNotifier {
       
       final newProfile = UserProfile.uncommitted();
 
+      prefsProfileId = UserProfile.defaultProfileId;
+
       // Persistir el nuevo perfil en la base de datos
-      final defaultProfileId = await SQLiteDB.instance.insert(newProfile);
+      SQLiteDB.instance.insert(newProfile).then((newProfileId) {
+        final wasProfileCreated = newProfileId >= UserProfile.defaultProfileId;
 
-      final wasProfileCreated = defaultProfileId >= UserProfile.defaultProfileId;
-
-      if (wasProfileCreated) {
-        sharedPreferences.setInt(lastUsedProfileIdKey, defaultProfileId);
-      } else {
-        print("Warning: default profile could not be created");
-      }
+        if (wasProfileCreated) {
+          _sharedPreferences?.setInt(lastUsedProfileIdKey, newProfileId);
+          prefsProfileId = newProfileId;
+        } else {
+          print("Warning: default profile could not be created");
+        }
+      });
     }
 
     return ProfileProvider.withProfile(
@@ -157,10 +165,8 @@ class ProfileProvider extends ChangeNotifier {
       _profileId = newProfileId;
       _accountId = getAccountIdFromJwt(authToken);
 
-      final sharedPreferences = await SharedPreferences.getInstance();
-
-      sharedPreferences.setInt(lastUsedProfileIdKey, profileId);
-      sharedPreferences.setString(authTokenKey, authToken);
+      _sharedPreferences?.setInt(lastUsedProfileIdKey, profileId);
+      _sharedPreferences?.setString(authTokenKey, authToken);
 
       await _profileCache.refresh();
     }

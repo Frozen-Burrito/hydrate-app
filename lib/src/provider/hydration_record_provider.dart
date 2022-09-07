@@ -11,10 +11,17 @@ import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
 class HydrationRecordProvider extends ChangeNotifier {
 
-  HydrationRecordProvider.withProfile(int profileId) : _profileId = profileId;
-
   /// El ID del perfil local del usuario actual.
-  final int _profileId;
+  int _profileId = -1;
+
+  void forProfile(int newProfileId) {
+    if (newProfileId != _profileId) {
+      _profileId = newProfileId;
+
+      // Refrescar los datos que dependen del perfil de usuario activo.
+      _hydrationRecordsCache.shouldRefresh();
+    }
+  }
 
   late final CacheState<List<HydrationRecord>> _hydrationRecordsCache = CacheState(
     fetchData: _fetchHydrationRecords,

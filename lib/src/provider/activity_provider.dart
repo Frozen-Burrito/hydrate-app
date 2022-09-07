@@ -15,10 +15,18 @@ import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 /// externa con el servicio web, cuando sea necesario.
 class ActivityProvider extends ChangeNotifier {
 
-  ActivityProvider.withProfile(int profileId) : _profileId = profileId;
-
   /// El ID del perfil local del usuario actual.
-  final int _profileId;
+  int _profileId = -1;
+
+  void forProfile(int newProfileId) {
+    if (newProfileId != _profileId) {
+      _profileId = newProfileId;
+
+      // Refrescar los datos que dependen del perfil de usuario activo.
+      _activitiesCache.shouldRefresh();
+      _routinesCache.shouldRefresh();
+    }
+  }
 
   late final CacheState<List<ActivityRecord>> _activitiesCache = CacheState(
     fetchData: _queryActivityRecords,

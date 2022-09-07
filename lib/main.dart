@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hydrate_app/src/models/models.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
@@ -20,7 +21,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializar internamente a SettingsProvider.
-  await SettingsProvider.init();
+  await Future.wait([
+    SettingsProvider.init(),
+    ProfileProvider.init(),
+  ]); 
 
   SettingsProvider().appStartups++;
 
@@ -47,75 +51,66 @@ class HydrateApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<ProfileProvider>(
-      future: ProfileProvider.fromSharedPrefs( createDefaultProfile: true ),
-      builder: (context, snapshot) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ProfileProvider>(
+          create: (_) => ProfileProvider.fromSharedPrefs( createDefaultProfile: true ),
+        ),
+        ChangeNotifierProvider<SettingsProvider>(
+          create: (_) => SettingsProvider(),
+        ),
+        ChangeNotifierProvider<HydrationRecordProvider>(
+          create: (_) => HydrationRecordProvider(),
+        ),
+        ChangeNotifierProvider<ActivityProvider>(
+          create: (_) => ActivityProvider(),
+        ),
+        ChangeNotifierProvider<GoalProvider>(
+          create: (_) => GoalProvider(),
+        ),
+      ],
+      child: Consumer<ProfileProvider>(
+        builder: (_, profileProvider, __) {
+          return Consumer<SettingsProvider>(
+            builder: (context, settingsProvider, __) {
 
-        if (!snapshot.hasData) {
-          return const Center();
+              final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+              activityProvider.forProfile(profileProvider.profileId);
+
+              final hydrationProvider = Provider.of<HydrationRecordProvider>(context, listen: false);
+              hydrationProvider.forProfile(profileProvider.profileId);
+
+              final goalProvider = Provider.of<GoalProvider>(context, listen: false);
+              goalProvider.forProfile(profileProvider.profileId);
+              
+              return MaterialApp(
+                title: "Hydrate App",
+                initialRoute: (settingsProvider.appStartups > 0)
+                  ? RouteNames.home
+                  : RouteNames.initialForm,
+                // Configuracion del tema de color.
+                theme: AppThemes.appLightTheme,
+                darkTheme: AppThemes.appDarkTheme,
+                themeMode: settingsProvider.appThemeMode,
+                // Rutas de la app
+                routes: Routes.appRoutes,
+                onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
+                // Localización e internacionalización
+                localizationsDelegates: const [
+                  AppLocalizations.delegate,
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                ],
+                supportedLocales: const [
+                  Locale("en", " "),
+                  Locale("es", " "),
+                ],
+              );
+            }
+          );
         }
-
-        return ChangeNotifierProvider<ProfileProvider>(
-          create: (_) => snapshot.data!,
-          child: ChangeNotifierProvider<SettingsProvider>(
-            create: (_) => SettingsProvider(),
-            child: Consumer<ProfileProvider>(
-              builder: (_, profileProvider, __) {
-                return MultiProvider(
-                  providers: [
-                    ChangeNotifierProvider<SettingsProvider>(
-                      create: (_) => SettingsProvider(),
-                    ),
-                    ChangeNotifierProvider<HydrationRecordProvider>(
-                      create: (_) => HydrationRecordProvider.withProfile(
-                        profileProvider.profileId,
-                      ),
-                    ),
-                    ChangeNotifierProvider<ActivityProvider>(
-                      create: (_) => ActivityProvider.withProfile(
-                        profileProvider.profileId,
-                      ),
-                    ),
-                    ChangeNotifierProvider<GoalProvider>(
-                      create: (_) => GoalProvider.withProfile(
-                        profileProvider.profileId,
-                      ),
-                    ),
-                  ],
-                  child: Consumer<SettingsProvider>(
-                    builder: (_, settingsProvider, __) {
-                      return MaterialApp(
-                        title: "Hydrate App",
-                        initialRoute: settingsProvider.appStartups > 0
-                          ? RouteNames.home
-                          : RouteNames.initialForm,
-                        // Configuracion del tema de color.
-                        theme: AppThemes.appLightTheme,
-                        darkTheme: AppThemes.appDarkTheme,
-                        themeMode: settingsProvider.appThemeMode,
-                        // Rutas de la app
-                        routes: Routes.appRoutes,
-                        onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
-                        // Localización e internacionalización
-                        localizationsDelegates: const [
-                          AppLocalizations.delegate,
-                          GlobalMaterialLocalizations.delegate,
-                          GlobalCupertinoLocalizations.delegate,
-                          GlobalWidgetsLocalizations.delegate,
-                        ],
-                        supportedLocales: const [
-                          Locale("en", " "),
-                          Locale("es", " "),
-                        ],
-                      );
-                    }
-                  ),
-                );
-              }
-            ),
-          ),
-        );
-      }
+      ),
     );
   }
 }

@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart';
 
 import 'package:hydrate_app/src/api/api.dart';
+import 'package:hydrate_app/src/db/sqlite_db.dart';
+import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
@@ -129,7 +131,21 @@ class AuthApi {
   }
 
   Future<UserProfile> fetchProfileForAccount(String userAccountId) async {
-    return UserProfile.defaultProfile;
+    //TODO: obtener el perfil de la cuenta desde la API, no desde la BD local.
+    final whereQuery = [ WhereClause(UserProfile.userAccountIdFieldName, userAccountId), ];
+
+    final queryResults = await SQLiteDB.instance.select<UserProfile>(
+      UserProfile.fromMap,
+      UserProfile.tableName,
+      where: whereQuery,
+      limit: 1
+    );
+
+    final profileForAccount = (queryResults.length == 1) 
+        ? queryResults.single 
+        : UserProfile.defaultProfile;
+
+    return profileForAccount; 
   }
 
   /// Decodifica un JWT de autenticación desde el cuerpo JSON de [response].
