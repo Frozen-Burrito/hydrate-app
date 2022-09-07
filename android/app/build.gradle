@@ -49,7 +49,7 @@ android {
 
     defaultConfig {
         applicationId "com.ceti.fernando.hydrate"
-        minSdkVersion 19
+        minSdkVersion 21
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -79,4 +79,5 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "androidx.core:core-splashscreen:1.0.0-beta02"
 }
