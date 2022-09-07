@@ -48,67 +48,70 @@ class HydrateApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<ProfileProvider>(
-      future: ProfileProvider.fromSharedPrefs(),
+      future: ProfileProvider.fromSharedPrefs( createDefaultProfile: true ),
       builder: (context, snapshot) {
 
-        final profileProvider = snapshot.data!;
+        if (!snapshot.hasData) {
+          return const Center();
+        }
 
-        // Configurar las rutas para el perfil actual.
-        Routes.currentProfileId = profileProvider.profileId;
-
-        return ChangeNotifierProvider(
-          create: (_) => profileProvider,
+        return ChangeNotifierProvider<ProfileProvider>(
+          create: (_) => snapshot.data!,
           child: ChangeNotifierProvider<SettingsProvider>(
             create: (_) => SettingsProvider(),
-            child: MultiProvider(
-              providers: [
-                ChangeNotifierProvider<SettingsProvider>(
-                  create: (_) => SettingsProvider(),
-                ),
-                ChangeNotifierProvider<HydrationRecordProvider>(
-                  create: (_) => HydrationRecordProvider.withProfile(
-                    profileProvider.profileId,
+            child: Consumer<ProfileProvider>(
+              builder: (_, profileProvider, __) {
+                return MultiProvider(
+                  providers: [
+                    ChangeNotifierProvider<SettingsProvider>(
+                      create: (_) => SettingsProvider(),
+                    ),
+                    ChangeNotifierProvider<HydrationRecordProvider>(
+                      create: (_) => HydrationRecordProvider.withProfile(
+                        profileProvider.profileId,
+                      ),
+                    ),
+                    ChangeNotifierProvider<ActivityProvider>(
+                      create: (_) => ActivityProvider.withProfile(
+                        profileProvider.profileId,
+                      ),
+                    ),
+                    ChangeNotifierProvider<GoalProvider>(
+                      create: (_) => GoalProvider.withProfile(
+                        profileProvider.profileId,
+                      ),
+                    ),
+                  ],
+                  child: Consumer<SettingsProvider>(
+                    builder: (_, settingsProvider, __) {
+                      return MaterialApp(
+                        title: "Hydrate App",
+                        initialRoute: settingsProvider.appStartups > 0
+                          ? RouteNames.home
+                          : RouteNames.initialForm,
+                        // Configuracion del tema de color.
+                        theme: AppThemes.appLightTheme,
+                        darkTheme: AppThemes.appDarkTheme,
+                        themeMode: settingsProvider.appThemeMode,
+                        // Rutas de la app
+                        routes: Routes.appRoutes,
+                        onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
+                        // Localización e internacionalización
+                        localizationsDelegates: const [
+                          AppLocalizations.delegate,
+                          GlobalMaterialLocalizations.delegate,
+                          GlobalCupertinoLocalizations.delegate,
+                          GlobalWidgetsLocalizations.delegate,
+                        ],
+                        supportedLocales: const [
+                          Locale("en", " "),
+                          Locale("es", " "),
+                        ],
+                      );
+                    }
                   ),
-                ),
-                ChangeNotifierProvider<ActivityProvider>(
-                  create: (_) => ActivityProvider.withProfile(
-                    profileProvider.profileId,
-                  ),
-                ),
-                ChangeNotifierProvider<GoalProvider>(
-                  create: (_) => GoalProvider.withProfile(
-                    profileProvider.profileId,
-                  ),
-                ),
-              ],
-              child: Consumer<SettingsProvider>(
-                builder: (_, settingsProvider, __) {
-                  return MaterialApp(
-                    title: "Hydrate App",
-                    initialRoute: settingsProvider.appStartups > 0
-                      ? RouteNames.home
-                      : RouteNames.initialForm,
-                    // Configuracion del tema de color.
-                    theme: AppThemes.appLightTheme,
-                    darkTheme: AppThemes.appDarkTheme,
-                    themeMode: settingsProvider.appThemeMode,
-                    // Rutas de la app
-                    routes: Routes.appRoutes,
-                    onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
-                    // Localización e internacionalización
-                    localizationsDelegates: const [
-                      AppLocalizations.delegate,
-                      GlobalMaterialLocalizations.delegate,
-                      GlobalCupertinoLocalizations.delegate,
-                      GlobalWidgetsLocalizations.delegate,
-                    ],
-                    supportedLocales: const [
-                      Locale("en", " "),
-                      Locale("es", " "),
-                    ],
-                  );
-                }
-              ),
+                );
+              }
             ),
           ),
         );

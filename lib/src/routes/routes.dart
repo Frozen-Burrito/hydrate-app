@@ -14,20 +14,12 @@ import 'package:hydrate_app/src/widgets/shapes.dart';
 /// accesibles a través del get [appRoutes].
 class Routes {
 
-  static int _currentProfileId = 0;
-
-  static set currentProfileId(int newProfileId) {
-
-    if (newProfileId >= 0) {
-      _currentProfileId = newProfileId;
-    }
-  }
-
   static final Map<String, WidgetBuilder> _appRoutes = {
     RouteNames.home: (BuildContext context) => const MainPage(),
     RouteNames.config: (BuildContext context) => const SettingsPage(),
     RouteNames.bleConnection: (BuildContext context) => const ConnectionPage(),
 
+    //TODO: agregar i18n
     RouteNames.newHydrationGoal: (context) => const CommonFormPage(
       formTitle: 'Nueva Meta',
       formLabel: 'Escribe los detalles de tu nueva meta:',

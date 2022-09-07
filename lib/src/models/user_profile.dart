@@ -303,7 +303,13 @@ class UserProfile extends SQLiteModel {
 
   // Retorna **true** si este perfil tiene datos por default y no ha sido 
   // modificado.
-  bool get isDefaultProfile => modificationCount == 0 && this == defaultProfile;
+  bool get isDefaultProfile {
+    final hasUncommittedId = id < defaultProfileId;
+    final isNotLinkedToAccount = userAccountID.isEmpty;
+    final hasNoModifications = modificationCount == 0;
+
+    return hasUncommittedId && isNotLinkedToAccount && hasNoModifications;
+  }
 
   /// Determina si este perfil de usuario ha desbloqueado el entorno con [envId].
   /// 

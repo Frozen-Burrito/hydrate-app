@@ -46,9 +46,9 @@ class _ProfileFormState extends State<ProfileForm> {
 
       // Actualizar el perfil de usuario (ya sea recién creado o existente) con 
       // los cambios de este formulario.
-      final savedProfileId = await profileProvider.saveNewProfile(saveEmpty: false);
+      final saveResult = await profileProvider.saveProfileChanges(restrictModifications: false);
 
-      if (savedProfileId >= 0) {
+      if (saveResult == SaveProfileResult.changesSaved) {
         if (redirectRoute != null) {
           Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
         } else {
@@ -61,14 +61,8 @@ class _ProfileFormState extends State<ProfileForm> {
     }
   }
 
-  void _skipInitialForm(BuildContext context) async {
-
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-
-    await profileProvider.saveNewProfile(saveEmpty: true);
-
-    Navigator.pushReplacementNamed(context, RouteNames.home);
-  }
+  void _skipInitialForm(BuildContext context) 
+      => Navigator.pushReplacementNamed(context, RouteNames.home);
 
   void _pickBirthDate(BuildContext context) async {
     // Mostrar el selector de fechas.
@@ -106,7 +100,7 @@ class _ProfileFormState extends State<ProfileForm> {
     final localizations = AppLocalizations.of(context)!;
 
     final profileChanges = profileProvider.profileChanges;
-
+    
     birthDateController.text = profileChanges.birthDate?.toLocalizedDate ?? '';
 
     return Form(
@@ -136,7 +130,7 @@ class _ProfileFormState extends State<ProfileForm> {
               suffixIcon: const Icon(Icons.event_rounded)
             ),
             onTap: () => _pickBirthDate(context),
-          ),                
+          ),
 
           const SizedBox( height: 16.0, ),
 
@@ -278,7 +272,10 @@ class _ProfileFormState extends State<ProfileForm> {
                     style: ElevatedButton.styleFrom(
                       primary: Colors.blue,
                     ),
-                    onPressed: () => _validateAndSave(context)
+                    onPressed: () => _validateAndSave(
+                      context, 
+                      redirectRoute: RouteNames.home
+                    ),
                   ),
                 ),
               ]
