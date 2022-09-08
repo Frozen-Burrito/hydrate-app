@@ -16,13 +16,19 @@ class Environment extends SQLiteModel {
 
   static const int firstUnlockedId = 0;
 
+  static const int _dryEnvironmentThresholdMl = -250;
+  static const int _moistEnvironmentThresholdMl = 250;
+
+  static const String _dryEnvAssetPathEnding = "seco";
+  static const String _moistEnvAssetPathEnding = "humedo";
+
   Environment.firstUnlocked() : this(
     id: firstUnlockedId,
-    imagePath: 'assets/img/entorno_1_agua.png',
+    imagePath: "assets/img/entorno_1.png",
     price: 0,
   );
 
-  static const String tableName = 'entorno';
+  static const String tableName = "entorno";
 
   @override
   String get table => tableName;
@@ -55,10 +61,39 @@ class Environment extends SQLiteModel {
 
     return map;
   } 
+
+  /// Retorna el path para el [AssetImage] de este entorno según la 
+  /// diferencia entre [current] y [target].
+  /// 
+  /// Si [current] es notablemente menor que [target], el path retornado
+  /// es para una imagen del entorno seco.
+  /// 
+  /// Alternativamente, si [current] es mucho mayor que [target], el 
+  /// path retornadoes para una imagen del entorno con humedad e inundado.
+  /// 
+  /// Si ninguno de estos casos se cumple, el path es para la imagen "por 
+  /// defecto" de este [Environment].
+  String imagePathForHydration(int current, int target) {
+
+    final int hydrationDifference = current - target;
+    final envImagePathBuffer = StringBuffer(imagePath);
+
+    if (hydrationDifference > _moistEnvironmentThresholdMl) {
+
+      envImagePathBuffer.writeAll(["_", _moistEnvAssetPathEnding]);
+
+    } else if (hydrationDifference < _dryEnvironmentThresholdMl) {
+
+      envImagePathBuffer.writeAll(["_", _dryEnvAssetPathEnding]);
+    } 
+
+    // return envImagePathBuffer.toString();
+    return "assets/img/entorno_1_humedo.png";
+  }
   
   @override
   String toString() {
-    return 'Image path: $imagePath, price: $price';
+    return "Image path: $imagePath, price: $price";
   }
 
   @override
@@ -77,5 +112,4 @@ class Environment extends SQLiteModel {
     imagePath,
     price,
   ]);
-  
 }

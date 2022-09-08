@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/full_name_input.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -6,7 +7,6 @@ import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
@@ -112,8 +112,16 @@ class _ProfileFormState extends State<ProfileForm> {
           
           (widget.isModifyingExistingProfile
             ? const SizedBox( height: 0)
-            : _ProfileFormNameFields(
-              isFormModifiable: widget.isFormModifiable,
+            : FullNameInput.vertical(
+              isEnabled: widget.isFormModifiable, 
+              firstNameValidator: UserProfile.validateFirstName,
+              lastNameValidator: UserProfile.validateLastName,
+              maxFirstNameLength: UserProfile.maxFirstNameLength,
+              maxLastNameLength: UserProfile.maxLastNameLength,
+              initialFirstName: profileChanges.firstName,
+              initialLastName: profileChanges.lastName,
+              onFirstNameChanged: (value) => profileChanges.firstName = value, 
+              onLastNameChanged: (value) => profileChanges.firstName = value,
             )
           ), 
 
@@ -282,75 +290,6 @@ class _ProfileFormState extends State<ProfileForm> {
             ),
         ]
       ),
-    );
-  }
-}
-
-class _ProfileFormNameFields extends StatelessWidget {
-
-  const _ProfileFormNameFields({
-    Key? key, 
-    this.isFormModifiable = false,
-  }) : super(key: key);
-
-  final bool isFormModifiable;
-
-  String? _getTextInputCounter(String value, int maxLength) {
-    // Build the string using a buffer.
-    StringBuffer strBuf = StringBuffer(value.characters.length);
-
-    strBuf.write("/");
-    strBuf.write(UserProfile.maxFirstNameLength);
-
-    return strBuf.toString();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    
-    final profileChanges = Provider.of<ProfileProvider>(context).profileChanges;
-    final localizations = AppLocalizations.of(context)!;
-
-    return Column(
-      children: [
-        TextFormField(
-          keyboardType: TextInputType.text,
-          maxLength: 50,
-          enabled: isFormModifiable,
-          readOnly: !isFormModifiable,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            labelText: localizations.firstName,
-            helperText: ' ',
-            counterText:  _getTextInputCounter(
-              profileChanges.firstName,
-              UserProfile.maxFirstNameLength
-            ),
-          ),
-          onChanged: (value) => profileChanges.firstName = value,
-          validator: (value) => UserProfile.validateFirstName(value),
-        ),
-
-        const SizedBox( height: 16.0 ),
-
-        TextFormField(
-          keyboardType: TextInputType.text,
-          maxLength: 50,
-          enabled: isFormModifiable,
-          readOnly: !isFormModifiable,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            labelText: localizations.lastName,
-            helperText: ' ',
-            counterText: _getTextInputCounter(
-              profileChanges.lastName,
-              UserProfile.maxLastNameLength
-            ),
-          ),
-          onChanged: (value) => profileChanges.lastName = value,
-          validator: (value) => UserProfile.validateLastName(value),
-        ),
-      ],
     );
   }
 }

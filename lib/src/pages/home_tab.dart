@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/utils/transparent_image.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -37,34 +38,94 @@ class HomeTab extends StatelessWidget {
           ),
 
           SliverToBoxAdapter(
-            child: Consumer<ProfileProvider>(
-              builder: (_, provider, __) {
-                return FutureBuilder<UserProfile?>(
-                  future: provider.profile,
-                  builder: (context, snapshot) {
+            child: SizedBox(
+              height: 360.0,
+              width: 360.0,
+              child: Consumer<ProfileProvider>(
+                builder: (_, profileProvider, __) {
+                  return FutureBuilder<UserProfile?>(
+                    future: profileProvider.profile,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) { 
 
-                    if (snapshot.hasData) { 
+                        final profile = snapshot.data!;
 
-                      final profile = snapshot.data;
-
-                      if (profile != null) {
-                        return Image( 
-                          image: AssetImage(profile.selectedEnvironment.imagePath),
+                        return _AssetFadeInImage(
+                          image: profile.selectedEnvironment.imagePathForHydration(0, 0),
+                          duration: const Duration(milliseconds: 500),
                         );
+                      } else {
+                        return const Center(child: CircularProgressIndicator());
                       }
                     }
-
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-                );
-              }
+                  );
+                }
+              ),
             )
           ),
 
           const GoalSliverList(),
         ], 
+      ),
+    );
+  }
+}
+
+class _AssetFadeInImage extends StatefulWidget {
+
+  const _AssetFadeInImage({
+    Key? key,
+    required this.image,
+    this.duration = const Duration(milliseconds: 500),
+  }) : super(key: key);
+
+  final String image;
+
+  final Duration duration;
+
+  @override
+  State<_AssetFadeInImage> createState() => _AssetFadeInImageState();
+}
+
+class _AssetFadeInImageState extends State<_AssetFadeInImage>  
+    with TickerProviderStateMixin {
+
+  late final AnimationController _controller = AnimationController(
+    duration: widget.duration,
+    vsync: this,
+  );
+
+  late final Animation<double> _opacityAnimation = CurvedAnimation(
+    parent: _controller, 
+    curve: Curves.decelerate
+  );
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller.forward();
+
+    _opacityAnimation.addListener(() {
+      print(_opacityAnimation.value);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.transparent,
+      child: FadeTransition(
+        opacity: _opacityAnimation,
+        child: Image( 
+          image: AssetImage(widget.image),
+        ),
       ),
     );
   }

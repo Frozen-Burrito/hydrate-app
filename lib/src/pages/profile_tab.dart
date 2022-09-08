@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/models/enums/occupation_type.dart';
+import 'package:hydrate_app/src/widgets/full_name_input.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -91,6 +92,7 @@ class _ProfileTabState extends State<ProfileTab> {
       physics: const BouncingScrollPhysics(),
       slivers: <Widget>[
         CustomSliverAppBar(
+          //TODO: agregar i18n.
           title: 'Perfil',
           leading: const <Widget>[
             CoinDisplay(),
@@ -193,6 +195,7 @@ class _ProfileTabState extends State<ProfileTab> {
   
         SliverToBoxAdapter(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
                 margin: const EdgeInsets.only( bottom: 32.0 ),
@@ -233,129 +236,86 @@ class _FullnameDisplay extends StatelessWidget {
 
   const _FullnameDisplay({ this.isEditing = false, Key? key }) : super(key: key);
 
-  String? _getTextInputCounter(String value, int maxLength) {
-    // Build the string using a buffer.
-    StringBuffer strBuf = StringBuffer(value.characters.length);
-
-    strBuf.write("/");
-    strBuf.write(UserProfile.maxFirstNameLength);
-
-    return strBuf.toString();
-  }
-
   @override
   Widget build(BuildContext context) {
 
     final profileProvider = Provider.of<ProfileProvider>(context);
     final localizations = AppLocalizations.of(context)!;
 
-    return FutureBuilder<UserProfile?>(
-      future: profileProvider.profile,
-      builder: (context, snapshot) {
+    return SizedBox(
+      width: MediaQuery.of(context).size.width * 0.9,
+      child: FutureBuilder<UserProfile?>(
+        future: profileProvider.profile,
+        builder: (context, snapshot) {
 
-        if (snapshot.hasData) {
-          // Obtener datos de perfil.
-          final profile = snapshot.data;
-          final profileChanges = profileProvider.profileChanges;
+          if (snapshot.hasData) {
+            // Obtener datos de perfil.
+            final profile = snapshot.data;
+            final profileChanges = profileProvider.profileChanges;
 
-          if (profile != null) {
-            if (isEditing) {
+            if (profile != null) {
+              if (isEditing) {
 
-              return Column(
-                children: <Widget>[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget> [
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.4,
-                        child: TextFormField(
-                          keyboardType: TextInputType.text,
-                          maxLength: UserProfile.maxFirstNameLength,
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            labelText: localizations.firstName,
-                            helperText: ' ',
-                            counterText: _getTextInputCounter(
-                              profileChanges.firstName,
-                              UserProfile.maxFirstNameLength
-                            ),
-                          ),
-                          //TODO: Agregar i18n para mostrar nombre de usuario anónimo.
-                          initialValue: profile.firstName,
-                          onChanged: (value) => profileChanges.firstName = value,
-                          validator: (value) => UserProfile.validateFirstName(value),
-                        ),
-                      ),
-
-                      const SizedBox( width: 8.0, ),
-
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.4,
-                        child: TextFormField(
-                          keyboardType: TextInputType.text,
-                          maxLength: UserProfile.maxLastNameLength,
-                          decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            labelText: localizations.lastName,
-                            helperText: ' ',
-                            counterText: _getTextInputCounter(
-                              profileChanges.lastName,
-                              UserProfile.maxLastNameLength
-                            ),
-                          ),
-                          initialValue: profile.lastName,
-                          onChanged: (value) => profileChanges.lastName = value,
-                          validator: (value) => UserProfile.validateLastName(value),
-                        ),
-                      )
-                    ],
-                  ),
-                
-                  const SizedBox( height: 16.0 ,),
-
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 48.0),
-                    child: DropdownButtonFormField(
-                      decoration: InputDecoration(
-                        border: const OutlineInputBorder(),
-                        labelText: localizations.occupation,
-                        helperText: ' ',
-                        hintText: 'Selecciona' 
-                      ),
-                      items: DropdownLabels.occupationDropdownItems(context),
-                      value: profileChanges.occupation.index,
-                      onChanged: (int? value) => profileChanges.occupation = Occupation.values[value ?? 0],
+                return Column(
+                  children: <Widget>[
+                    FullNameInput.horizontal(
+                      isEnabled: isEditing, 
+                      firstNameValidator: UserProfile.validateFirstName,
+                      lastNameValidator: UserProfile.validateLastName,
+                      maxFirstNameLength: UserProfile.maxFirstNameLength,
+                      maxLastNameLength: UserProfile.maxLastNameLength,
+                      initialFirstName: profileChanges.firstName,
+                      initialLastName: profileChanges.lastName,
+                      onFirstNameChanged: (value) => profileChanges.firstName = value, 
+                      onLastNameChanged: (value) => profileChanges.firstName = value,
                     ),
-                  ),
-                ],
-              );
-            } else {
+                  
+                    const SizedBox( height: 16.0 ,),
 
-              return Column(
-                children: <Widget>[
-                  Text(
-                    (profile.fullName.trim().isNotEmpty) 
-                      ? profile.fullName
-                      : 'Perfil Anónimo',
-                    style: Theme.of(context).textTheme.headline4,
-                  ),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 48.0),
+                      child: DropdownButtonFormField(
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          labelText: localizations.occupation,
+                          helperText: ' ',
+                          hintText: 'Selecciona' 
+                        ),
+                        items: DropdownLabels.occupationDropdownItems(context),
+                        value: profileChanges.occupation.index,
+                        onChanged: (int? value) => profileChanges.occupation = Occupation.values[value ?? 0],
+                      ),
+                    ),
+                  ],
+                );
+              } else {
 
-                  const SizedBox( height: 16.0 ,),
+                return Column(
+                  children: <Widget>[
+                    Text(
+                      (profile.fullName.trim().isNotEmpty) 
+                        ? profile.fullName
+                        : 'Perfil Anónimo',
+                      style: Theme.of(context).textTheme.headline4,
+                    ),
 
-                  Text(
-                    DropdownLabels.occupationLabels(context)[profile.occupation.index],
-                    style: Theme.of(context).textTheme.headline6,
-                  ),
-                ]
-              );
+                    const SizedBox( height: 16.0 ,),
+
+                    Text(
+                      DropdownLabels.occupationLabels(context)[profile.occupation.index],
+                      style: Theme.of(context).textTheme.headline6,
+                    ),
+                  ]
+                );
+              }
             }
           }
-        }
 
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      } 
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        } 
+      ),
     ); 
   }
 }

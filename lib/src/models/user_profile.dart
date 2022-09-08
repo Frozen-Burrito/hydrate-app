@@ -35,6 +35,9 @@ class UserProfile extends SQLiteModel {
   static const maxFirstNameLength = 64;
   static const maxLastNameLength = 64;
 
+  static const maxFirstNameDisplayLength = 64;
+  static const maxLastNameDisplayLength = 64;
+
   static final defaultProfile = UserProfile.uncommitted(); 
 
   UserProfile.unmodifiable({
@@ -322,7 +325,36 @@ class UserProfile extends SQLiteModel {
 
   bool get hasNephroticSyndrome => medicalCondition == MedicalCondition.nephroticSyndrome;
 
-  String get fullName => '$_firstName $_lastName';
+  String get fullName {
+
+    final strBuf = StringBuffer();
+
+    if (firstName.isNotEmpty) {
+
+      final names = firstName.split(" ");
+      final maxNumberOfNames = min(names.length, 2);
+
+      final firstNames = names.sublist(0, maxNumberOfNames).join(" ");
+
+      strBuf.write(firstNames.substring(0, min(firstNames.length, maxFirstNameDisplayLength)));
+    }
+
+    if (lastName.isNotEmpty) {
+
+      if (strBuf.length > 0) strBuf.write(" ");
+
+      final lastNames = lastName.split(" ");
+      final numberOfLastNames = min(lastNames.length, 2);
+
+      final adjustedLastNames = lastNames.sublist(0, numberOfLastNames).join(" ");
+
+      strBuf.write(adjustedLastNames.substring(0, min(adjustedLastNames.length, maxLastNameDisplayLength)));
+    }
+
+    return strBuf.toString();
+  }
+
+  // => '$_firstName $_lastName';
 
   /// Obtiene las iniciales del usuario, en mayúsculas.
   String get initials {
