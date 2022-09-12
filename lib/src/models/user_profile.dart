@@ -24,7 +24,7 @@ class UserProfile extends SQLiteModel {
   String _userAccountID;
   int _coins;
   int _modificationCount;
-  int _selectedEnvId;
+  Environment _selectedEnvironment;
   final List<Environment> _unlockedEnvironments;
 
   final bool isReadonly;
@@ -53,7 +53,7 @@ class UserProfile extends SQLiteModel {
     String userAccountID = "",
     int coins = 0,
     int modificationCount = 0,
-    int selectedEnvId = 0,
+    Environment? selectedEnvironment,
     Country? country,
     List<Environment> unlockedEnvironments = const <Environment>[]
   }): isReadonly = true,
@@ -69,8 +69,8 @@ class UserProfile extends SQLiteModel {
       _userAccountID = userAccountID,
       _coins = coins,
       _modificationCount = modificationCount,
-      _selectedEnvId = selectedEnvId,
       _country = country ?? Country.countryNotSpecified,
+      _selectedEnvironment = selectedEnvironment ?? Environment.firstUnlocked(),
       _unlockedEnvironments = <Environment>[] {
 
         if (unlockedEnvironments.isEmpty) {
@@ -78,10 +78,6 @@ class UserProfile extends SQLiteModel {
         } else {
            _unlockedEnvironments.addAll(unlockedEnvironments);
         }
-
-        _selectedEnvId = !hasUnlockedEnv(selectedEnvId)
-          ? Environment.firstUnlockedId
-          : selectedEnvId;
       }
 
   UserProfile.uncommitted() 
@@ -101,7 +97,7 @@ class UserProfile extends SQLiteModel {
       _userAccountID = other._userAccountID ,
       _coins = other._coins ,
       _modificationCount = other._modificationCount ,
-      _selectedEnvId = other._selectedEnvId ,
+      _selectedEnvironment = other._selectedEnvironment ,
       _country = other._country ,
       _unlockedEnvironments = List.from(other._unlockedEnvironments);
 
@@ -189,6 +185,8 @@ class UserProfile extends SQLiteModel {
       envList = environments.map((environment) => Environment.fromMap(environment)).toList();
     }
 
+    final int selectedEnvironmentId = int.tryParse(map['entorno_sel'].toString()) ?? 0;
+
     return UserProfile.unmodifiable(
       id: int.tryParse(map['id'].toString()) ?? -1,
       firstName: map['nombre'].toString(),
@@ -200,7 +198,7 @@ class UserProfile extends SQLiteModel {
       medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
       occupation: Occupation.values[idxOccupation],
       userAccountID: map['id_usuario'].toString(),
-      selectedEnvId: int.tryParse(map['entorno_sel'].toString()) ?? 0,
+      selectedEnvironment: envList.where((env) => env.id == selectedEnvironmentId).first,
       coins: int.tryParse(map['monedas'].toString()) ?? 0,
       modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
       country: country,
@@ -212,7 +210,7 @@ class UserProfile extends SQLiteModel {
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
 
     assert(
-      unlockedEnvironments.where((env) => env.id == selectedEnvId).length == 1,
+      unlockedEnvironments.where((env) => env.id == _selectedEnvironment.id).length == 1,
       "No hay un entorno de unlockedEnvironments con el selectedEnvId"
     );
 
@@ -237,7 +235,7 @@ class UserProfile extends SQLiteModel {
       attributeNames[medicalConditionFieldName]!: medicalCondition.index,
       attributeNames[occupationFieldName]!: occupation.index,
       userAccountIdFieldName: userAccountID,
-      attributeNames[selectedEnvFieldName]!: selectedEnvId,
+      attributeNames[selectedEnvFieldName]!: _selectedEnvironment.id,
       attributeNames[coinsFieldName]!: coins,
       attributeNames[modificationCountFieldName]!: modificationCount,
     });
@@ -270,7 +268,6 @@ class UserProfile extends SQLiteModel {
   String get userAccountID => _userAccountID;
   int get coins => _coins;
   int get modificationCount => _modificationCount;
-  int get selectedEnvId => _selectedEnvId;
   List<Environment> get unlockedEnvironments => isReadonly
     ? List.unmodifiable( _unlockedEnvironments)
     : _unlockedEnvironments;
@@ -286,7 +283,11 @@ class UserProfile extends SQLiteModel {
   set occupation(Occupation newOccupation) => isReadonly ? null : _occupation = newOccupation;
   set country(Country newCountry) => isReadonly ? null : _country = newCountry;
   set userAccountID(String newAccountId) => isReadonly ? null : _userAccountID = newAccountId;
-  set selectedEnvId(int newSelectedEnvId) => isReadonly ? null : _selectedEnvId = newSelectedEnvId;
+  set selectedEnvironment(Environment newSelectedEnv) {
+    if (!isReadonly) {
+      _selectedEnvironment = newSelectedEnv;
+    }
+  }
 
   /// Revisa si este perfil tiene un [Environment] con un [id] equivalente a 
   /// [selectedEnvId] en su colección de [unlockedEnvironments]. Luego, retorna 
@@ -294,14 +295,18 @@ class UserProfile extends SQLiteModel {
   /// perfil no ha desbloqueado el entorno.
   Environment get selectedEnvironment {
 
-    final hasSelectedEnv = hasUnlockedEnv(selectedEnvId);
+    if (isReadonly) {
+      final hasSelectedEnv = hasUnlockedEnv(_selectedEnvironment.id);
 
-    return (hasSelectedEnv)
-      ? unlockedEnvironments.singleWhere(
-        (env) => env.id == selectedEnvId, 
-        orElse: () => Environment.firstUnlocked()
-      )
-      : Environment.firstUnlocked();
+      return (hasSelectedEnv)
+        ? unlockedEnvironments.singleWhere(
+          (env) => env.id == _selectedEnvironment.id, 
+          orElse: () => Environment.firstUnlocked()
+        )
+        : Environment.firstUnlocked();
+    } else {
+      return _selectedEnvironment;
+    }
   }
 
   // Retorna **true** si este perfil tiene datos por default y no ha sido 
@@ -418,7 +423,7 @@ class UserProfile extends SQLiteModel {
     final isHeightEqual = (height - otherProfile.height).abs() < 0.001;
     final isAccountEqual = userAccountID == otherProfile.userAccountID;
     final areCoinsEqual = coins == otherProfile.coins;
-    final isSelectedEnvEqual = selectedEnvId == otherProfile.selectedEnvId;
+    final isSelectedEnvEqual = _selectedEnvironment.id == otherProfile._selectedEnvironment.id;
     final isCountryEqual = country == otherProfile.country;
     final areUnlockedEnvsEqual = unlockedEnvironments.length == otherProfile.unlockedEnvironments.length;
 
@@ -430,7 +435,7 @@ class UserProfile extends SQLiteModel {
   @override
   int get hashCode => Object.hashAll([ 
     id, firstName, lastName, birthDate, sex, height, weight, 
-    medicalCondition, occupation, userAccountID, selectedEnvId, 
+    medicalCondition, occupation, userAccountID, _selectedEnvironment.id, 
     coins, modificationCount, country, unlockedEnvironments 
   ]);
 

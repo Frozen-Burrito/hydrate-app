@@ -5,6 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/widgets/asset_fade_in_image.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/goal_sliver_list.dart';
@@ -49,7 +50,8 @@ class HomeTab extends StatelessWidget {
 
                         final profile = snapshot.data!;
 
-                        return _AssetFadeInImage(
+                        return AssetFadeInImage(
+                          //TODO: usar valores reales para el current y el target.
                           image: profile.selectedEnvironment.imagePathForHydration(0, 0),
                           duration: const Duration(milliseconds: 500),
                         );
@@ -70,62 +72,3 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-class _AssetFadeInImage extends StatefulWidget {
-
-  const _AssetFadeInImage({
-    Key? key,
-    required this.image,
-    this.duration = const Duration(milliseconds: 500),
-  }) : super(key: key);
-
-  final String image;
-
-  final Duration duration;
-
-  @override
-  State<_AssetFadeInImage> createState() => _AssetFadeInImageState();
-}
-
-class _AssetFadeInImageState extends State<_AssetFadeInImage>  
-    with TickerProviderStateMixin {
-
-  late final AnimationController _controller = AnimationController(
-    duration: widget.duration,
-    vsync: this,
-  );
-
-  late final Animation<double> _opacityAnimation = CurvedAnimation(
-    parent: _controller, 
-    curve: Curves.decelerate
-  );
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller.forward();
-
-    _opacityAnimation.addListener(() {
-      print(_opacityAnimation.value);
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.transparent,
-      child: FadeTransition(
-        opacity: _opacityAnimation,
-        child: Image( 
-          image: AssetImage(widget.image),
-        ),
-      ),
-    );
-  }
-}

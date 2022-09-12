@@ -19,6 +19,11 @@ class Environment extends SQLiteModel {
   static const int _dryEnvironmentThresholdMl = -250;
   static const int _moistEnvironmentThresholdMl = 250;
 
+  static const String _environmentsPath = "assets/img/entornos/";
+
+  static const String _envImgFileExt = "png";
+
+  static const String _defaultEnvAssetPathEnding = "default";
   static const String _dryEnvAssetPathEnding = "seco";
   static const String _moistEnvAssetPathEnding = "humedo";
 
@@ -76,21 +81,28 @@ class Environment extends SQLiteModel {
   String imagePathForHydration(int current, int target) {
 
     final int hydrationDifference = current - target;
-    final envImagePathBuffer = StringBuffer(imagePath);
+    final envImagePathBuffer = StringBuffer(_environmentsPath);
+
+    envImagePathBuffer.writeAll([imagePath, "/"]);
 
     if (hydrationDifference > _moistEnvironmentThresholdMl) {
 
-      envImagePathBuffer.writeAll(["_", _moistEnvAssetPathEnding]);
+      envImagePathBuffer.write(_moistEnvAssetPathEnding);
 
     } else if (hydrationDifference < _dryEnvironmentThresholdMl) {
 
-      envImagePathBuffer.writeAll(["_", _dryEnvAssetPathEnding]);
-    } 
+      envImagePathBuffer.write(_dryEnvAssetPathEnding);
+    } else {
+      envImagePathBuffer.write(_defaultEnvAssetPathEnding);
+    }
 
-    // return envImagePathBuffer.toString();
-    return "assets/img/entorno_1_humedo.png";
+    envImagePathBuffer.writeAll([".", _envImgFileExt]);
+
+    return envImagePathBuffer.toString();
   }
   
+  String get baseImagePath => imagePathForHydration(0, 0);
+
   @override
   String toString() {
     return "Image path: $imagePath, price: $price";

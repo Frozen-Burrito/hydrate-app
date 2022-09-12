@@ -67,32 +67,6 @@ void main() {
       expect(selectedEnv, expectedEnvironment);
     });
 
-    test("selectedEnvironment returns an environment with a matching id to profile.selectedEnvId", () {
-      // Arrange
-      const int expectedUnlockedEnvId = 7;
-
-      final unlockedEnv = Environment(
-        id: expectedUnlockedEnvId,
-        imagePath: "/img",
-        price: 0
-      );
-
-      final profile = UserProfile.unmodifiable(
-        selectedEnvId: expectedUnlockedEnvId,
-        unlockedEnvironments: [
-          unlockedEnv,
-        ],
-      );
-
-      // Act
-      final selectedEnv = profile.selectedEnvironment.id;
-      final selectedEnvId = profile.selectedEnvId;
-
-      // Assert
-      expect(selectedEnvId, expectedUnlockedEnvId);
-      expect(selectedEnvId, selectedEnv);
-    });
-
     test("hasUnlockedEnv() returns false if the envId is negative", () {
       // Arrange
       final profile = UserProfile.uncommitted();
@@ -367,6 +341,11 @@ void main() {
         }, 
         "entornos": [
           Environment.firstUnlocked().toMap(),
+          Environment(
+            id: 2,
+            imagePath: "/img",
+            price: 0,
+          ).toMap()
         ],
       };
 
@@ -381,7 +360,11 @@ void main() {
         medicalCondition: MedicalCondition.renalInsufficiency,
         occupation: Occupation.student,
         userAccountID: "459861be-f603-4cf0-89a9-e3bd248cb491",
-        selectedEnvId: 2,
+        selectedEnvironment: Environment(
+          id: 2,
+          imagePath: "/img",
+          price: 0,
+        ),
         coins: 256,
         modificationCount: 1,
         country: Country(id: 2, code: "NZ"),
@@ -433,7 +416,7 @@ void main() {
         medicalCondition: MedicalCondition.renalInsufficiency,
         occupation: Occupation.student,
         userAccountID: "459861be-f603-4cf0-89a9-e3bd248cb491",
-        selectedEnvId: 0,
+        selectedEnvironment: Environment.firstUnlocked(),
         coins: 256,
         modificationCount: 1,
         country: Country(id: 2, code: "NZ"),

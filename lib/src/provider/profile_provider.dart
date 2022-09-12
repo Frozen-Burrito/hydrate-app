@@ -324,12 +324,8 @@ class ProfileProvider extends ChangeNotifier {
   /// Luego, notifica a los listeners de este provider.
   void changeSelectedEnv(Environment environment) {
 
-    final isEnvUnlocked = profileChanges.hasUnlockedEnv(environment.id);
-
-    if (isEnvUnlocked) {
-      profileChanges.selectedEnvId = environment.id;
-      notifyListeners();
-    }
+    profileChanges.selectedEnvironment = environment;
+    notifyListeners();
   }
 
   /// Desbloquea un nuevo [Environment] para el [profile] activo. 
@@ -355,6 +351,33 @@ class ProfileProvider extends ChangeNotifier {
     } else {
       return false;
     }
+  }
+
+  Future<bool> confirmEnvironment() async {
+
+    final activeProfile = await _profileCache.data;
+
+    // Este método solo debería ser invocado cuando existe un perfil activo
+    // no nulo. Si es invocado sin un perfil, se trata de un error.
+    if (activeProfile == null) {
+      throw UnsupportedError("Tried to change the environment without an active profile.");
+    }
+
+    final selectedEnvironment = profileChanges.selectedEnvironment;
+
+    final hasToPurchaseEnv = activeProfile.hasUnlockedEnv(selectedEnvironment.id);
+
+    bool wasEnvConfirmed = true;
+
+    if (hasToPurchaseEnv) {
+      wasEnvConfirmed = await purchaseEnvironment(selectedEnvironment);
+    }
+
+    if (wasEnvConfirmed) {
+      changeSelectedEnv(selectedEnvironment);
+    }
+
+    return wasEnvConfirmed;
   }
 
   /// Persiste un nuevo [UserProfile] en la base de datos y cambia la sesión

@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/enums/occupation_type.dart';
-import 'package:hydrate_app/src/widgets/full_name_input.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
+import 'package:hydrate_app/src/widgets/asset_fade_in_image.dart';
 import 'package:hydrate_app/src/widgets/activity_time_brief.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/dialogs/environment_select_dialog.dart';
 import 'package:hydrate_app/src/widgets/forms/profile_form.dart';
+import 'package:hydrate_app/src/widgets/full_name_input.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
@@ -108,6 +109,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       width: 16.0,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.0,
+                        //TODO: agregar i18n
                         semanticsLabel: 'Saving profile changes',
                       ),
                     ),
@@ -129,8 +131,6 @@ class _ProfileTabState extends State<ProfileTab> {
             const AuthOptionsMenu()
           ],
         ),
-
-        
   
         SliverToBoxAdapter(
           child: FutureBuilder<UserProfile?>(
@@ -139,51 +139,52 @@ class _ProfileTabState extends State<ProfileTab> {
 
               if (snapshot.hasData) {
 
-                final profile = snapshot.data;
+                final profile = snapshot.data!;
 
-                if (profile != null) {
-                  return Stack(
-                    children: <Widget>[
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height * 0.3,
-                        child: GestureDetector(
-                          onTap:  isEditModeActive 
-                            ? () => showDialog(
-                                context: context, 
-                                builder: (context) => const EnvironmentSelectDialog(), 
-                              )
-                            : null,
-                            child: ClipPath(
-                            clipper: WaveImageClipper(),
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: Image( 
-                                image: AssetImage(profile.selectedEnvironment.imagePath),
-                              ),
-                            ),
-                          ), 
-                        ),
-                      ),
-                      
-                      Positioned(
-                        top: MediaQuery.of(context).size.height * 0.10,
-                        left: MediaQuery.of(context).size.width * 0.5 - 50.0,
-                        child: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.secondary,
-                          radius: 64.0,
-                          child: Text(
-                            profile.initials,
-                            style: Theme.of(context).textTheme.headline3!.copyWith(
-                              fontSize: 48.0,
-                              color: Theme.of(context).colorScheme.onSecondary
+                return Stack(
+                  children: <Widget>[
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height * 0.3,
+                      child: GestureDetector(
+                        onTap:  isEditModeActive 
+                          ? () => showDialog(
+                              context: context, 
+                              builder: (context) => const EnvironmentSelectDialog(), 
+                            )
+                          : null,
+                          child: ClipPath(
+                          clipper: WaveImageClipper(),
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: AssetFadeInImage(
+                              image: isEditModeActive 
+                                ? profile.selectedEnvironment.baseImagePath
+                                : profileProvider.profileChanges.selectedEnvironment.baseImagePath,
+                              duration: const Duration(milliseconds: 500),
                             ),
                           ),
+                        ), 
+                      ),
+                    ),
+                    
+                    Positioned(
+                      top: MediaQuery.of(context).size.height * 0.10,
+                      left: MediaQuery.of(context).size.width * 0.5 - 50.0,
+                      child: CircleAvatar(
+                        backgroundColor: Theme.of(context).colorScheme.secondary,
+                        radius: 64.0,
+                        child: Text(
+                          profile.initials,
+                          style: Theme.of(context).textTheme.headline3!.copyWith(
+                            fontSize: 48.0,
+                            color: Theme.of(context).colorScheme.onSecondary
+                          ),
                         ),
-                      )
-                    ]
-                  );
-                }
+                      ),
+                    )
+                  ]
+                );
               }
 
               return const Center(

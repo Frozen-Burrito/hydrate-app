@@ -105,7 +105,8 @@ class SQLiteMigrator {
       
       Environment.createTableQuery,
 
-      '''INSERT INTO ${Environment.tableName} VALUES (0, 'assets/img/entorno_1.png', 0);''',
+      '''INSERT INTO ${Environment.tableName} VALUES (0, "1", 0);''',
+      '''INSERT INTO ${Environment.tableName} VALUES (1, "2", 250);''',
     ]
   };
 

@@ -1,34 +1,15 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:hydrate_app/src/models/environment.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
-import 'package:provider/provider.dart';
 
 class EnvironmentSelectDialog extends StatelessWidget {
 
   const EnvironmentSelectDialog({Key? key}) : super(key: key);
-
-  bool confirmEnvChoice({
-    required UserProfile profile,
-    required void Function(Environment) onSet,
-    required Future<bool> Function(Environment) onPurchase,
-  }) {
-
-    final selectedEnv = profile.selectedEnvironment;
-
-    final hasToPurchaseEnv = profile.hasUnlockedEnv(selectedEnv.id);
-
-    if (hasToPurchaseEnv) {
-      onPurchase(selectedEnv);
-    }
-
-    onSet(selectedEnv);
-
-    return true;
-  }
 
   //TODO: Agregar localizaciones.
   @override
@@ -42,66 +23,33 @@ class EnvironmentSelectDialog extends StatelessWidget {
 
         if (snapshot.hasData) {
 
-          final activeProfile = snapshot.data;
-          final profileChanges = profileProvider.profileChanges;
+          final activeProfile = snapshot.data!;
 
-          if (activeProfile != null) {
-
-            final hasToPurchaseEnv = activeProfile
-                .hasUnlockedEnv(profileChanges.selectedEnvId);
-
-            return AlertDialog(
-              title: const Text('Selecciona un Entorno', textAlign: TextAlign.center,),
-              titleTextStyle: Theme.of(context).textTheme.headline4,
-              content: _EnvGridView(
-                activeProfile: activeProfile,
-                onItemSelected: (newSelectedEnv) {
-                  profileProvider.changeSelectedEnv(newSelectedEnv);
-                }
+          return AlertDialog(
+            title: const Text('Selecciona un Entorno', textAlign: TextAlign.center,),
+            titleTextStyle: Theme.of(context).textTheme.headline4,
+            content: _EnvGridView(
+              activeProfile: activeProfile,
+              onItemSelected: (newSelectedEnv) {
+                profileProvider.changeSelectedEnv(newSelectedEnv);
+              }
+            ),
+            actionsAlignment: MainAxisAlignment.spaceBetween,
+            actionsPadding: const EdgeInsets.symmetric( horizontal: 16.0 ),
+            actions: [
+              ElevatedButton(
+                child: const Text('Cancelar'),
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.grey.shade700,
+                ),
+                onPressed: () => Navigator.pop(context),
               ),
-              actionsAlignment: MainAxisAlignment.spaceBetween,
-              actionsPadding: const EdgeInsets.symmetric( horizontal: 16.0 ),
-              actions: [
-                ElevatedButton(
-                  child: const Text('Cancelar'),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.grey.shade700,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                ),
 
-                ElevatedButton(
-                  child: hasToPurchaseEnv
-                    ? const Text('Confirmar')
-                    : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Comprar por ${(profileChanges.selectedEnvironment.price).toString()}'),
-                        
-                        const Padding(
-                          padding: EdgeInsets.all(4.0),
-                          child: CoinShape(radius: 8.0,),
-                        ),
-                      ],
-                    ),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.blue,
-                  ),
-                  onPressed: activeProfile.selectedEnvId != profileChanges.selectedEnvId 
-                  ? () async {
-                      final result = confirmEnvChoice(
-                        profile: profileChanges,
-                        onSet: profileProvider.changeSelectedEnv,
-                        onPurchase: profileProvider.purchaseEnvironment
-                      );
-
-                      if (result) Navigator.pop(context);
-                    } 
-                  : null,
-                ),
-              ],
-            );
-          }
+              _ConfirmOrPurchaseButton(
+                activeProfile: activeProfile
+              ),
+            ],
+          );
         }
 
         return AlertDialog(
@@ -115,6 +63,92 @@ class EnvironmentSelectDialog extends StatelessWidget {
           )
         );
       }
+    );
+  }
+}
+
+class _ConfirmOrPurchaseButton extends StatelessWidget {
+
+  const _ConfirmOrPurchaseButton({
+    Key? key,
+    required this.activeProfile,
+  }) : super(key: key);
+
+  final UserProfile activeProfile;
+
+  String _getTooltipMessage(
+    BuildContext context, 
+    bool isEnvDifferentFromCurrent,
+    bool hasUnlockedEnv, 
+    bool canPurchaseEnv,
+  ) {
+
+    if (isEnvDifferentFromCurrent) {
+      if (!hasUnlockedEnv) {
+        if (canPurchaseEnv) {
+          return "Puedes comprar este entorno para desbloquearlo";
+        } else {
+          return "No tienes monedas suficientes";
+        }
+      } 
+    } else {
+      return "No puedes seleccionar el mismo entorno";
+    }
+
+    return "";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final profileProvider = Provider.of<ProfileProvider>(context);
+
+    final selectedEnvironment = profileProvider.profileChanges.selectedEnvironment;
+
+    final isSelectedDifferentFromCurrent = activeProfile.selectedEnvironment.id != 
+        selectedEnvironment.id; 
+
+    final hasUnlockedEnvironment = activeProfile.hasUnlockedEnv(selectedEnvironment.id);
+
+    final int environmentPrice = selectedEnvironment.price;
+
+    final canPurchaseEnv = activeProfile.coins >= environmentPrice;
+
+    final bool isEnabled = isSelectedDifferentFromCurrent && (hasUnlockedEnvironment || canPurchaseEnv);
+
+    return Tooltip(
+      message: _getTooltipMessage(
+        context, 
+        isSelectedDifferentFromCurrent, 
+        hasUnlockedEnvironment, 
+        canPurchaseEnv
+      ),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          primary: Colors.blue,
+        ),
+        onPressed: isEnabled
+        ? () async {
+            final bool environmentChanged = await profileProvider.confirmEnvironment();
+    
+            if (environmentChanged) Navigator.pop(context);
+          } 
+        : null,
+        
+        child: hasUnlockedEnvironment
+          ? const Text("Confirmar")
+          : Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Comprar por ${environmentPrice.toString()}"),
+              
+              const Padding(
+                padding: EdgeInsets.all(4.0),
+                child: CoinShape(radius: 8.0,),
+              ),
+            ],
+          ),
+      ),
     );
   }
 }
@@ -145,64 +179,56 @@ class _EnvGridView extends StatelessWidget {
 
           if (snapshot.hasData) { 
 
-            final environments = snapshot.data;
+            final environments = snapshot.data!;
 
-            if (environments != null) {
+            return GridView.builder(
+              physics: const BouncingScrollPhysics(),
+              itemCount: environments.length,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 124.0,
+                childAspectRatio: 1.0,
+                mainAxisSpacing: 16.0,
+                crossAxisSpacing: 16.0
+              ), 
+              itemBuilder: (context, i) {
+                
+                final environment = environments[i];
+                final isEnvUnlocked = activeProfile.hasUnlockedEnv(environment.id); 
 
-              return GridView.builder(
-                physics: const BouncingScrollPhysics(),
-                itemCount: environments.length,
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 124.0,
-                  childAspectRatio: 1.0,
-                  mainAxisSpacing: 16.0,
-                  crossAxisSpacing: 16.0
-                ), 
-                itemBuilder: (context, i) {
-                  
-                  final environment = environments[i];
-                  final isEnvUnlocked = activeProfile.hasUnlockedEnv(environment.id); 
-
-                  return GestureDetector(
-                    onTap: isEnvUnlocked 
-                    ? () {
-                        print('Environment selected: $i');
-                        onItemSelected(environment);
-                      }
-                    : null,
-                    child: Container(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.hardEdge,
-                      child: isEnvUnlocked
-                        ? null
-                        : Container(
-                            color: Colors.black.withOpacity(0.4),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-                              child: const Center(
-                                child: Icon(Icons.lock),
-                              ),
+                return GestureDetector(
+                  onTap: () => onItemSelected(environment),
+                  child: Container(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.hardEdge,
+                    child: isEnvUnlocked
+                      ? null
+                      : Container(
+                          color: Colors.black.withOpacity(0.4),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 1.0, sigmaY: 1.0),
+                            child: const Center(
+                              child: Icon(Icons.lock),
                             ),
                           ),
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage(environment.imagePath),
-                          fit: BoxFit.cover,
                         ),
-                        color: Theme.of(context).colorScheme.surface,
-                        border: profileProvider.profileChanges.selectedEnvId == environment.id
-                          ? Border.all(
-                            width: 2.0,
-                            color: Theme.of(context).colorScheme.primary
-                          )
-                          : null,
-                        borderRadius: BorderRadius.circular( 5.0 )
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        fit: BoxFit.cover,
+                        image: AssetImage(environment.baseImagePath),
                       ),
+                      color: Theme.of(context).colorScheme.surface,
+                      border: profileProvider.profileChanges.selectedEnvironment.id == environment.id
+                        ? Border.all(
+                          width: 2.0,
+                          color: Theme.of(context).colorScheme.primary
+                        )
+                        : null,
+                      borderRadius: BorderRadius.circular( 5.0 )
                     ),
-                  );
-                }
-              );
-            }
+                  ),
+                );
+              }
+            );
           }
 
           return const Center(
