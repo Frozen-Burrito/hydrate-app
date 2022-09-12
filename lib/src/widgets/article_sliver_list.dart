@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
-import 'package:hydrate_app/src/provider/article_provider.dart';
+import 'package:hydrate_app/src/services/article_service.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
+import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/floating_progress_indicator.dart';
 
 class ArticleSliverList extends StatelessWidget {
@@ -33,7 +33,7 @@ class ArticleSliverList extends StatelessWidget {
     return SafeArea(
       top: false,
       bottom: false,
-      child: Consumer<ArticleProvider>(
+      child: Consumer<ArticleService>(
         builder: (_, articleProvider, __) {
 
           final articles = articleSource == ArticleSource.network
@@ -117,13 +117,13 @@ class _ArticleCard extends StatelessWidget {
   /// Activa o desactiva una marca de leer más tarde de un [Artículo]
   /// 
   /// Si el [Article] no está marcado, guarda el artículo en la base de datos
-  /// usando [ArticleProvider.bookmarkArticle()]. 
+  /// usando [ArticleService.bookmarkArticle()]. 
   ///  
   /// Si el [Article] ya está marcado, remueve el artículo en la base de datos
-  /// usando [ArticleProvider.removeArticle()].  
+  /// usando [ArticleService.removeArticle()].  
   /// 
   /// Retorna un SnackBar con un mensaje de confirmación.
-  Future<SnackBar> addOrRemoveBookmark(BuildContext context, ArticleProvider provider) async {
+  Future<SnackBar> addOrRemoveBookmark(BuildContext context, ArticleService provider) async {
     // El mensaje para confirmar la marca/eliminación.
     String snackMsg = '';
 
@@ -195,7 +195,7 @@ class _ArticleCard extends StatelessWidget {
                 )
               ),
             ),
-            trailing: Consumer<ArticleProvider>(
+            trailing: Consumer<ArticleService>(
               builder: (_, articleProvider, __) {
                 return IconButton(
                   icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 

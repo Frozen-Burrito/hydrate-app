@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 
 /// Un [PopupMenuButton] que despliega una lista de [options].
 /// 
@@ -63,7 +63,7 @@ class AuthOptionsMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
     final localizations = AppLocalizations.of(context)!;
     
     return OptionsPopupMenu(

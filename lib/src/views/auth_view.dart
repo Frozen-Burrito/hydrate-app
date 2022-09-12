@@ -7,8 +7,8 @@ import 'package:hydrate_app/src/widgets/forms/signup_form.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
-class AuthPage extends StatelessWidget {
-  const AuthPage({ Key? key }) : super(key: key);
+class AuthView extends StatelessWidget {
+  const AuthView({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/models.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:hydrate_app/src/widgets/asset_fade_in_image.dart';
 import 'package:hydrate_app/src/widgets/activity_time_brief.dart';
@@ -35,7 +35,7 @@ class _ProfileTabState extends State<ProfileTab> {
 
       setState(() { isSaving = true; });
 
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider = Provider.of<ProfileService>(context, listen: false);
 
       final saveResult = await profileProvider.saveProfileChanges();
 
@@ -87,7 +87,7 @@ class _ProfileTabState extends State<ProfileTab> {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -240,7 +240,7 @@ class _FullnameDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
     final localizations = AppLocalizations.of(context)!;
 
     return SizedBox(

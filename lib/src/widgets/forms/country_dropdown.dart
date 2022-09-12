@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/country.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 
 class CountryDropdown extends StatelessWidget {
@@ -20,7 +20,7 @@ class CountryDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
     final localizations = AppLocalizations.of(context)!;
 
     final profileChanges = profileProvider.profileChanges;

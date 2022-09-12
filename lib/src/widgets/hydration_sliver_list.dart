@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
+import 'package:hydrate_app/src/services/hydration_record_provider.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
 
@@ -16,7 +16,7 @@ class HydrationSliverList extends StatelessWidget {
       bottom: false,
       child: Builder(
         builder: (context) {
-          return Consumer<HydrationRecordProvider>(
+          return Consumer<HydrationRecordService>(
             builder: (_, provider, __) {
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),

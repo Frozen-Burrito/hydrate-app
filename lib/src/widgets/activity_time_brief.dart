@@ -3,7 +3,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/habits.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
 
 class ActivityTimeBrief extends StatelessWidget {
 
@@ -12,7 +12,7 @@ class ActivityTimeBrief extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final progressProvider = Provider.of<GoalProvider>(context);
+    final progressProvider = Provider.of<GoalsService>(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,

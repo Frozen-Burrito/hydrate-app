@@ -5,10 +5,10 @@ import 'package:hydrate_app/src/api/auth_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
-import 'package:hydrate_app/src/provider/cache_state.dart';
+import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
-class ProfileProvider extends ChangeNotifier {
+class ProfileService extends ChangeNotifier {
 
   /// El ID del perfil local del usuario.
   int _profileId;
@@ -24,9 +24,9 @@ class ProfileProvider extends ChangeNotifier {
   static const String authTokenKey = "jwt";
   static const String lastUsedProfileIdKey = "perfil_actual";
   
-  /// Crea una instancia de [ProfileProvider] que es inicializada con el 
+  /// Crea una instancia de [ProfileService] que es inicializada con el 
   /// [UserProfile] por defecto.
-  ProfileProvider() 
+  ProfileService() 
     : _profileId = UserProfile.defaultProfileId,
       _accountId = "";
 
@@ -37,13 +37,13 @@ class ProfileProvider extends ChangeNotifier {
     _sharedPreferences = await SharedPreferences.getInstance();
   }
 
-  /// Crea un nuevo [ProfileProvider] que es inicializado con un [profileId] y 
+  /// Crea un nuevo [ProfileService] que es inicializado con un [profileId] y 
   /// [linkedAccountId] obtenidos desde SharedPreferences.
   /// 
   /// Si no existen keys para el [profileId] o el [linkedAccountId] en Shared 
   /// Preferences, usa sus valores por defecto ([UserProfile.defaultProfileId] 
   /// y un [String] vacío, respectivamente).
-  factory ProfileProvider.fromSharedPrefs({ bool createDefaultProfile = false }) {
+  factory ProfileService.fromSharedPrefs({ bool createDefaultProfile = false }) {
 
     int prefsProfileId = _sharedPreferences?.getInt(lastUsedProfileIdKey) ?? -1;
 
@@ -73,13 +73,13 @@ class ProfileProvider extends ChangeNotifier {
       });
     }
 
-    return ProfileProvider.withProfile(
+    return ProfileService.withProfile(
       profileId: prefsProfileId,
       authToken: prefsAuthToken
     );
   }
 
-  /// Crea una instancia de [ProfileProvider] que es inicializada con un 
+  /// Crea una instancia de [ProfileService] que es inicializada con un 
   /// [UserProfile]. 
   /// 
   /// Si [profileId] se omite, el [UserProfile] inicial será aquel identificado
@@ -88,7 +88,7 @@ class ProfileProvider extends ChangeNotifier {
   /// Si se incluye un [authToken] que no esté vacío y sea válido, el [UserProfile]
   /// inicial deberá tener un [UserProfile.userAccountId] igual al ID de cuenta 
   /// incluido en el token. 
-  ProfileProvider.withProfile({ 
+  ProfileService.withProfile({ 
     int profileId = UserProfile.defaultProfileId, 
     String authToken = "", 
   }): _profileId = profileId,

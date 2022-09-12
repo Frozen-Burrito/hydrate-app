@@ -8,9 +8,9 @@ import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/device_list.dart';
 
-class ConnectionPage extends StatelessWidget {
+class ConnectionView extends StatelessWidget {
   
-  const ConnectionPage({ Key? key }) : super(key: key);
+  const ConnectionView({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

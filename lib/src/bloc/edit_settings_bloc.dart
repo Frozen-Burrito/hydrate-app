@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/enums/notification_types.dart';
 import 'package:hydrate_app/src/models/settings.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 
 /// Un componente que controla los cambios de ajustes a la app y permite 
 /// al usuario confirmarlos o descartarlos. 
@@ -79,8 +79,8 @@ class EditSettingsBloc {
 
   void saveChanges(BuildContext context) async {
 
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final settingsProvider = Provider.of<SettingsService>(context, listen: false);
+    final profileProvider = Provider.of<ProfileService>(context, listen: false);
 
     settingsProvider.setCurrentSettings(
       _settingsChanges, 

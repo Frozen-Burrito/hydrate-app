@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/user_profile.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/widgets/asset_fade_in_image.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
@@ -41,7 +41,7 @@ class HomeTab extends StatelessWidget {
             child: SizedBox(
               height: 360.0,
               width: 360.0,
-              child: Consumer<ProfileProvider>(
+              child: Consumer<ProfileService>(
                 builder: (_, profileProvider, __) {
                   return FutureBuilder<UserProfile?>(
                     future: profileProvider.profile,

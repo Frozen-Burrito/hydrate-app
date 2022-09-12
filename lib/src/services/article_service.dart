@@ -8,7 +8,7 @@ import 'package:hydrate_app/src/api/paged_result.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/article.dart';
-import 'package:hydrate_app/src/provider/cache_state.dart';
+import 'package:hydrate_app/src/services/cache_state.dart';
 
 /// Describe el tipo de fuente para recursos informativos que va a 
 /// usar un widget.
@@ -26,10 +26,10 @@ enum ArticleSource {
 /// recursos y tiempo de carga.
 /// 
 /// NOTA: los bookmarks todavía no implementan paginación de resultados.
-class ArticleProvider with ChangeNotifier {
+class ArticleService with ChangeNotifier {
 
-  /// Crea una nueva instancia simple de [ArticleProvider].
-  ArticleProvider() : _scrollController = ScrollController() {
+  /// Crea una nueva instancia simple de [ArticleService].
+  ArticleService() : _scrollController = ScrollController() {
     // Registrar handler para escuchar cambios en el scroll de las listas.
     _scrollController.addListener(_handleScrollToBottom);
     

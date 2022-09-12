@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/goal.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:provider/provider.dart';
+
+import 'package:hydrate_app/src/models/goal.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
 
 class ReplaceGoalDialog extends StatefulWidget {
 
@@ -19,7 +20,7 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
   @override
   Widget build(BuildContext context) {
 
-    final goalsProvider = Provider.of<GoalProvider>(context);
+    final goalsProvider = Provider.of<GoalsService>(context);
 
     return AlertDialog(
       title: const Text('¿Reemplazar una meta?'),

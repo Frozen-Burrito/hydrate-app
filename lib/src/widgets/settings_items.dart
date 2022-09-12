@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/models/settings.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/enums/notification_types.dart';
+import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 
 class SettingsItems extends StatelessWidget {
@@ -129,7 +129,7 @@ class SettingsItems extends StatelessWidget {
           const Divider( height: 1.0, ),
           
           FutureBuilder<UserProfile?>(
-            future: Provider.of<ProfileProvider>(context).profile,
+            future: Provider.of<ProfileService>(context).profile,
             builder: (context, snapshot) {
 
               final userAccountId = snapshot.data?.userAccountID ?? ""; 
@@ -245,10 +245,10 @@ class SettingsItems extends StatelessWidget {
     
           Padding(
             padding: const EdgeInsets.symmetric( horizontal: 24.0, vertical: 8.0,),
-            child: Consumer<SettingsProvider>(
+            child: Consumer<SettingsService>(
               builder: (_, settingsProvider, __) {
                 // Mostrar el identificador de la versión actual.
-                final versionText = "${localizations.version}: ${SettingsProvider.versionName}";
+                final versionText = "${localizations.version}: ${SettingsService.versionName}";
 
                 return Text(
                   versionText,

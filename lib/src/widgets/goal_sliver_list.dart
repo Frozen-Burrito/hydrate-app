@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/hydration_record_provider.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/goal.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
-import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
@@ -18,7 +18,7 @@ class GoalSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final goalsProvider = Provider.of<GoalProvider>(context);
+    final goalsProvider = Provider.of<GoalsService>(context);
     
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
@@ -128,7 +128,7 @@ class _GoalCard extends StatelessWidget {
               children: [
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.075,
-                  child: Consumer<GoalProvider>(
+                  child: Consumer<GoalsService>(
                     builder: (_, provider, __) {
                       return IconButton(
                         icon: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
@@ -271,7 +271,7 @@ class _GoalProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HydrationRecordProvider>(
+    return Consumer<HydrationRecordService>(
       builder: (_, hydrationProvider, __) {
         return FutureBuilder<int>(
           future: hydrationProvider.getGoalProgressInMl(goal),

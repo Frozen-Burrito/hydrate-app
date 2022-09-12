@@ -4,14 +4,14 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/settings_items.dart';
 
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({ Key? key }) : super(key: key);
+class SettingsView extends StatelessWidget {
+  const SettingsView({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +66,7 @@ class SettingsPage extends StatelessWidget {
               )
             ),
 
-            Consumer<HydrationRecordProvider>(
+            Consumer<HydrationRecordService>(
               builder: (_, hydrationProvider, __) {
                 return FutureBuilder<List<HydrationRecord>?>(
                   future: hydrationProvider.recordsInPast24h,
@@ -97,7 +97,7 @@ class SettingsPage extends StatelessWidget {
             ),
 
             SliverToBoxAdapter(
-              child: Consumer<SettingsProvider>(
+              child: Consumer<SettingsService>(
                 builder: (_, settingsProvider, __) {
                   return SettingsItems(
                     currentSettings: settingsProvider.currentSettings,
@@ -179,7 +179,7 @@ class _BatteryUsageChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
+    final hydrationProvider = Provider.of<HydrationRecordService>(context);
 
     return SizedBox(
       width: MediaQuery.of(context).size.width,

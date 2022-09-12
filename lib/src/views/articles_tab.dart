@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/services/article_service.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
-import 'package:hydrate_app/src/provider/article_provider.dart';
 import 'package:hydrate_app/src/widgets/article_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 
@@ -17,10 +17,10 @@ class ArticlesTab extends StatelessWidget {
     final localizations = AppLocalizations.of(context)!;
 
     return ChangeNotifierProvider(
-      create: (_) => ArticleProvider(),
+      create: (_) => ArticleService(),
       child: DefaultTabController(
-        length: ArticleProvider.articleTabsLength,
-        child: Consumer<ArticleProvider>(
+        length: ArticleService.articleTabsLength,
+        child: Consumer<ArticleService>(
           builder: (innerContext, articleProvider, __) {
 
             final tabController = DefaultTabController.of(innerContext)!;

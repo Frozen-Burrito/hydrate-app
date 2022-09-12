@@ -4,7 +4,7 @@ import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/forms/card_form_container.dart';
 
-class CommonFormPage extends StatelessWidget {
+class CommonFormView extends StatelessWidget {
   
   final String formTitle;
   final String formLabel;
@@ -17,7 +17,7 @@ class CommonFormPage extends StatelessWidget {
 
   final Widget? shapeDecoration;
 
-  const CommonFormPage({ 
+  const CommonFormView({ 
     required this.formTitle, 
     required this.formLabel, 
     required this.formWidget,

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
 import 'package:hydrate_app/src/utils/activities_with_routines.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
-import 'package:provider/provider.dart';
-
-import 'package:hydrate_app/src/provider/activity_provider.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
 
@@ -19,7 +19,7 @@ class ActivitySliverList extends StatelessWidget {
       bottom: false,
       child: Builder(
         builder: (context) {
-          return Consumer<ActivityProvider>(
+          return Consumer<ActivityService>(
             builder: (_, provider, __) {
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),

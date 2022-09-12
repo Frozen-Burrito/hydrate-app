@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/medical_data.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
 
 class MedicalForm extends StatefulWidget {
 
@@ -27,7 +27,7 @@ class _MedicalFormState extends State<MedicalForm> {
     // Asegurar que el Form está en un estado válido.
     if (_formKey.currentState!.validate()) {
 
-      final saveReport = Provider.of<GoalProvider>(context).saveMedicalReport;
+      final saveReport = Provider.of<GoalsService>(context).saveMedicalReport;
       // Guardar el reporte medico.
       int resultado = await saveReport(_userMedicalData);
 

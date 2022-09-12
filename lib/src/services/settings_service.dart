@@ -9,13 +9,13 @@ import 'package:hydrate_app/src/models/settings.dart';
 import 'package:workmanager/workmanager.dart';
 
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
-class SettingsProvider with ChangeNotifier {
+class SettingsService with ChangeNotifier {
 
   static late final SharedPreferences? _sharedPreferences;
 
-  factory SettingsProvider() => SettingsProvider._internal();
+  factory SettingsService() => SettingsService._internal();
 
-  SettingsProvider._internal();
+  SettingsService._internal();
 
   /// Inicializa y asigna la instancia de Shared Preferences.
   static Future<void> init() async {

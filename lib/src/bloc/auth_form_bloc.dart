@@ -6,7 +6,7 @@ import 'package:hydrate_app/src/api/auth_api.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 
 /// Un componente BLoC que puede recibir los valores de cada campo de un 
@@ -155,7 +155,7 @@ class AuthFormBloc {
       final authToken = await _sendAuthRequest();
 
       // Obtener o crear un perfil para la cuenta de usuario. 
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider = Provider.of<ProfileService>(context, listen: false);
 
       final linkResult = await profileProvider.handleAccountLink(
         authToken,

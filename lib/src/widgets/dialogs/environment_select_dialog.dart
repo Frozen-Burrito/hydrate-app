@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/environment.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
 class EnvironmentSelectDialog extends StatelessWidget {
@@ -15,7 +15,7 @@ class EnvironmentSelectDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
     
     return FutureBuilder<UserProfile?>(
       future: profileProvider.profile,
@@ -104,7 +104,7 @@ class _ConfirmOrPurchaseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
 
     final selectedEnvironment = profileProvider.profileChanges.selectedEnvironment;
 
@@ -171,7 +171,7 @@ class _EnvGridView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
 
     return SizedBox(
       height: MediaQuery.of(context).size.height * 0.4,

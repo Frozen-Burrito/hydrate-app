@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:hydrate_app/src/models/ble_bottle_extension.dart';
 
-class BleProvider extends ChangeNotifier {
+class DeviceService extends ChangeNotifier {
 
   BleBottleExtension? _connectedExtension;
 
@@ -17,7 +17,7 @@ class BleProvider extends ChangeNotifier {
 
   final Stream<bool> isScanning = FlutterBlue.instance.isScanning;
 
-  BleProvider({ Guid? prevDeviceId });
+  DeviceService({ Guid? prevDeviceId });
 
   Iterable<ScanResult> filterScanResults(List<ScanResult> scanResults) {
     return scanResults.where((result) {

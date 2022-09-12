@@ -8,9 +8,9 @@ import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
 import 'package:hydrate_app/src/models/validators/activity_validator.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
-import 'package:hydrate_app/src/provider/activity_provider.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:hydrate_app/src/widgets/dialogs/suggest_routine_dialog.dart';
@@ -24,9 +24,9 @@ class NewActivityForm extends StatelessWidget {
   void _saveActivityRecord(BuildContext context, ActivityRecord newActivity, {String? redirectRoute}) async {
 
     // Obtener instancias de providers, usando el context.
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    final activityProvider = Provider.of<ActivityService>(context, listen: false);
 
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileService>(context, listen: false);
 
     // Asociar el perfil del usuario actual con la nueva meta.
     newActivity.profileId = profileProvider.profileId;
@@ -118,7 +118,7 @@ class NewActivityForm extends StatelessWidget {
     Future<void> Function() saveProfile
   ) {
 
-    if (numOfActivitiesToday < ActivityProvider.actPerDayWithReward) {
+    if (numOfActivitiesToday <ActivityService.actPerDayWithReward) {
       // Si esta nueva actividad es de las tres primeras del día actual,
       // entregar recompensa en monedas al usuario.
       giveCoinsToProfile(newActivity.coinReward);
@@ -142,7 +142,7 @@ class NewActivityForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final activityProvider = Provider.of<ActivityProvider>(context);
+    final activityProvider = Provider.of<ActivityService>(context);
     final localizations = AppLocalizations.of(context)!;
 
     return FutureBuilder<Map<DateTime, List<RoutineOccurrence>>>(
@@ -308,7 +308,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
   Widget build(BuildContext context) {
 
     final localizations = AppLocalizations.of(context)!;
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileService>(context, listen: false);
     final validationMsgBuilder = ValidationMessageBuilder.of(context);
 
     return FutureBuilder<UserProfile?>(
@@ -543,7 +543,7 @@ class _ActivityTypeDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final localizations = AppLocalizations.of(context)!;
-    final activityProvider = Provider.of<ActivityProvider>(context);
+    final activityProvider = Provider.of<ActivityService>(context);
 
     return FutureBuilder<List<ActivityType>?>(
       future: activityProvider.activityTypes,

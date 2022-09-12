@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/user_profile.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/widgets/count_text.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
@@ -25,7 +25,7 @@ class CoinDisplay extends StatelessWidget {
   
             const SizedBox( width: 4.0,),
   
-            Consumer<ProfileProvider>(
+            Consumer<ProfileService>(
               builder: (_, profileProvider, __) {
                 return FutureBuilder<UserProfile?>(
                   future: profileProvider.profile,

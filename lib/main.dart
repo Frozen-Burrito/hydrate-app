@@ -5,13 +5,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 
-import 'package:hydrate_app/src/provider/activity_provider.dart';
-import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/routes/routes.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/theme/app_themes.dart';
 import 'package:hydrate_app/src/utils/background_tasks.dart';
 
@@ -19,13 +19,13 @@ import 'package:hydrate_app/src/utils/background_tasks.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar internamente a SettingsProvider.
+  // Inicializar internamente a SettingsService.
   await Future.wait([
-    SettingsProvider.init(),
-    ProfileProvider.init(),
+    SettingsService.init(),
+    ProfileService.init(),
   ]); 
 
-  SettingsProvider().appStartups++;
+  SettingsService().appStartups++;
 
   final Map<Permission, PermissionStatus> permissionStatuses = await [
     Permission.locationWhenInUse,
@@ -52,34 +52,34 @@ class HydrateApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<ProfileProvider>(
-          create: (_) => ProfileProvider.fromSharedPrefs( createDefaultProfile: true ),
+        ChangeNotifierProvider<ProfileService>(
+          create: (_) => ProfileService.fromSharedPrefs( createDefaultProfile: true ),
         ),
-        ChangeNotifierProvider<SettingsProvider>(
-          create: (_) => SettingsProvider(),
+        ChangeNotifierProvider<SettingsService>(
+          create: (_) => SettingsService(),
         ),
-        ChangeNotifierProvider<HydrationRecordProvider>(
-          create: (_) => HydrationRecordProvider(),
+        ChangeNotifierProvider<HydrationRecordService>(
+          create: (_) => HydrationRecordService(),
         ),
-        ChangeNotifierProvider<ActivityProvider>(
-          create: (_) => ActivityProvider(),
+        ChangeNotifierProvider<ActivityService>(
+          create: (_) => ActivityService(),
         ),
-        ChangeNotifierProvider<GoalProvider>(
-          create: (_) => GoalProvider(),
+        ChangeNotifierProvider<GoalsService>(
+          create: (_) => GoalsService(),
         ),
       ],
-      child: Consumer<ProfileProvider>(
+      child: Consumer<ProfileService>(
         builder: (_, profileProvider, __) {
-          return Consumer<SettingsProvider>(
+          return Consumer<SettingsService>(
             builder: (context, settingsProvider, __) {
 
-              final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+              final activityProvider = Provider.of<ActivityService>(context, listen: false);
               activityProvider.forProfile(profileProvider.profileId);
 
-              final hydrationProvider = Provider.of<HydrationRecordProvider>(context, listen: false);
+              final hydrationProvider = Provider.of<HydrationRecordService>(context, listen: false);
               hydrationProvider.forProfile(profileProvider.profileId);
 
-              final goalProvider = Provider.of<GoalProvider>(context, listen: false);
+              final goalProvider = Provider.of<GoalsService>(context, listen: false);
               goalProvider.forProfile(profileProvider.profileId);
               
               return MaterialApp(

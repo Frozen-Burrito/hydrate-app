@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
-import 'package:hydrate_app/src/provider/cache_state.dart';
+import 'package:hydrate_app/src/services/cache_state.dart';
 
 /// Maneja el estado para los [Goal], [Tag], [Habits] y [MedicalData].
-class GoalProvider extends ChangeNotifier {
+class GoalsService extends ChangeNotifier {
 
   /// El ID del perfil local del usuario actual.
   int _profileId = -1;

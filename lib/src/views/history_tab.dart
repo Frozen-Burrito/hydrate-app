@@ -1,18 +1,18 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'package:hydrate_app/src/provider/hydration_record_provider.dart';
+import 'package:hydrate_app/src/models/hydration_record.dart';
+import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/nav_provider.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/widgets/activity_sliver_list.dart';
 import 'package:hydrate_app/src/widgets/btn_tab_bar.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/opt_popup_menu.dart';
 import 'package:hydrate_app/src/widgets/hydration_sliver_list.dart';
-import 'package:hydrate_app/src/provider/nav_provider.dart';
 import 'package:hydrate_app/src/widgets/tab_page_view.dart';
 
 class HistoryTab extends StatelessWidget {
@@ -22,10 +22,10 @@ class HistoryTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final hydrationProvider = Provider.of<HydrationRecordProvider>(context);
+    final hydrationProvider = Provider.of<HydrationRecordService>(context);
     final createTestRecords = hydrationProvider.insertTestRecords;
 
-    final profileId = Provider.of<ProfileProvider>(context).profileId;
+    final profileId = Provider.of<ProfileService>(context).profileId;
 
     final localizations = AppLocalizations.of(context)!;
 

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/widgets/full_name_input.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/models.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:hydrate_app/src/widgets/forms/country_dropdown.dart';
+import 'package:hydrate_app/src/widgets/full_name_input.dart';
 
 class ProfileForm extends StatefulWidget {
 
@@ -42,7 +42,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
     if (isFormValid) {
       // Obtener proveedor de perfiles.
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider = Provider.of<ProfileService>(context, listen: false);
 
       // Actualizar el perfil de usuario (ya sea recién creado o existente) con 
       // los cambios de este formulario.
@@ -73,7 +73,7 @@ class _ProfileFormState extends State<ProfileForm> {
       lastDate: DateTime(DateTime.now().year)
     );
 
-    final profileChanges = Provider.of<ProfileProvider>(context, listen: false).profileChanges;
+    final profileChanges = Provider.of<ProfileService>(context, listen: false).profileChanges;
 
     profileChanges.birthDate = newBirthDate;
 
@@ -95,7 +95,7 @@ class _ProfileFormState extends State<ProfileForm> {
   @override
   Widget build(BuildContext context) {
 
-    final profileProvider = Provider.of<ProfileProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
 
     final localizations = AppLocalizations.of(context)!;
 

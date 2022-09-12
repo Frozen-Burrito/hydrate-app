@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'package:hydrate_app/src/provider/nav_provider.dart';
+import 'package:hydrate_app/src/services/nav_provider.dart';
 
 /// Una [BottomNavigationBar] con las tres principales opciones de navegación.
 class BottomNavBar extends StatelessWidget {

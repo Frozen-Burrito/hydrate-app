@@ -4,7 +4,7 @@ import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
-import 'package:hydrate_app/src/provider/cache_state.dart';
+import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/activities_with_routines.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
@@ -13,7 +13,7 @@ import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 /// 
 /// También permite sincronizar la información, ya sea de forma local en la BD o 
 /// externa con el servicio web, cuando sea necesario.
-class ActivityProvider extends ChangeNotifier {
+class ActivityService extends ChangeNotifier {
 
   /// El ID del perfil local del usuario actual.
   int _profileId = -1;

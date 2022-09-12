@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/habits.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
 
 class WeeklyForm extends StatefulWidget {
   const WeeklyForm({ Key? key }) : super(key: key);
@@ -26,7 +26,7 @@ class _WeeklyFormState extends State<WeeklyForm> {
     // Asegurar que el Form está en un estado válido.
     if (_formKey.currentState!.validate()) {
 
-      final saveReport = Provider.of<GoalProvider>(context, listen: false).saveWeeklyReport;
+      final saveReport = Provider.of<GoalsService>(context, listen: false).saveWeeklyReport;
 
       int resultado = await saveReport(_userHabits);
 

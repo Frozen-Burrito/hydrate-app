@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
-
-import 'package:hydrate_app/src/widgets/forms/create_goal_form.dart';
-import 'package:hydrate_app/src/widgets/shapes.dart';
 import 'package:provider/provider.dart';
 
-class NewGoalPage extends StatelessWidget {
-  const NewGoalPage({ Key? key }) : super(key: key);
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
+import 'package:hydrate_app/src/widgets/forms/create_goal_form.dart';
+import 'package:hydrate_app/src/widgets/shapes.dart';
+
+class CreateGoalView extends StatelessWidget {
+  const CreateGoalView({ Key? key }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,7 @@ class NewGoalPage extends StatelessWidget {
                 const WaveShape(),
 
                 Center(
-                  child: Consumer<ProfileProvider>(
+                  child: Consumer<ProfileService>(
                     builder: (_, provider, __) {
                       return const CreateGoalForm();
                     },

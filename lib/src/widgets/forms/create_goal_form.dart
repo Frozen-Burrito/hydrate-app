@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
-import 'package:hydrate_app/src/provider/goals_provider.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 
@@ -54,7 +54,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
     if (_formKey.currentState!.validate()) {
 
-      final goalProvider = Provider.of<GoalProvider>(context, listen: false);
+      final goalProvider = Provider.of<GoalsService>(context, listen: false);
 
       // Obtener el número de metas creadas.
       final numOfExistingGoals = (await goalProvider.goals).length;
@@ -109,8 +109,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
   Future<int> _createGoal(BuildContext context) async {
 
-    final goalProvider = Provider.of<GoalProvider>(context, listen: false);
-    final profile = await Provider.of<ProfileProvider>(context, listen: false).profile;
+    final goalProvider = Provider.of<GoalsService>(context, listen: false);
+    final profile = await Provider.of<ProfileService>(context, listen: false).profile;
 
     newGoal.profileId = profile?.id ?? -1;
 
@@ -361,7 +361,7 @@ class _TagFormFieldState extends State<_TagFormField> {
   @override
   Widget build(BuildContext context) {
 
-    final goalProvider = Provider.of<GoalProvider>(context);
+    final goalProvider = Provider.of<GoalsService>(context);
 
     return FutureBuilder<List<Tag>?>(
       future: goalProvider.tags,

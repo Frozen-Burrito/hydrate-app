@@ -6,10 +6,10 @@ import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:hydrate_app/src/provider/cache_state.dart';
+import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
-class HydrationRecordProvider extends ChangeNotifier {
+class HydrationRecordService extends ChangeNotifier {
 
   /// El ID del perfil local del usuario actual.
   int _profileId = -1;
