@@ -115,7 +115,7 @@ class NewActivityForm extends StatelessWidget {
     int numOfActivitiesToday, 
     ActivityRecord newActivity,
     void Function(int) giveCoinsToProfile,
-    Future<void> Function({ bool restrictModifications }) saveProfile
+    Future<void> Function() saveProfile
   ) {
 
     if (numOfActivitiesToday < ActivityProvider.actPerDayWithReward) {
@@ -123,7 +123,7 @@ class NewActivityForm extends StatelessWidget {
       // entregar recompensa en monedas al usuario.
       giveCoinsToProfile(newActivity.coinReward);
 
-      return saveProfile(restrictModifications: false);
+      return saveProfile();
     } else {
       return Future.value();
     }

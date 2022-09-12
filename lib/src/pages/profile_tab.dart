@@ -268,7 +268,7 @@ class _FullnameDisplay extends StatelessWidget {
                       initialFirstName: profileChanges.firstName,
                       initialLastName: profileChanges.lastName,
                       onFirstNameChanged: (value) => profileChanges.firstName = value, 
-                      onLastNameChanged: (value) => profileChanges.firstName = value,
+                      onLastNameChanged: (value) => profileChanges.lastName = value,
                     ),
                   
                     const SizedBox( height: 16.0 ,),

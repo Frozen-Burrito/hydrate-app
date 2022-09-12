@@ -272,7 +272,7 @@ class ProfileProvider extends ChangeNotifier {
 
     if (localProfileExists && !(wasAccountJustCreated || profile.isDefaultProfile)) {
       // Si el perfil local ya existe, actualizarlo con los datos de profile:
-      final syncResult = await saveProfileChanges( restrictModifications: false );
+      final syncResult = await saveProfileChanges();
 
       final wasLocalProfileSynchronized = syncResult == SaveProfileResult.noChanges || 
         syncResult == SaveProfileResult.changesSaved;
@@ -418,7 +418,9 @@ class ProfileProvider extends ChangeNotifier {
   ///      ya no puede ser modificado.
   ///  - [persistenceError]: si hubo un error de persistencia al intentar guardar
   ///     los cambios.
-  Future<SaveProfileResult> saveProfileChanges({bool restrictModifications = true}) async {
+  //TODO: Solo restringir modificaciones cuando profileChanges modifica campos 
+  // sensibles, como la fecha de nacimiento o el pais
+  Future<SaveProfileResult> saveProfileChanges() async {
 
     final currentProfile = await _profileCache.data;
     
@@ -431,7 +433,7 @@ class ProfileProvider extends ChangeNotifier {
     if (currentProfile != _profileChanges) {
 
       // Determinar si es necesario restringir el número de modificaciones.
-      if (restrictModifications) {
+      if (currentProfile!.hasCriticalChanges(_profileChanges)) {
         // Los cambios deben ser restringidos por el numero de modificaciones en el
         // perfil.
         if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {

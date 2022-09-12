@@ -42,7 +42,10 @@ class EnvironmentSelectDialog extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   primary: Colors.grey.shade700,
                 ),
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  profileProvider.changeSelectedEnv(activeProfile.selectedEnvironment);
+                  Navigator.pop(context);
+                },
               ),
 
               _ConfirmOrPurchaseButton(

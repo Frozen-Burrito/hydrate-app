@@ -46,7 +46,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
       // Actualizar el perfil de usuario (ya sea recién creado o existente) con 
       // los cambios de este formulario.
-      final saveResult = await profileProvider.saveProfileChanges(restrictModifications: false);
+      final saveResult = await profileProvider.saveProfileChanges();
 
       if (saveResult == SaveProfileResult.changesSaved) {
         if (redirectRoute != null) {
@@ -121,7 +121,7 @@ class _ProfileFormState extends State<ProfileForm> {
               initialFirstName: profileChanges.firstName,
               initialLastName: profileChanges.lastName,
               onFirstNameChanged: (value) => profileChanges.firstName = value, 
-              onLastNameChanged: (value) => profileChanges.firstName = value,
+              onLastNameChanged: (value) => profileChanges.lastName = value,
             )
           ), 
 

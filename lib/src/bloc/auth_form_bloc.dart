@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
@@ -8,7 +7,6 @@ import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 
 /// Un componente BLoC que puede recibir los valores de cada campo de un 

@@ -401,6 +401,32 @@ class UserProfile extends SQLiteModel {
     _modificationCount++;
   }
 
+  /// Retorna __true__ si [changes] incluye cambios a alguno de los siguientes 
+  /// atributos del perfil de usuario:
+  /// - Nombre
+  /// - Apellido
+  /// - Fecha de nacimiento
+  /// - Sexo
+  /// - Condiciones médicas.
+  /// - País
+  /// - Cuenta de usuario asociada
+  bool hasCriticalChanges(UserProfile changes) {
+
+    final isNameDifferent = _firstName != changes._firstName || _lastName != changes._lastName;
+    final isDateOfBirthDifferent = !(_birthDate
+        ?.isAtSameMomentAs(changes._birthDate ?? DateTime.now()) 
+        ?? changes._birthDate == null);
+
+    final isSexDifferent = _sex != changes._sex;
+    final hasDifferentMedicalCondition = _medicalCondition != changes._medicalCondition;
+
+    final isLinkedToDifferentAccount = _userAccountID.isNotEmpty && _userAccountID != changes._userAccountID;
+    final isCountryDifferent = _country != changes._country;
+
+    return isNameDifferent || isDateOfBirthDifferent || isSexDifferent || 
+        hasDifferentMedicalCondition || isLinkedToDifferentAccount || isCountryDifferent;
+  }
+
   @override
   String toString() => "$_firstName $_lastName's profile, ID = $_id";
 
