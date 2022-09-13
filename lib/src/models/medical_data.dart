@@ -22,6 +22,7 @@ class MedicalData extends SQLiteModel {
   double recommendedGain;
   double actualGain;
   DateTime nextAppointment;
+  DateTime createdAt;
 
   MedicalData({
     required this.id,
@@ -32,7 +33,8 @@ class MedicalData extends SQLiteModel {
     required this.normovolemia,
     required this.recommendedGain,
     required this.actualGain,
-    required this.nextAppointment
+    required this.nextAppointment,
+    required this.createdAt,
   });  
   
   MedicalData.uncommitted() : this(
@@ -45,24 +47,53 @@ class MedicalData extends SQLiteModel {
     recommendedGain: 0.0,
     actualGain: 0.0,
     nextAppointment: DateTime.now().add(const Duration( days: 7 )),
+    createdAt: DateTime.now(),
   );
 
+  static const int mainFieldsCount = 6;
+
   static const String tableName = 'datos_medicos';
+
+  static const String idFieldName = "id";
+  static const String profileIdFieldName = "id_${UserProfile.tableName}";
+  static const String hypervolemiaFieldName = "hipervolemia";
+  static const String postDialysisWeightFieldName = "peso_post_dial";
+  static const String extracellularWaterFieldName = "agua_extracel";
+  static const String normovolemiaFieldName = "normovolemia";
+  static const String recommendedGainFieldName = "ganancia_rec";
+  static const String actualGainFieldName = "ganancia_real";
+  static const String nextAppointmentFieldName = "fecha_prox_cita";
+  static const String createdAtFieldName = "fecha_creacion";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    profileIdFieldName,
+    hypervolemiaFieldName,
+    postDialysisWeightFieldName,
+    extracellularWaterFieldName,
+    normovolemiaFieldName,
+    recommendedGainFieldName,
+    actualGainFieldName,
+    nextAppointmentFieldName,
+    createdAtFieldName,
+  ];
 
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteKeywords.idType},
-      hipervolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      peso_post_dial ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      agua_extracel ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      normovolemia ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      ganancia_rec ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      ganancia_real ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      fecha_prox_cita ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      id_${UserProfile.tableName} ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $hypervolemiaFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $postDialysisWeightFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $extracellularWaterFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $normovolemiaFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $recommendedGainFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $actualGainFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $nextAppointmentFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $createdAtFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       ${SQLiteKeywords.fk} (id_${UserProfile.tableName}) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.noAction}
@@ -73,31 +104,33 @@ class MedicalData extends SQLiteModel {
   /// 
   /// Si [map['fecha_prox_cita']] es nulo, este método lanza un [FormatException].
   static MedicalData fromMap(Map<String, Object?> map) => MedicalData(
-    id: int.tryParse(map['id'].toString()) ?? -1,
-    profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
-    hypervolemia: double.tryParse(map['hipervolemia'].toString()) ?? 0.0,
-    postDialysisWeight: double.tryParse(map['peso_post_dial'].toString()) ?? 0.0,
-    extracellularWater: double.tryParse(map['agua_extracel'].toString()) ?? 0.0,
-    normovolemia: double.tryParse(map['normovolemia'].toString()) ?? 0.0,
-    recommendedGain: double.tryParse(map['ganancia_rec'].toString()) ?? 0.0,
-    actualGain: double.tryParse(map['ganancia_real'].toString()) ?? 0.0,
-    nextAppointment: DateTime.parse(map['fecha_prox_cita'].toString()),
+    id: int.tryParse(map[idFieldName].toString()) ?? -1,
+    profileId: int.tryParse(map[profileIdFieldName].toString()) ?? -1,
+    hypervolemia: double.tryParse(map[hypervolemiaFieldName].toString()) ?? 0.0,
+    postDialysisWeight: double.tryParse(map[postDialysisWeightFieldName].toString()) ?? 0.0,
+    extracellularWater: double.tryParse(map[extracellularWaterFieldName].toString()) ?? 0.0,
+    normovolemia: double.tryParse(map[normovolemiaFieldName].toString()) ?? 0.0,
+    recommendedGain: double.tryParse(map[recommendedGainFieldName].toString()) ?? 0.0,
+    actualGain: double.tryParse(map[actualGainFieldName].toString()) ?? 0.0,
+    nextAppointment: DateTime.parse(map[nextAppointmentFieldName].toString()),
+    createdAt: DateTime.parse(map[createdAtFieldName].toString())
   );
 
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
-      'id_perfil': profileId,
-      'hipervolemia': hypervolemia,
-      'peso_post_dial': postDialysisWeight,
-      'agua_extracel': extracellularWater,
-      'normovolemia': normovolemia,
-      'ganancia_rec': recommendedGain,
-      'ganancia_real': actualGain,
-      'fecha_prox_cita': nextAppointment.toIso8601String(),
+      profileIdFieldName: profileId,
+      hypervolemiaFieldName: hypervolemia,
+      postDialysisWeightFieldName: postDialysisWeight,
+      extracellularWaterFieldName: extracellularWater,
+      normovolemiaFieldName: normovolemia,
+      recommendedGainFieldName: recommendedGain,
+      actualGainFieldName: actualGain,
+      nextAppointmentFieldName: nextAppointment.toIso8601String(),
+      createdAtFieldName: createdAt.toIso8601String(),
     };
 
-    if (id >= 0) map['id'] = id;
+    if (id >= 0) map[idFieldName] = id;
 
     return map;
   }

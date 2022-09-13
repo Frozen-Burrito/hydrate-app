@@ -438,6 +438,8 @@ class ProfileService extends ChangeNotifier {
         // perfil.
         if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {
           // El perfil ya alcanzó el límite de modificaciones restringidas.
+          // Reestablecer los cambios al perfil.
+          _profileChanges = UserProfile.modifiableCopyOf(_profileCache.cachedData!);
           // El perfil no debe ser modificado.
           return SaveProfileResult.reachedChangeLimit;
         }

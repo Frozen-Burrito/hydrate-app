@@ -58,19 +58,33 @@ class GoalsService extends ChangeNotifier {
   bool get hasGoalData => _goalCache.hasData;
 
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
-  Future<List<Goal>> get goals async => (await _goalCache.data) ?? const <Goal>[];
+  Future<List<Goal>> get goals => _goalCache.data.then((data) {
+    return data ?? const <Goal>[];
+  });
+
+  Future<Goal?> get mainActiveGoal => _goalCache.data.then((data) {
+    final goals = data ?? const <Goal>[];
+
+    if (goals.isEmpty) return null;
+
+    return goals.firstWhere((goal) => goal.isMainGoal, orElse: () => goals.first);
+  });
 
   /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
   bool get hasTagData => _tagsCache.hasData;
 
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
-  Future<List<Tag>?> get tags => _tagsCache.data;
+  Future<List<Tag>> get tags => _tagsCache.data.then((data) {
+    return data ?? const <Tag>[];
+  });
 
   /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
   bool get hasWeeklyData => _weeklyDataCache.hasData;
 
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
-  Future<List<Habits>?> get weeklyData => _weeklyDataCache.data;
+  Future<List<Habits>> get weeklyData => _weeklyDataCache.data.then((data) {
+    return data ?? const <Habits>[];
+  });
 
   /// Retorna el reporte semanal de hábitos más reciente del usuario.
   Future<Habits?> get lastPeriodicReport async {
@@ -107,7 +121,9 @@ class GoalsService extends ChangeNotifier {
   bool get hasMedicalData => _medicalCache.hasData;
 
   /// Retorna todos los registros de [MedicalData] disponibles, de forma asíncrona.
-  Future<List<MedicalData>?> get medicalData => _medicalCache.data;
+  Future<List<MedicalData>> get medicalData => _medicalCache.data.then((data) {
+    return data ?? const <MedicalData>[];
+  });
 
   /// Retorna el reporte de [MedicalData] más reciente del usuario.
   Future<MedicalData?> get lastMedicalReport async {
