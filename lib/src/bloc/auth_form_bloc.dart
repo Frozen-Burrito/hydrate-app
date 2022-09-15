@@ -228,6 +228,10 @@ class AuthFormBloc {
     _usernameErrorController.add(_usernameError);
 
     _username = inputUsername;
+
+    if (canSubmitForm()) {
+      _authResultController.add(AuthResult.canSendAuthRequest);
+    }
   }
 
   void _handleEmailChange(String inputEmail) {
@@ -237,6 +241,10 @@ class AuthFormBloc {
     _emailErrorController.add(_emailError);
 
     _email = inputEmail;
+    
+    if (canSubmitForm()) {
+      _authResultController.add(AuthResult.canSendAuthRequest);
+    }
   }
 
   void _handlePasswordChange(String inputPassword) {
@@ -246,6 +254,10 @@ class AuthFormBloc {
     _passwordErrorController.add(_passwordError);
 
     _password = inputPassword;
+
+    if (canSubmitForm()) {
+      _authResultController.add(AuthResult.canSendAuthRequest);
+    }
   }
 
   void _handlePasswordConfirmChange(String inputPasswordConfirm) {
@@ -253,6 +265,17 @@ class AuthFormBloc {
     _passwordConfirmError = AuthValidators.validatePasswordConfirm(_password, inputPasswordConfirm);
 
     _passwordConfirmErrorController.add(_passwordConfirmError);
+    
+    if (canSubmitForm()) {
+      _authResultController.add(AuthResult.canSendAuthRequest);
+    }
+  }
+
+  bool canSubmitForm() { 
+    return _usernameError == UsernameError.none && 
+           _emailError == UsernameError.none && 
+           _passwordError == PasswordError.none && 
+           _passwordConfirmError == PasswordError.none;
   }
 
   @override

@@ -19,6 +19,7 @@ class ValidationMessageBuilder {
   static const String usernameTooLongMsg = "El usuario debe tener menos de 20 letras o números";
   static const String emailIsRequiredMsg = "El correo electrónico es obligatorio";
   static const String incorrectEmailFormatMsg = "El correo no tiene un formato válido";
+  static const String incorrectUsernameFormatMsg = "El usuario no tiene un formato válido";
 
   static const String passwordIsRequiredMsg = "La contraseña es obligatoria";
   static const String passwordTooShortMsg = "La contraseña debe tener más de 8 caracteres";
@@ -44,6 +45,7 @@ class ValidationMessageBuilder {
       case UsernameError.incorrectEmailFormat: return incorrectEmailFormatMsg;
       case UsernameError.usernameTooShort: return usernameTooShortMsg;
       case UsernameError.usernameTooLong: return usernameTooLongMsg;
+      case UsernameError.incorrectUsernameFormat: return incorrectUsernameFormatMsg;
       default: 
         print("Unhandled username/email validation message for error: $usernameError");
         return "unkown error";

@@ -31,6 +31,29 @@ class SignupForm extends StatelessWidget {
     }
   }
 
+  String _messageForAuthResult(AppLocalizations localizations, AuthResult authResult) {
+
+    final String message;
+
+    switch (authResult) {
+      case AuthResult.none:
+      case AuthResult.authenticated:
+      case AuthResult.newProfileCreated:
+      case AuthResult.canSendAuthRequest:
+        message = "";
+        break;
+      case AuthResult.credentialsError:
+        //TODO: Add i18n
+        message = "El nombre de usuario o email no está disponible";
+        break;
+      case AuthResult.serviceUnavailable:
+        message = localizations.errCheckInternetConn;
+        break;
+    }
+
+    return message;
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -67,15 +90,13 @@ class SignupForm extends StatelessWidget {
                       final isAuthErrorResult = snapshot.data == AuthResult.credentialsError
                         || snapshot.data == AuthResult.serviceUnavailable;
 
-                      if (isAuthErrorResult) {
-                        final isServiceUnavailable = snapshot.data == AuthResult.serviceUnavailable;
-
+                      if (snapshot.hasData && isAuthErrorResult) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
-                              Icon(isServiceUnavailable
+                              Icon((snapshot.data == AuthResult.serviceUnavailable)
                                 ? Icons.cloud_off
                                 : Icons.error
                               ),
@@ -84,10 +105,7 @@ class SignupForm extends StatelessWidget {
                               
                               Expanded(
                                 child: Text(
-                                  isServiceUnavailable 
-                                    ? localizations.errCheckInternetConn
-                                    //TODO: Add i18n
-                                    : 'Your credentials are incorrect.', 
+                                  _messageForAuthResult(localizations, snapshot.data!), 
                                   textAlign: TextAlign.start,
                                   maxLines: 2,
                                   softWrap: true,
@@ -102,45 +120,56 @@ class SignupForm extends StatelessWidget {
                     }
                   ),
 
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.5,
-                    child: StreamBuilder<bool>(
-                      initialData: false,
-                      stream: bloc.isLoading,
-                      builder: (context, snapshot) {
+                  StreamBuilder<AuthResult>(
+                    initialData: AuthResult.none,
+                    stream: bloc.formState,
+                    builder: (context, snapshot) {
 
-                        final isFormLoading = snapshot.data ?? false;
+                      final canFormBeSubmitted = snapshot.data == AuthResult.canSendAuthRequest;
 
-                        if (isFormLoading) {
-                          return ElevatedButton(
-                            child: const SizedBox(
-                              height: 24.0,
-                              width: 24.0,
-                              child: CircularProgressIndicator()
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              primary: Theme.of(context).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                              textStyle: Theme.of(context).textTheme.bodyText1,
-                            ),
-                            onPressed: null,
-                          );
-                        } else {
-                          return ElevatedButton(
-                            child: Text(
-                              localizations.continueAction,
-                              textAlign: TextAlign.center,
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              primary: Theme.of(context).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                              textStyle: Theme.of(context).textTheme.bodyText1,
-                            ),
-                            onPressed: () => _handleFormSubmit(context),
-                          );
-                        }
-                      }
-                    ),
+                      return SizedBox(
+                        width: MediaQuery.of(context).size.width * 0.5,
+                        child: StreamBuilder<bool>(
+                          initialData: false,
+                          stream: bloc.isLoading,
+                          builder: (context, snapshot) {
+                  
+                            final isFormLoading = snapshot.data ?? false;
+                  
+                            if (isFormLoading) {
+                              return ElevatedButton(
+                                onPressed: null,
+                                style: ElevatedButton.styleFrom(
+                                  primary: Theme.of(context).colorScheme.primary,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                                  textStyle: Theme.of(context).textTheme.bodyText1,
+                                ),
+                                child: const SizedBox(
+                                  height: 24.0,
+                                  width: 24.0,
+                                  child: CircularProgressIndicator()
+                                ),
+                              );
+                            } else {
+                              return ElevatedButton(
+                                child: Text(
+                                  localizations.continueAction,
+                                  textAlign: TextAlign.center,
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  primary: Theme.of(context).colorScheme.primary,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                                  textStyle: Theme.of(context).textTheme.bodyText1,
+                                ),
+                                onPressed: (canFormBeSubmitted && !isFormLoading) 
+                                  ? () => _handleFormSubmit(context)
+                                  : null,
+                              );
+                            }
+                          }
+                        ),
+                      );
+                    }
                   ),
                 ],
               )
