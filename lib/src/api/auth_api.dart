@@ -138,7 +138,7 @@ class AuthApi {
       UserProfile.fromMap,
       UserProfile.tableName,
       where: whereQuery,
-      limit: 1
+      limit: 1,
     );
 
     final profileForAccount = (queryResults.length == 1) 

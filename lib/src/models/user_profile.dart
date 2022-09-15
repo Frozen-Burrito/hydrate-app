@@ -168,24 +168,37 @@ class UserProfile extends SQLiteModel {
     //TODO: considerar validar ciertos campos (especialmente que 'entornos' y 
     // 'entorno_sel' coincidan, además de revisar el valor de 'pais').
     
-    final country = Country.fromMap(
-      (map['pais'] is Map<String, Object?>) 
-        ? map['pais'] as Map<String, Object?> 
-        : {}
-    );
+    final Country country;
+
+    if (map["pais"] is Map<String, Object?>) {
+      country = Country.fromMap(map["pais"] as Map<String, Object?>);
+    } else {
+      country = Country.countryNotSpecified;
+    }
 
     final idxUserSex = min(map['sexo'] as int, UserSex.values.length -1);
     final idxOccupation = min(map['ocupacion'] as int, Occupation.values.length -1);
     final idxMedicalCondition = min(map['padecimientos'] as int, MedicalCondition.values.length -1);
 
-    var environments = map['entornos'];
-    List<Environment> envList = <Environment>[];
+    final environments = map["entornos"];
+    final List<Environment> unlockedEnvironments = <Environment>[];
 
-    if (environments is List<Map<String, Object?>> && environments.isNotEmpty) {
-      envList = environments.map((environment) => Environment.fromMap(environment)).toList();
+    if (environments is List<Map<String, Object?>>) {
+      unlockedEnvironments.addAll(
+        environments.map((environment) => Environment.fromMap(environment))
+        .toList()
+      );
     }
 
-    final int selectedEnvironmentId = int.tryParse(map['entorno_sel'].toString()) ?? 0;
+    final int selectedEnvironmentId;
+
+    if (unlockedEnvironments.isEmpty) {
+      unlockedEnvironments.add(Environment.firstUnlocked());
+      selectedEnvironmentId = unlockedEnvironments.first.id;
+      
+    } else {
+      selectedEnvironmentId = int.tryParse(map["entorno_sel"].toString()) ?? 0;
+    }
 
     return UserProfile.unmodifiable(
       id: int.tryParse(map['id'].toString()) ?? -1,
@@ -198,11 +211,11 @@ class UserProfile extends SQLiteModel {
       medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
       occupation: Occupation.values[idxOccupation],
       userAccountID: map['id_usuario'].toString(),
-      selectedEnvironment: envList.where((env) => env.id == selectedEnvironmentId).first,
+      selectedEnvironment: unlockedEnvironments.where((env) => env.id == selectedEnvironmentId).first,
       coins: int.tryParse(map['monedas'].toString()) ?? 0,
       modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
       country: country,
-      unlockedEnvironments: envList
+      unlockedEnvironments: unlockedEnvironments
     );
   } 
 

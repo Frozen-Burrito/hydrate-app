@@ -477,7 +477,7 @@ class ProfileService extends ChangeNotifier {
       UserProfile.fromMap,
       UserProfile.tableName,
       where: whereQuery,
-      limit: 1
+      limit: 1,
     );
 
     final localProfile = queryResults.length == 1 ? queryResults.single : null;

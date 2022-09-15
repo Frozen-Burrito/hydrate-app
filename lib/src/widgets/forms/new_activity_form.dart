@@ -390,9 +390,9 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
 
                             newActivityRecord.aproximateData(userWeight);
                           
-                            kCalController.text = newActivityRecord.formattedKcal;
                             distanceController.text = newActivityRecord.formattedDistance;
                             durationController.text = newActivityRecord.formattedDuration; 
+                            kCalController.text = newActivityRecord.formattedKcal;
                           });
                         },
                         validator: (value) => _validateDuration(validationMsgBuilder, value),
