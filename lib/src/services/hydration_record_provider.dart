@@ -115,34 +115,34 @@ class HydrationRecordService extends ChangeNotifier {
     }
   }
 
-  /// Guarda un nuevo registro de hidratación en la base de datos.
+  /// Persiste un nuevo [hydrationRecord] en la base de datos.
   /// 
-  /// Retorna el ID del [HydrationRecord] persistido con éxito, o -1 si el 
-  /// registro no pudo ser guardado.
-  Future<int> saveHydrationRecord(HydrationRecord newRecord, { refreshImmediately = true }) async {
-    
-    try {
-      int result = await SQLiteDB.instance.insert(newRecord);
+  /// Cuando [hydrationRecord] es persistido con éxito, este método refresca 
+  /// la lista de registros de hidratación de [allRecords] y retorna el 
+  /// ID de [hydrationRecord]. 
+  /// 
+  /// Si [hydrationRecord] no pudo ser persistido, este método retorna un 
+  /// entero negativo.
+  Future<int> saveHydrationRecord(HydrationRecord hydrationRecord, { refreshImmediately = true }) async {
+    // Asegurar que el nuevo registro de hidratación sea asociado con el 
+    // perfil de usuario activo.
+    hydrationRecord.profileId = _profileId;
 
-      if (result >= 0) {
-        if (refreshImmediately) {
-          // Si se solicita, refrescar el cache inmediatamente.
-          _hydrationRecordsCache.refresh();
-        } else {
-          // Si no, usar refresh perezozo.
-          _hydrationRecordsCache.shouldRefresh();
-        }
-        
-        return result;
+    debugPrint("About to save a new hydration record: $hydrationRecord");
+
+    final int newHydrationRecordId = await SQLiteDB.instance.insert(hydrationRecord);
+
+    if (newHydrationRecordId >= 0) {
+      if (refreshImmediately) {
+        // Si se solicita, refrescar el cache inmediatamente.
+        _hydrationRecordsCache.refresh();
       } else {
-        //TODO: Evitar lanzar una excepcion para cacharla inmediatamente después.
-        throw Exception('No se pudo crear el registro de actividad fisica.');
+        // Si no, usar refresh perezozo.
+        _hydrationRecordsCache.shouldRefresh();
       }
     }
-    on Exception catch (e) {
-      print(e);
-      return Future.error(e);
-    }
+        
+    return newHydrationRecordId;
   }
 
   /// Obtiene todos los registros de hidratación de la base de datos.

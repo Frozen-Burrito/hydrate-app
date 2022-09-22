@@ -49,10 +49,8 @@ class MainView extends StatelessWidget {
     // Obtener una referencia al provider de metas y datos de hidratacion.
     final goalsProvider = Provider.of<GoalsService>(context, listen: false);
 
-    // final isWeeklyReportAvailable = await goalsProvider.isWeeklyReportAvailable;
-    final isWeeklyReportAvailable = false;
-    // final isMedicalReportAvailable = await goalsProvider.isMedicalReportAvailable;
-    final isMedicalReportAvailable = true;
+    final isWeeklyReportAvailable = await goalsProvider.isWeeklyReportAvailable;
+    final isMedicalReportAvailable = await goalsProvider.isMedicalReportAvailable;
 
     // Mostrar Dialog 
     if (isWeeklyReportAvailable) {
@@ -76,7 +74,7 @@ class MainView extends StatelessWidget {
       final hasRenalInsufficiency = profile?.hasRenalInsufficiency ?? false;
       final hasNephroticSyndrome = profile?.hasNephroticSyndrome ?? false;
 
-      // if (hasRenalInsufficiency || hasNephroticSyndrome) {
+      if (hasRenalInsufficiency || hasNephroticSyndrome) {
         final medicalResult = await showDialog<bool>(
           context: context, 
           builder: (context) =>  const ReportAvailableDialog.medical(),
@@ -85,7 +83,7 @@ class MainView extends StatelessWidget {
         if (medicalResult != null) {
           goalsProvider.appAskedForMedicalData();
         }
-      // }
+      }
     }
   }
 

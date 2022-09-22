@@ -161,10 +161,13 @@ class GoalsService extends ChangeNotifier {
   /// 
   /// Si [newGoal] no pudo ser persistida, retorna un entero negativo.
   Future<int> createHydrationGoal(Goal newGoal) async {
-    
     // Asegurar que la nueva meta sea asociada con el perfil de usuario actual.
     newGoal.profileId = _profileId;
 
+    for (final tag in newGoal.tags) { 
+      tag.profileId = _profileId;
+    }
+    
     final int newGoalId = await SQLiteDB.instance.insert(newGoal);
 
     if (newGoalId >= 0) {
@@ -268,13 +271,13 @@ class GoalsService extends ChangeNotifier {
     // Asegurar que el reporte sea guardado con el perfil del usuario actual.
     newReport.profileId = _profileId;
     
-    final int newReportId = await SQLiteDB.instance.insert(newReport);
+    final int newWeeklyReportId = await SQLiteDB.instance.insert(newReport);
 
-    if (newReportId >= 0) {
+    if (newWeeklyReportId >= 0) {
       _weeklyDataCache.shouldRefresh();
     }
 
-    return newReportId;
+    return newWeeklyReportId;
   }
 
   /// Persiste a [newReport] en la base de datos local. 
@@ -284,14 +287,16 @@ class GoalsService extends ChangeNotifier {
   /// 
   /// Si [newReport] no pudo ser persistido, retorna un entero negativo.
   Future<int> saveMedicalReport(MedicalData newReport) async {
+    // Asegurar que el nuevo reporte médico sea asociado con el perfil de usuario actual.
+    newReport.profileId = _profileId;
     
-    int result = await SQLiteDB.instance.insert(newReport);
+    final int newMedicalReportId = await SQLiteDB.instance.insert(newReport);
 
-    if (result >= 0) {
+    if (newMedicalReportId >= 0) {
       _medicalCache.shouldRefresh();
     }
 
-    return result;
+    return newMedicalReportId;
   }
 
   Future<List<Tag>> _fetchTags() async {

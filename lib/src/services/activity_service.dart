@@ -183,22 +183,27 @@ class ActivityService extends ChangeNotifier {
     }
   }
 
-  /// Agrega un nuevo registro de actividad física.
-  Future<int> createActivityRecord(ActivityRecord newRecord) async {
-    
-    try {
-      int result = await SQLiteDB.instance.insert(newRecord);
+  /// Persiste a [newActivityRecord] en la base de datos.
+  /// 
+  /// Cuando [newActivityRecord] es persistido con éxito, este método refresca 
+  /// la lista de registros de hidratación de [activityRecords] y retorna el 
+  /// ID de [newActivityRecord]. 
+  /// 
+  /// Si [newActivityRecord] no pudo ser persistido, este método retorna un 
+  /// entero negativo.
+  Future<int> createActivityRecord(ActivityRecord newActivityRecord) async {
+    // Asegurar que el nuevo registro de actividad sea asociado con el 
+    // perfil de usuario activo.
+    newActivityRecord.profileId = _profileId;
 
-      if (result >= 0) {
-        _activitiesCache.shouldRefresh();
-        return result;
-      } else {
-        throw Exception('No se pudo crear el registro de actividad fisica.');
-      }
+    final int activityRecordId = await SQLiteDB.instance.insert(newActivityRecord);
+
+    if (activityRecordId >= 0) {
+      // Refrescar el cache la próxima vez que sea utilizado.
+      _activitiesCache.shouldRefresh();
     }
-    on Exception catch (e) {
-      return Future.error(e);
-    }
+
+    return activityRecordId;
   }
 
   Future<List<Routine>> _queryRoutines() async {
@@ -218,14 +223,17 @@ class ActivityService extends ChangeNotifier {
 
   /// Agrega una nueva rutina de actividad física.
   Future<int> createRoutine(Routine newRoutine) async {
+    // Asegurar que el nuevo registro de actividad sea asociado con el 
+    // perfil de usuario activo.
+    newRoutine.profileId = _profileId;
   
-    int result = await SQLiteDB.instance.insert(newRoutine);
+    final int newRoutineId = await SQLiteDB.instance.insert(newRoutine);
 
-    if (result >= 0) {
+    if (newRoutineId >= 0) {
       _routinesCache.shouldRefresh();
     } 
     
-    return result;
+    return newRoutineId;
   }
 
   Future<List<ActivityType>> _queryActivityTypes() async {

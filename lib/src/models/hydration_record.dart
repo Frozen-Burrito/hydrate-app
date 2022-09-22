@@ -19,7 +19,7 @@ class HydrationRecord extends SQLiteModel {
   final int id;
   final int amount;
   final double temperature;
-  final int profileId;
+  int profileId;
 
   final BatteryRecord batteryRecord; 
 
@@ -95,6 +95,22 @@ class HydrationRecord extends SQLiteModel {
     if (id >= 0) map['id'] = id;
 
     return map;
+  }
+
+  @override
+  String toString() {
+    final strBuf = StringBuffer("Test Hydration record = {");
+
+    strBuf.writeAll(["id:", id, ", "]);
+    strBuf.writeAll(["amount:", amount, " ml, "]);
+    strBuf.writeAll(["temperature:", temperature, " °C, "]);
+    strBuf.writeAll(["remaining battery:", batteryRecord.level, "%, "]);
+    strBuf.writeAll(["date:", batteryRecord.date.toIso8601String(), ", "]);
+    strBuf.writeAll(["profileId:", profileId, ", "]);
+
+    strBuf.write("}");
+
+    return strBuf.toString();    
   }
 }
 

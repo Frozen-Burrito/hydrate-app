@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
@@ -54,6 +55,9 @@ class HydrateApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider<ProfileService>(
           create: (_) => ProfileService.fromSharedPrefs( createDefaultProfile: true ),
+        ),
+        ChangeNotifierProvider<DevicePairingService>(
+          create: (_) => DevicePairingService(),
         ),
         ChangeNotifierProvider<SettingsService>(
           create: (_) => SettingsService(),
