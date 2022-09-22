@@ -343,6 +343,10 @@ class UserProfile extends SQLiteModel {
 
   bool get hasNephroticSyndrome => medicalCondition == MedicalCondition.nephroticSyndrome;
 
+  int get ageInYears => _birthDate != null 
+    ? DateTime.now().difference(_birthDate!).inDays.abs()
+    : 0;
+
   String get fullName {
 
     final strBuf = StringBuffer();

@@ -324,7 +324,7 @@ class ProfileService extends ChangeNotifier {
   /// Luego, notifica a los listeners de este provider.
   void changeSelectedEnv(Environment environment) {
 
-    profileChanges.selectedEnvironment = environment;
+    _profileChanges.selectedEnvironment = environment;
     notifyListeners();
   }
 
@@ -341,10 +341,10 @@ class ProfileService extends ChangeNotifier {
 
     if (profile != null && !profile.hasUnlockedEnv(environment.id)) {
       /// Desbloquear el entorno de forma no confirmada, usando profileChanges.
-      final wasEnvPurchased = profileChanges.spendCoins(environment.price);
+      final wasEnvPurchased = _profileChanges.spendCoins(environment.price);
 
       if (wasEnvPurchased) {
-        profileChanges.unlockedEnvironments.add(environment);
+        _profileChanges.unlockedEnvironments.add(environment);
       }
 
       return wasEnvPurchased;
@@ -363,13 +363,13 @@ class ProfileService extends ChangeNotifier {
       throw UnsupportedError("Tried to change the environment without an active profile.");
     }
 
-    final selectedEnvironment = profileChanges.selectedEnvironment;
+    final selectedEnvironment = _profileChanges.selectedEnvironment;
 
-    final hasToPurchaseEnv = activeProfile.hasUnlockedEnv(selectedEnvironment.id);
+    final hasUnlockedEnv = activeProfile.hasUnlockedEnv(selectedEnvironment.id);
 
     bool wasEnvConfirmed = true;
 
-    if (hasToPurchaseEnv) {
+    if (!hasUnlockedEnv) {
       wasEnvConfirmed = await purchaseEnvironment(selectedEnvironment);
     }
 
@@ -445,7 +445,11 @@ class ProfileService extends ChangeNotifier {
         }
 
         _profileChanges.recordModification();
+
+        _profileChanges.addCoins(500);
       }
+
+      // await confirmEnvironment();
 
       // Intentar guardar los cambios al perfil existente
       final int alteredRows = await SQLiteDB.instance.update(_profileChanges);

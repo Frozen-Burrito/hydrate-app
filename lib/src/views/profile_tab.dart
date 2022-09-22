@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
+import 'package:hydrate_app/src/utils/water_intake_calculator.dart';
+import 'package:hydrate_app/src/widgets/count_text.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -210,7 +216,56 @@ class _ProfileTabState extends State<ProfileTab> {
 
               Container(
                 margin: const EdgeInsets.only( bottom: 16.0 ),
-                child: const _IdealHydrationLabel(2.54),
+                child: Consumer<ActivityService>(
+                  builder: (_, activityService, __) {
+
+                    final goalsService = Provider.of<GoalsService>(context);
+                    final hydrationService = Provider.of<HydrationRecordService>(context);
+
+                    return FutureBuilder<int>(
+                      future: Future.microtask(() async {
+
+                        final DateTime aWeekAgo = DateTime.now().onlyDate
+                          .subtract(const Duration( days: 6 ));
+
+                        final userProfile = await profileProvider.profile;
+                        final activityDuringPastWeek = (await activityService.routineActivities)
+                          .activitiesWithRoutines
+                          .where((record) => record.date.isAfter(aWeekAgo))
+                          .toList();
+
+                        final pastWeekTotals = await hydrationService.pastWeekMlTotals;
+                        final latestPeriodicReport = await goalsService.lastPeriodicReport; 
+
+                        final int recommendedHydration;
+
+                        if (userProfile != null) {
+
+                          final latestMedicalReport = (userProfile.hasNephroticSyndrome || userProfile.hasRenalInsufficiency)
+                            ? await goalsService.lastMedicalReport
+                            : null; 
+
+                          recommendedHydration = IdealHydrationCalculator.aproximateIdealHydration(
+                            userProfile, 
+                            activityDuringPastWeek, 
+                            pastWeekTotals, 
+                            mostRecentWeeklyReport: latestPeriodicReport,
+                            mostRecentMedicalReport: latestMedicalReport,
+                          );
+
+                        } else {
+                          recommendedHydration = 0;
+                        }
+
+                        return recommendedHydration;
+                      }),
+                      builder: (context, snapshot) {
+                        final recommendedHydration = snapshot.data ?? 0;
+                        return _IdealHydrationLabel(recommendedHydration);
+                      }
+                    );
+                  }
+                ),
               ),
               
               SizedBox(
@@ -322,8 +377,8 @@ class _FullnameDisplay extends StatelessWidget {
 }
 
 class _IdealHydrationLabel extends StatelessWidget {
-
-  final double idealHydration;
+  /// La hidratación ideal, en mililitros por día.
+  final int idealHydration;
 
   const _IdealHydrationLabel(
     this.idealHydration,
@@ -347,7 +402,7 @@ class _IdealHydrationLabel extends StatelessWidget {
         ),
 
         Text(
-          '${idealHydration.toStringAsFixed(2)} L',
+          '${(idealHydration / 1000.0).toStringAsFixed(2)} L',
           style: Theme.of(context).textTheme.headline6!.copyWith(
             color: Theme.of(context).colorScheme.primary
           )

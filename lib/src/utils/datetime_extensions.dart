@@ -23,6 +23,10 @@ extension DateTimeExtensions on DateTime {
     return TimeOfDay(hour: hour, minute: minute);
   }
 
+  bool isInRange(DateTime begin, DateTime end) {
+    return isAfter(begin) && isBefore(end);
+  }
+
   /// Produce un string legible por humanos, localizado a la región y zona horaria
   /// del usuario.
   String get toLocalizedDateTime {

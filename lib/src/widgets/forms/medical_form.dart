@@ -27,7 +27,7 @@ class _MedicalFormState extends State<MedicalForm> {
     // Asegurar que el Form está en un estado válido.
     if (_formKey.currentState!.validate()) {
 
-      final saveReport = Provider.of<GoalsService>(context).saveMedicalReport;
+      final saveReport = Provider.of<GoalsService>(context, listen: false).saveMedicalReport;
       // Guardar el reporte medico.
       int resultado = await saveReport(_userMedicalData);
 
