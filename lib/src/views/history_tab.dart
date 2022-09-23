@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/coin_display.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -23,7 +24,6 @@ class HistoryTab extends StatelessWidget {
   Widget build(BuildContext context) {
 
     final hydrationProvider = Provider.of<HydrationRecordService>(context);
-    final createTestRecords = hydrationProvider.insertTestRecords;
 
     final profileId = Provider.of<ProfileService>(context).profileId;
 
@@ -39,18 +39,7 @@ class HistoryTab extends StatelessWidget {
               handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
               sliver: CustomSliverAppBar(
                 title: AppLocalizations.of(context)!.history,
-                leading: <Widget>[
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: createTestRecords
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add),
-                    onPressed: () => hydrationProvider.saveHydrationRecord(
-                      HydrationRecord.random(Random(), DateTime.now(), profileId)
-                    ),
-                  ),
-                ],
+                leading: const <Widget> [ CoinDisplay(), ],
                 bottom: PreferredSize(
                   preferredSize: const Size(double.infinity, 48.0),
                   child: ButtonTabBar(

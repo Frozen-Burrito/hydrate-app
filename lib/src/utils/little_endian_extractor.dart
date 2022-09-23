@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+typedef BytesToValueMapper = Object? Function(List<int>);
+
 class LittleEndianExtractor {
   static int extractUint8(final List<int> bytes) {
     final data = ByteData.view(Uint8List.fromList(bytes).buffer);

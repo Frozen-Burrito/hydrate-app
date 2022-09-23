@@ -17,7 +17,6 @@ class ConnectionView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final _ = Provider.of<DevicePairingService>(context);
     final localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -83,19 +82,21 @@ class ConnectionView extends StatelessWidget {
 
                   if (isScanInProgress) {
                     return FloatingActionButton(
-                      child: const Icon(Icons.stop),
+                      //TODO: agregar i18n para "detener scan ble"
+                      tooltip: localizations.scan,
                       backgroundColor: Theme.of(context).colorScheme.error,
                       onPressed: devicePairingService.cancelScanResultsRefresh,
+                      child: const Icon(Icons.stop),
                     );
                     
                   } else {
                     return FloatingActionButton(
                       tooltip: localizations.scan,
-                      child: const Icon(Icons.search),
                       backgroundColor: (bleIsOn) ? Theme.of(context).colorScheme.primary : Theme.of(context).disabledColor,
                       onPressed: (bleIsOn) 
                           ? () => devicePairingService.refreshScanResults()
                           : null,
+                      child: const Icon(Icons.search),
                     );
                   }
                 }

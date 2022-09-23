@@ -59,39 +59,6 @@ class HydrationRecordService extends ChangeNotifier {
     );
   }
 
-  //TODO: Quitar esta funcion helper temporal.
-  Future<void> insertTestRecords() async {
-
-    final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
-        HydrationRecord.fromMap,
-        HydrationRecord.tableName
-    );
-
-    final existingRecords = List<HydrationRecord>.from(queryResults);
-
-    for (var i = 0; i < existingRecords.length; i++) {
-      await SQLiteDB.instance.delete(HydrationRecord.tableName, existingRecords[i].id);
-    }
-
-    DateTime lastDate = DateTime.now();
-
-    final newRecords = <HydrationRecord>[];
-
-    final rand = Random();
-
-    // Crear registros de hidratacion aleatorios para pruebas.
-    for (var i = 0; i < 20; i++) {
-
-      lastDate = lastDate.subtract(Duration(hours: 8 - rand.nextInt(3)));
-
-      final randRecord = HydrationRecord.random(rand, lastDate, _profileId);
-
-      newRecords.add(randRecord);
-    }
-
-    await saveHydrationRecords(newRecords);
-  }
-
   /// Guarda una coleccion de registros de hidratación en la base de datos.
   Future<List<int>> saveHydrationRecords(List<HydrationRecord> newRecords) async {
     try {

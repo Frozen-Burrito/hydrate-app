@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 
 import 'package:hydrate_app/src/models/hydration_record.dart';
@@ -11,10 +12,14 @@ class HydrateDevice {
 
   /// Crea una nueva instancia de [HydrateDevice] a partir de un 
   /// [BluetoothDevice].
-  HydrateDevice.fromBleDevice(BluetoothDevice device) 
+  HydrateDevice.fromBleDevice(BluetoothDevice device, { bool isAlreadyConnected = false }) 
     : deviceId = device.id,
       name = device.name,
       _underlyingBleDevice = device {
+    _deviceState = isAlreadyConnected 
+      ? BluetoothDeviceState.connected 
+      : BluetoothDeviceState.disconnected;
+
     _underlyingBleDevice.state.listen(_handleDeviceStateChange);
     _hydrationRecordsController.onListen = _addLatestHydrationRecordToStream;
   }
@@ -30,6 +35,7 @@ class HydrateDevice {
 
   Stream<BluetoothDeviceState> get connectionState => _underlyingBleDevice.state;
 
+  bool get isConnected => _deviceState == BluetoothDeviceState.connected;
   bool get isDisconnected => _deviceState == BluetoothDeviceState.disconnected;
 
   Stream<int> get maxTransmissionUnit => _underlyingBleDevice.mtu;
@@ -40,12 +46,16 @@ class HydrateDevice {
   /// Retorna los UUID de 128 bits de cada atributo soportado por este dispositivo.
   Set<String> get supportedAttributesUUIDs => _supportedCharsUUIDs;
 
-  Future<void> connect() {
-    return _underlyingBleDevice.connect();
+  Future<void> connect() async {
+    if (_deviceState == BluetoothDeviceState.disconnected) {
+      await _underlyingBleDevice.connect();
+    }
   }
 
-  Future<void> disconnect() {
-    return _underlyingBleDevice.disconnect();
+  Future<void> disconnect() async {
+    if (_deviceState == BluetoothDeviceState.connected) {
+      await _underlyingBleDevice.disconnect();
+    }
   }
 
   Future<void> changeMaxTransmissionUnit(int newMtu) async {
@@ -70,6 +80,35 @@ class HydrateDevice {
     _temperatureCharUUID: HydrationRecord.temperatureFieldName,
     _timestampCharUUID: HydrationRecord.dateFieldName,
     _batteryChargeCharUUID: HydrationRecord.batteryLvlFieldName,
+  };
+
+  static final Map<String, BytesToValueMapper> _hydrationSvcAttributeMappers = {
+    _mlAmountCharUUID: (List<int> bytes) {
+      return LittleEndianExtractor.extractUint16(bytes);
+    },
+    _temperatureCharUUID: (List<int> bytes) {
+      if (bytes.length == 2) {
+        final parsedTemperature = LittleEndianExtractor.extractInt16(bytes);
+        return parsedTemperature / 100.0;
+      } else {
+        return null;
+      }
+    },  
+    _timestampCharUUID: (List<int> bytes) {
+      if (bytes.isNotEmpty) {
+        final secondsSinceEpoch = LittleEndianExtractor.extractInt64(bytes);
+
+        final msSinceEpoch = min(max((secondsSinceEpoch * 1000), 0), DateTime.now().millisecondsSinceEpoch);
+
+        return DateTime.fromMillisecondsSinceEpoch(msSinceEpoch);
+      } else {
+        return null;
+      }
+    },
+  };
+
+  static final Map<String, BytesToValueMapper> _batterySvcAttributeMappers = {
+    _batteryChargeCharUUID: (List<int> bytes) => LittleEndianExtractor.extractUint8(bytes),
   };
 
   final Set<String> _supportedCharsUUIDs = <String>{ 
@@ -101,6 +140,9 @@ class HydrateDevice {
   static const Duration _immmediateDuration = Duration( milliseconds: 0 );
   static const Duration _delayOnSubsequentReads = Duration( milliseconds: 400 );
   static const Duration _delayBeforeWriteConfirm = Duration( milliseconds: 400 );
+
+  static const String gattReadErrCode = "read_characteristic_error";
+  static const String gattWriteErrCode = "write_characteristic_error";
 
   void _handleDeviceStateChange(BluetoothDeviceState nextConnectionState) {
 
@@ -179,54 +221,70 @@ class HydrateDevice {
 
     await _gattLock.synchronized(() async {
 
-      debugPrint("_gattLock tomado");
+      try {
+        final hydrationData = await _readAttributesFromService(
+          _hydrationService!, 
+          attributes: _hydrationSvcAttributeMappers,
+          startWithDelay: false
+        );
 
-      final hydrationData = await _readAttributesFromService(
-        _hydrationService!, 
-        attributes: {
-          _mlAmountCharUUID: (List<int> bytes) {
-            return LittleEndianExtractor.extractUint16(bytes);
-          },
-          _temperatureCharUUID: (List<int> bytes) {
-            if (bytes.length == 2) {
-              final parsedTemperature = LittleEndianExtractor.extractInt16(bytes);
-              return parsedTemperature / 100.0;
-            } else {
-              return null;
-            }
-          },  
-          _timestampCharUUID: (List<int> bytes) {
-            if (bytes.isNotEmpty) {
-              final secondsSinceEpoch = LittleEndianExtractor.extractInt64(bytes);
+        hydrationRecordData.addAll(hydrationData);
 
-              final msSinceEpoch = min(max((secondsSinceEpoch * 1000), 0), DateTime.now().millisecondsSinceEpoch);
+      } on PlatformException catch (ex) {
+        if (ex.code == gattReadErrCode) {
+          // La conexión con el dispositivo fue perdida, o el dispositivo fue 
+          // desconectado. No es posible sincronizar el registro de hidratación.
+          debugPrint("Connection lost, can't sync hydration");
+          return;
 
-              return DateTime.fromMillisecondsSinceEpoch(msSinceEpoch);
-            }
-          },
-        },
-        startWithDelay: false
-      );
+        } else {
+          debugPrint("""
+            Excepcion no manejada leer el valor de una caracteristica del 
+            servicio (UUID = ${_hydrationService!.uuid}) : $ex
+          """);
+        }
+      }
 
-      hydrationRecordData.addAll(hydrationData);
+      try {
+        final batteryData = await _readAttributesFromService(
+          _batteryService!, 
+          attributes: _batterySvcAttributeMappers,
+          startWithDelay: false
+        );
+      
+        hydrationRecordData.addAll(batteryData);
 
-      final batteryData = await _readAttributesFromService(
-        _batteryService!, 
-        attributes: {
-          _batteryChargeCharUUID: (List<int> bytes) => LittleEndianExtractor.extractUint8(bytes),
-        },
-        startWithDelay: false
-      );
-    
-      hydrationRecordData.addAll(batteryData);
+      } on PlatformException catch (ex) {
+        if (ex.code == gattReadErrCode) {
+          // La conexión con el dispositivo fue perdida, o el dispositivo fue 
+          // desconectado. No es posible sincronizar el registro de hidratación.
+          debugPrint("Connection lost, can't sync hydration");
+          return;
 
-      final newHydrationRecord = HydrationRecord.fromMap(_transformRxMap(hydrationRecordData));
+        } else {
+          debugPrint("""
+            Excepcion no manejada leer el valor de una caracteristica del 
+            servicio (UUID = ${_hydrationService!.uuid}) : $ex
+          """);
+        }
+      }
 
-      await _confirmRecordReceived();
+      final int expectedAttributeCount = _hydrationSvcAttributeMappers.length + _batterySvcAttributeMappers.length;
 
-      _latestHydrationRecord = newHydrationRecord;
+      if (hydrationRecordData.length == expectedAttributeCount) {
+        final newHydrationRecord = HydrationRecord.fromMap(_transformRxMap(hydrationRecordData));
 
-      _addLatestHydrationRecordToStream();
+        await _confirmRecordReceived();
+
+        _latestHydrationRecord = newHydrationRecord;
+
+        _addLatestHydrationRecordToStream();
+      } else {
+        debugPrint("""
+          Warning: missing/exceeding attributes read from services (expected 
+          $expectedAttributeCount, got ${hydrationRecordData.length}
+        """);
+      }
     });
   }
 
@@ -265,8 +323,11 @@ class HydrateDevice {
 
           couldConfirm = true;
 
-        } on Exception catch (ex) {
-          debugPrint("Error al escribir a la caracteristica con UUID = _canSyncRecordCharUUID: $ex");
+        } on PlatformException catch (ex) {
+          if (ex.code != gattWriteErrCode) {
+            debugPrint("Excepcion inesperada al escribir a la caracteristica con UUID = _canSyncRecordCharUUID: $ex");
+          }
+          debugPrint("Error al intentar confirmar sincronizacion.");
           couldConfirm = false;
         }
 
@@ -279,7 +340,7 @@ class HydrateDevice {
 
   Future<Map<String, Object?>> _readAttributesFromService(
     BluetoothService service, { 
-      required Map<String, Object? Function(List<int>)> attributes,
+      required Map<String, BytesToValueMapper> attributes,
       bool startWithDelay = false, 
     }
   ) 
@@ -294,17 +355,12 @@ class HydrateDevice {
         // Solo leer el valor de la caracteristica si esta es soportada.
         charValueBytes.clear();
 
-        try {
-          final Iterable<int> bytesRead = await Future.delayed(
-            (!isFirstRead || startWithDelay) ? _delayOnSubsequentReads : _immmediateDuration,
-            () => characteristic.read()
-          );
+        final Iterable<int> bytesRead = await Future.delayed(
+          (!isFirstRead || startWithDelay) ? _delayOnSubsequentReads : _immmediateDuration,
+          () => characteristic.read()
+        );
 
-          charValueBytes.addAll(bytesRead);
-
-        } on Exception catch (ex) {
-          debugPrint("Error al leer el valor de una caracteristica (UUID = ${characteristic.uuid}) del servicio (UUID = ${service.uuid}) : $ex");
-        }
+        charValueBytes.addAll(bytesRead);
 
         final String charUUID = characteristic.uuid.toString();
         if (attributes.containsKey(charUUID)) {

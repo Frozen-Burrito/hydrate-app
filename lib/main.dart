@@ -24,6 +24,7 @@ Future<void> main() async {
   await Future.wait([
     SettingsService.init(),
     ProfileService.init(),
+    DevicePairingService.init(),
   ]); 
 
   SettingsService().appStartups++;
@@ -85,7 +86,12 @@ class HydrateApp extends StatelessWidget {
 
               final goalProvider = Provider.of<GoalsService>(context, listen: false);
               goalProvider.forProfile(profileProvider.profileId);
-              
+
+              final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
+              devicePairingService.addOnNewHydrationRecordListener("save_records", (hydrationRecord) {
+                hydrationProvider.saveHydrationRecord(hydrationRecord, refreshImmediately: true);
+              });
+
               return MaterialApp(
                 title: "Hydrate App",
                 initialRoute: (settingsProvider.appStartups > 0)

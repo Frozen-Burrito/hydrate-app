@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:hydrate_app/src/models/hydrate_device.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+typedef HydrationRecordCallback = void Function(HydrationRecord);
 
 class DevicePairingService extends ChangeNotifier {
 
@@ -27,7 +30,29 @@ class DevicePairingService extends ChangeNotifier {
     connectedDevicesStream.listen((connectedDevices) { 
       if (connectedDevices.isNotEmpty && _pairedDevice == null) {
         debugPrint("Paired device updated from connectedDevices list");
-        setSelectedDevice(HydrateDevice.fromBleDevice(connectedDevices.first));
+        final hydrateDevice = HydrateDevice.fromBleDevice(
+          connectedDevices.first, 
+          isAlreadyConnected: true
+        );
+
+        setSelectedDevice(hydrateDevice);
+      }
+    });
+
+    scanResults.listen((scanResults) {
+      final bondedDeviceId = getBondedDeviceId();
+      // El dispositivo asociado ya está emparejado.
+      if (bondedDeviceId == _pairedDevice?.deviceId || _hasManuallyDisconnectedFromBondedDevice) {
+        return;
+      }
+
+      final scanResultsMatchingBondedDevice = scanResults
+          .where((scanResult) => scanResult.device.id == bondedDeviceId,);
+
+      if (scanResultsMatchingBondedDevice.length == 1) {
+        debugPrint("Found a scan result that can be paired, based on user preferences");
+        final hydrateDevice = HydrateDevice.fromBleDevice(scanResultsMatchingBondedDevice.first.device);
+        setSelectedDevice(hydrateDevice);
       }
     });
   }
@@ -37,13 +62,29 @@ class DevicePairingService extends ChangeNotifier {
 
   Stream<HydrateDevice?> get selectedDevice => _selectedDeviceController.stream;
 
-  Stream<List<ScanResult>> get scanResults 
-      => FlutterBlue.instance.scanResults.transform(_scanResultsFilter);
+  Stream<List<ScanResult>> get scanResults => _scanResults; 
 
-  final List<void Function(HydrationRecord)> _onNewHydrationListeners = [];
+  final Map<String, StreamSubscription<HydrationRecord>?> _onNewHydrationSubscriptions = {};
+  final Map<String, HydrationRecordCallback> _onNewHydrationListeners = {};
 
-  void addOnNewHydrationRecordListener(void Function(HydrationRecord) hydrationRecordListener) {
-    _onNewHydrationListeners.add(hydrationRecordListener);
+  void addOnNewHydrationRecordListener(String listenerKey, HydrationRecordCallback onNewHydrationRecord) {
+    _onNewHydrationListeners[listenerKey] = onNewHydrationRecord;
+
+    if (_pairedDevice != null && _pairedDevice!.isConnected) {
+      _onNewHydrationSubscriptions[listenerKey] = _pairedDevice?.hydrationRecords
+          .listen(onNewHydrationRecord);
+    } else {
+      _onNewHydrationSubscriptions[listenerKey] = null;
+    }
+
+    debugPrint("New hydration record listener (${_onNewHydrationSubscriptions.length} total): $listenerKey");
+  }
+
+  void removeHydrationRecordListener(String listenerKey) {
+    _onNewHydrationListeners.remove(listenerKey);
+
+    _onNewHydrationSubscriptions[listenerKey]?.cancel();
+    _onNewHydrationSubscriptions.remove(listenerKey);
   }
 
   void refreshScanResults() {
@@ -55,10 +96,25 @@ class DevicePairingService extends ChangeNotifier {
   }
 
   Future<bool> setSelectedDevice(HydrateDevice? newDevice, { bool saveAsBonded = false, }) async {
+    // Ya esta emparejado y seleccionado newDevice, no es necesario hacer nada
+    // mas.
+    if (newDevice == _pairedDevice) return true;
 
     bool wasDeviceSet = false; 
 
     try {
+      // Cancelar todas las subcripciones a eventos de nuevos registros de 
+      // hidratacion con el dipositivo anterior.
+      for (final hydrationRecordListener in _onNewHydrationSubscriptions.entries) { 
+        final listenerKey = hydrationRecordListener.key;
+
+        debugPrint("Canceling subscription of hydration records listener: $listenerKey");
+        _onNewHydrationSubscriptions[listenerKey]?.cancel();
+        _onNewHydrationSubscriptions[listenerKey] = null;
+      }
+
+      _hasManuallyDisconnectedFromBondedDevice = _pairedDevice?.deviceId == getBondedDeviceId();
+
       await _pairedDevice?.disconnect();
 
       if (newDevice != null && newDevice.isDisconnected) {
@@ -75,33 +131,50 @@ class DevicePairingService extends ChangeNotifier {
       debugPrint("New paired device: $_pairedDevice");
 
       if (_pairedDevice != null) {
-        for (final onHydrationRecordCallback in _onNewHydrationListeners) { 
-          debugPrint("Adding hydration records listener: $onHydrationRecordCallback");
-          _pairedDevice!.hydrationRecords.listen(onHydrationRecordCallback);
+        for (final hydrationRecordListener in _onNewHydrationSubscriptions.entries) { 
+          final listenerKey = hydrationRecordListener.key;
+
+          debugPrint("Adding hydration records listener: $listenerKey");
+          _onNewHydrationSubscriptions[listenerKey] = _pairedDevice?.hydrationRecords
+              .listen(_onNewHydrationListeners[listenerKey]!);
         }
       }
 
       wasDeviceSet = true;
 
-    } on Exception catch (ex) {
+    } on PlatformException catch (ex) {
       debugPrint("Error al definir el dispositivo conectado: $ex");
     }
 
     return wasDeviceSet;
   }
 
+  Future<void> enableAutoBondingToPairedDevice() async {
+
+    final deviceId = _pairedDevice?.deviceId;
+
+    if (deviceId != null) {
+      await setBondedDeviceId(deviceId);
+    }
+  }
+
   final StreamController<HydrateDevice?> _selectedDeviceController = StreamController.broadcast();
   final StreamController<bool> _refreshScanResultsController = StreamController.broadcast();
 
-  final ScanResultsTransformer _scanResultsFilter = ScanResultsTransformer();
+  final Stream<List<ScanResult>> _scanResults = FlutterBlue.instance.scanResults.transform(_scanResultsFilter);
+
+  static final ScanResultsTransformer _scanResultsFilter = ScanResultsTransformer();
 
   final bool autoConnectToBondedDevice;
+  bool _hasManuallyDisconnectedFromBondedDevice = false;
 
   HydrateDevice? _pairedDevice;
 
-  final Duration _scanDuration = const Duration(seconds: 4);
+  static const Duration _automaticScanInterval = Duration(seconds: 10);
+  static const Duration _scanDuration = Duration(seconds: 4);
 
   Future<void> _scanForDevices() async {
+    await FlutterBlue.instance.stopScan();
     await FlutterBlue.instance.startScan(timeout: _scanDuration);
   }
 
@@ -118,18 +191,24 @@ class DevicePairingService extends ChangeNotifier {
     _sharedPreferences = await SharedPreferences.getInstance();
   }
 
-  DeviceIdentifier _getBondedDeviceId() {
+  DeviceIdentifier? getBondedDeviceId() {
     final deviceUUID = _sharedPreferences?.getString(_bondedDeviceIdKey) ?? "";
 
-    return DeviceIdentifier(deviceUUID);
+    return deviceUUID.isNotEmpty ? DeviceIdentifier(deviceUUID) : null;
   }
 
-  Future<bool> _setBondedDeviceId(DeviceIdentifier bondedDeviceId) async {
-    final savedBondedId = await _sharedPreferences?.setString(_bondedDeviceIdKey, bondedDeviceId.toString());
-    return savedBondedId ?? false;
+  Future<bool> setBondedDeviceId(DeviceIdentifier bondedDeviceId) async {
+    final savedBondedId = await _sharedPreferences
+      ?.setString(_bondedDeviceIdKey, bondedDeviceId.toString()) ?? false;
+
+
+    if (savedBondedId) {
+      notifyListeners();
+    }
+    return savedBondedId;
   }
 
-  Future<bool> _clearBondedDeviceId() => _setBondedDeviceId(const DeviceIdentifier(""));
+  Future<bool> clearBondedDeviceId() => setBondedDeviceId(const DeviceIdentifier(""));
 
   @override
   bool operator==(covariant DevicePairingService other) {

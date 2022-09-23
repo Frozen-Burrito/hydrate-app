@@ -26,9 +26,9 @@ class CoinDisplay extends StatelessWidget {
             const SizedBox( width: 4.0,),
   
             Consumer<ProfileService>(
-              builder: (_, profileProvider, __) {
+              builder: (_, profileService, __) {
                 return FutureBuilder<UserProfile?>(
-                  future: profileProvider.profile,
+                  future: profileService.profile,
                   builder: (context, snapshot) {
 
                     final int coinCount = snapshot.data?.coins ?? 0;

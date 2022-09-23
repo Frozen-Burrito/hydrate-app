@@ -3,7 +3,7 @@ import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hydrate_app/src/models/hydrate_device.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 
 import 'package:hydrate_app/src/widgets/scan_result_tile.dart';
 import 'package:provider/provider.dart';
@@ -16,11 +16,24 @@ class BleDeviceList extends StatelessWidget {
 
   Future<bool> _handleConnectToDevice(BuildContext context, HydrateDevice device) async {
     final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
-    final hydrationRecordService = Provider.of<HydrationRecordService>(context, listen: false);
-
-    devicePairingService.addOnNewHydrationRecordListener(hydrationRecordService.saveHydrationRecord);
 
     final deviceIsSelected = await devicePairingService.setSelectedDevice(device);
+
+    // Si el usuario se conectó a un dispositivo diferente, y la app tiene 
+    // permiso de administrar Bluetooth sin interacción del usuario, perguntarle
+    // usando un Dialog si desea configurar el emparejamiento automático.
+    if (devicePairingService.getBondedDeviceId() != device.deviceId) {
+      
+      final shouldSetUpAutoconnect = await showDialog(
+        context: context, 
+        builder: (context) => const _PromptAutoconnectDialog()
+      ); 
+
+      if (shouldSetUpAutoconnect) {
+        // El usuario desea activar el emparejamiento automático.
+        devicePairingService.enableAutoBondingToPairedDevice();
+      }
+    }
 
     return deviceIsSelected;
   }
@@ -86,14 +99,13 @@ class BleDeviceList extends StatelessWidget {
                   stream: devicePairingService.selectedDevice,
                   builder: (context, snapshot) {
 
-                    final device = snapshot.data;
+                    if (snapshot.hasData) {
+                      // Hay un dispositivo emparejado actual.
+                      final device = snapshot.data!;
 
-                    if (device != null) {
                       return _DeviceTile(
                         device: device,
-                        onDisconnect: () {
-                          devicePairingService.setSelectedDevice(null);
-                        },
+                        onDisconnect: () => devicePairingService.setSelectedDevice(null),
                         onConnect: () async {
                           final scaffoldMessenger = ScaffoldMessenger.of(context);
 
@@ -104,7 +116,12 @@ class BleDeviceList extends StatelessWidget {
                         },
                       );
                     } else {
-                      return const SizedBox( height: 0.0, );
+                      return const Center(
+                        child: DataPlaceholder(
+                          message: "No has emparejado una extensión Hydrate. Revisa la lista inferior para descubrir dispositivos cercanos.",
+                          icon: Icons.link_off,
+                        ),
+                      );
                     }
                   }
                 );
@@ -174,24 +191,120 @@ class _DeviceTile extends StatelessWidget {
         stream: device.connectionState,
         initialData: BluetoothDeviceState.disconnected,
         builder: (context, snapshot) {
-          if (snapshot.data == BluetoothDeviceState.connected) {
-            return ElevatedButton(
-              child: const Icon(Icons.phonelink_erase),
-              onPressed: onDisconnect, 
-            );
-          } else if (snapshot.data == BluetoothDeviceState.disconnected) {
-            return Tooltip(
-              message: "Reconectar dispositivo",
-              child: ElevatedButton(
-                child: const Icon(Icons.phonelink_ring),
-                onPressed: onConnect, 
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Consumer<DevicePairingService>(
+                builder: (_, devicePairingService, __) {
+
+                  final bondedDeviceId = devicePairingService.getBondedDeviceId();
+                  final bondedDeviceIsThisDevice = device.deviceId == bondedDeviceId;
+
+                  if (bondedDeviceIsThisDevice) {
+                    return Tooltip(
+                      message: "Olvidar dispositivo",
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.orangeAccent.shade400,
+                        ),
+                        onPressed: () => devicePairingService.clearBondedDeviceId(), 
+                        child: const Icon(Icons.highlight_off),
+                      ),
+                    );
+                  } else {
+                    return Tooltip(
+                      message: "Activar conexión automática",
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.green.shade400,
+                        ),
+                        onPressed: () => devicePairingService.setBondedDeviceId(device.deviceId),
+                        child: const Icon(Icons.auto_awesome),
+                      ),
+                    );
+                  }
+                }
               ),
-            );
-          } else {
-            return const CircularProgressIndicator();
-          }
+
+              const SizedBox( width: 8.0, ),
+
+              _ConnectDisconnectButton(
+                deviceState: snapshot.data ?? BluetoothDeviceState.disconnected,
+                onConnect: onConnect,
+                onDisconnect: onDisconnect,
+              ),
+            ],
+          );
         },
       ),
+    );
+  }
+} 
+
+class _ConnectDisconnectButton extends StatelessWidget {
+
+  const _ConnectDisconnectButton({
+    Key? key,
+    required this.deviceState, 
+    this.onConnect, 
+    this.onDisconnect,
+  }) : super(key: key);
+
+  final BluetoothDeviceState deviceState;
+
+  final void Function()? onConnect;
+  final void Function()? onDisconnect;
+
+  @override
+  Widget build(BuildContext context) {
+    //TODO: Agregar i18n
+    if (deviceState == BluetoothDeviceState.connected) {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          primary: Colors.red.shade400
+        ),
+        child: const Icon(Icons.phonelink_erase),
+        onPressed: onDisconnect, 
+      );
+    } else if (deviceState == BluetoothDeviceState.disconnected) {
+      return Tooltip(
+        message: "Reconectar dispositivo",
+        child: ElevatedButton(
+          child: const Icon(Icons.phonelink_ring),
+          onPressed: onConnect, 
+        ),
+      );
+    } else {
+      return const CircularProgressIndicator();
+    }
+  }
+}
+
+class _PromptAutoconnectDialog extends StatelessWidget {
+
+  const _PromptAutoconnectDialog({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    //TODO: Agregar i18n.
+    return AlertDialog(
+      title: const Text("¿Configurar conexión automática?"),
+      content: const Text("El dispositivo ha sido emparejado. ¿Deseas que la app intente conectarse a él de manera automática en el futuro?"),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(false);
+          },
+          child: const Text("No"),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
+          child: const Text("Sí"),
+        ),
+      ],
     );
   }
 }
