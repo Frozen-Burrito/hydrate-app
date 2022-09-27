@@ -22,4 +22,8 @@ class LittleEndianExtractor {
     final data = ByteData.view(Uint8List.fromList(bytes).buffer);
     return data.getInt64(0, Endian.little);
   }
+
+  static List<int> int64ToBytes(final int value) {
+    return Uint8List(8)..buffer.asByteData().setInt64(0, value, Endian.little);
+  }
 }

@@ -3,16 +3,16 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:synchronized/synchronized.dart';
 
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/utils/little_endian_extractor.dart';
-import 'package:synchronized/synchronized.dart';
 
 class HydrateDevice {
 
   /// Crea una nueva instancia de [HydrateDevice] a partir de un 
   /// [BluetoothDevice].
-  HydrateDevice.fromBleDevice(BluetoothDevice device, { bool isAlreadyConnected = false }) 
+  HydrateDevice._internal(BluetoothDevice device, { bool isAlreadyConnected = false }) 
     : deviceId = device.id,
       name = device.name,
       _underlyingBleDevice = device {
@@ -20,8 +20,14 @@ class HydrateDevice {
       ? BluetoothDeviceState.connected 
       : BluetoothDeviceState.disconnected;
 
-    _underlyingBleDevice.state.listen(_handleDeviceStateChange);
     _hydrationRecordsController.onListen = _addLatestHydrationRecordToStream;
+  }
+
+  factory HydrateDevice.fromBleDevice(BluetoothDevice device, { bool isAlreadyConnected = false }) {
+    return _bleDevices.putIfAbsent(
+      device.id, 
+      () => HydrateDevice._internal(device, isAlreadyConnected: isAlreadyConnected),
+    );
   }
 
   /// El identificador único del dispositivo. Está basado en el ID de BLE.
@@ -48,6 +54,7 @@ class HydrateDevice {
 
   Future<void> connect() async {
     if (_deviceState == BluetoothDeviceState.disconnected) {
+      _deviceStateSubscription = _underlyingBleDevice.state.listen(_handleDeviceStateChange);
       await _underlyingBleDevice.connect();
     }
   }
@@ -55,6 +62,8 @@ class HydrateDevice {
   Future<void> disconnect() async {
     if (_deviceState == BluetoothDeviceState.connected) {
       await _underlyingBleDevice.disconnect();
+      _deviceStateSubscription?.cancel();
+      _deviceState = BluetoothDeviceState.disconnected;
     }
   }
 
@@ -66,14 +75,23 @@ class HydrateDevice {
     }
   }
 
+  // UUIDs del servicio de hidratación y sus características.
   static const String hydrationSvcUUID = "000019f5-0000-1000-8000-00805f9b34fb";
-  static const String _batterySvcUUID = "0000180f-0000-1000-8000-00805f9b34fb";
 
   static const String _mlAmountCharUUID = "0faf892c-0000-1000-8000-00805f9b34fb";
   static const String _temperatureCharUUID = "00002a6e-0000-1000-8000-00805f9b34fb";
   static const String _timestampCharUUID = "00000fff-0000-1000-8000-00805f9b34fb";
   static const String _canSyncRecordCharUUID = "0faf892f-0000-1000-8000-00805f9b34fb";
+
+  // UUIDs del servicio de batería y sus características.
+  static const String _batterySvcUUID = "0000180f-0000-1000-8000-00805f9b34fb";
+
   static const String _batteryChargeCharUUID = "00002a19-0000-1000-8000-00805f9b34fb";
+
+  // UUIDs del servicio de fecha del dispositivo y sus características.
+  static const String _deviceTimeSvcUUID = "00001847-0000-1000-8000-00805f9b34fb";
+
+  static const String _deviceTimeCharUUID = "00002b90-0000-1000-8000-00805f9b34fb";
 
   static const Map<String, String> recordUUIDsToAttributes = {
     _mlAmountCharUUID: HydrationRecord.amountFieldName,
@@ -111,12 +129,27 @@ class HydrateDevice {
     _batteryChargeCharUUID: (List<int> bytes) => LittleEndianExtractor.extractUint8(bytes),
   };
 
+  static final Map<String, BytesToValueMapper> _deviceTimeSvcAttributeMappers = {
+    _deviceTimeCharUUID: (List<int> bytes) {
+      if (bytes.isNotEmpty) {
+        final secondsSinceEpoch = LittleEndianExtractor.extractInt64(bytes);
+
+        final msSinceEpoch = max((secondsSinceEpoch * 1000), 0);
+
+        return DateTime.fromMillisecondsSinceEpoch(msSinceEpoch);
+      } else {
+        return null;
+      }
+    },
+  };
+
   final Set<String> _supportedCharsUUIDs = <String>{ 
     _mlAmountCharUUID,
     _temperatureCharUUID,
     _timestampCharUUID,
     _canSyncRecordCharUUID,
     _batteryChargeCharUUID,
+    _deviceTimeCharUUID,
   };
 
   final Set<String> _charsWithNotifySupport = <String>{ _canSyncRecordCharUUID };
@@ -128,14 +161,21 @@ class HydrateDevice {
 
   BluetoothDeviceState _deviceState = BluetoothDeviceState.disconnected;
 
+  StreamSubscription<BluetoothDeviceState>? _deviceStateSubscription;
+
   HydrationRecord? _latestHydrationRecord;
 
   final List<BluetoothService> _allServices = <BluetoothService>[];
 
   BluetoothService? _hydrationService;
   BluetoothService? _batteryService;
+  BluetoothService? _deviceTimeService;
 
   final Lock _gattLock = Lock();
+
+  static final Map<DeviceIdentifier, HydrateDevice> _bleDevices = {};
+
+  static const Duration _minDiffToAdjustDevicetime = Duration( seconds: 10 );
 
   static const Duration _immmediateDuration = Duration( milliseconds: 0 );
   static const Duration _delayOnSubsequentReads = Duration( milliseconds: 400 );
@@ -145,6 +185,13 @@ class HydrateDevice {
   static const String gattWriteErrCode = "write_characteristic_error";
 
   void _handleDeviceStateChange(BluetoothDeviceState nextConnectionState) {
+
+    if (_deviceState == nextConnectionState) {
+      debugPrint("Ignoring state transition, state and new state are the same.");
+      return;
+    }
+
+    print("New device state (deviceId = $deviceId): $nextConnectionState");
 
     _deviceState = nextConnectionState;
 
@@ -171,12 +218,18 @@ class HydrateDevice {
     // Descubrir los servicios y luego actualizarlos.
     _onServicesDiscovered(await _underlyingBleDevice.discoverServices());
 
+    if (_deviceTimeService != null) {
+      await _adjustDeviceTime();
+    }
+
     if (_hydrationService != null) {
       // Activar las notificaciones en ciertas caracteristicas/
       for (final characteristic in _hydrationService!.characteristics) {
 
         if (_canSetNotifyValue(characteristic)) {
+          debugPrint("About to take lock ${_gattLock.hashCode} to set notify value");
           await _gattLock.synchronized(() async {
+            debugPrint("gattLock taken to set notify value");
             try {
               await Future.delayed(
                 _delayOnSubsequentReads, 
@@ -199,6 +252,85 @@ class HydrateDevice {
   Future<void> _onDeviceDisconnected() async {
     await _onRecordAvailableSubscription?.cancel();
     _onRecordAvailableSubscription = null;
+  }
+
+  Future<void> _adjustDeviceTime() async {
+    DateTime? now;
+    final Map<String, Object?> deviceTimeData = {};
+
+    debugPrint("About to take lock ${_gattLock.hashCode} to adjust device time");
+
+    await _gattLock.synchronized(() async {
+
+      debugPrint("gattLock taken to adjust device time");
+
+      try {
+        final deviceTimeValues = await _readAttributesFromService(
+          _deviceTimeService!, 
+          attributes: _deviceTimeSvcAttributeMappers,
+          startWithDelay: true
+        );
+
+        now = DateTime.now();
+
+        deviceTimeData.addAll(deviceTimeValues);
+
+      } on PlatformException catch (ex) {
+        if (ex.code == gattReadErrCode) {
+          // La conexión con el dispositivo fue perdida, o el dispositivo fue 
+          // desconectado. No es posible sincronizar el registro de hidratación.
+          debugPrint("Connection lost, unable to obtain device time");
+          return;
+
+        } else {
+          debugPrint("""
+            Excepcion no manejada leer el valor de una caracteristica del 
+            servicio (UUID = ${_hydrationService!.uuid}) : $ex
+          """);
+        }
+      }
+
+      debugPrint("Device time data: $deviceTimeData");
+
+      if (deviceTimeData.containsKey(_deviceTimeCharUUID) && now != null) {
+        final DateTime? deviceTime = (deviceTimeData[_deviceTimeCharUUID] as DateTime?);
+
+        final absDeviceTimeDiff = deviceTime?.difference(now!).inSeconds.abs() ?? 0;
+
+        if (absDeviceTimeDiff >= _minDiffToAdjustDevicetime.inSeconds) {
+          // Es necesario ajustar la fecha del dispositivo Hydrate.
+          for (final characteristic in _deviceTimeService!.characteristics) {
+            if (characteristic.uuid.toString() == _deviceTimeCharUUID) {
+
+              final int secondsSinceEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+              final List<int> secondsSinceEpochBytes = LittleEndianExtractor.int64ToBytes(secondsSinceEpoch);
+
+              debugPrint("Seconds since unix epoch: $secondsSinceEpoch, byte value: $secondsSinceEpochBytes");
+
+              try {
+                await Future.delayed(
+                  _delayOnSubsequentReads,
+                  () => characteristic.write(
+                    secondsSinceEpochBytes, 
+                    withoutResponse: false
+                  ),
+                );
+
+              } on PlatformException catch (ex) {
+                if (ex.code == gattWriteErrCode) {
+                  debugPrint("Error al intentar ajustar la fecha del dispositivo: $ex");
+                } else {
+                  debugPrint("Excepcion inesperada al escribir a la caracteristica con UUID = _deviceTimeCharUUID: $ex");
+                }
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      debugPrint("gattLock about to be released");
+    });
   }
 
   Future<void> _onHydrationRecordAvailable(List<int> isRecordAvailableBytes) async {
@@ -225,7 +357,7 @@ class HydrateDevice {
         final hydrationData = await _readAttributesFromService(
           _hydrationService!, 
           attributes: _hydrationSvcAttributeMappers,
-          startWithDelay: false
+          startWithDelay: true
         );
 
         hydrationRecordData.addAll(hydrationData);
@@ -249,7 +381,7 @@ class HydrateDevice {
         final batteryData = await _readAttributesFromService(
           _batteryService!, 
           attributes: _batterySvcAttributeMappers,
-          startWithDelay: false
+          startWithDelay: true
         );
       
         hydrationRecordData.addAll(batteryData);
@@ -293,6 +425,7 @@ class HydrateDevice {
   void _onServicesDiscovered(List<BluetoothService> services) {
     _hydrationService = null;
     _batteryService = null;
+    _deviceTimeService = null;
 
     _allServices.clear();
     _allServices.addAll(services);
@@ -304,6 +437,9 @@ class HydrateDevice {
           break;
         case _batterySvcUUID:
           _batteryService = service;
+          break;
+        case _deviceTimeSvcUUID:
+          _deviceTimeService = service;
           break;
       }
     }
@@ -368,7 +504,7 @@ class HydrateDevice {
           // caracteristica y almacenarlo en outputMap.
           outputMap[charUUID] = attributes[charUUID]!.call(charValueBytes);
         }
-      }  
+      }
     }
 
     return outputMap;
@@ -425,5 +561,38 @@ class HydrateDevice {
   }
   
   @override
-  int get hashCode => deviceId.hashCode;
+  int get hashCode => Object.hashAll([
+    deviceId,
+    _gattLock,
+  ]);
+}
+
+class DeviceStateSink implements EventSink<BluetoothDeviceState> {
+
+  DeviceStateSink(this._outputSink);
+  
+  final EventSink<BluetoothDeviceState> _outputSink;
+
+  BluetoothDeviceState? _previousDeviceState;
+
+  @override
+  void add(BluetoothDeviceState newDeviceState) {
+    if (newDeviceState != _previousDeviceState) {
+      _previousDeviceState = newDeviceState;
+      _outputSink.add(newDeviceState);
+    }
+  }
+
+  @override
+  void addError(e, [st]) { _outputSink.addError(e, st); }
+  @override
+  void close() { _outputSink.close(); }
+}
+
+class DeviceStateTransformer extends StreamTransformerBase<BluetoothDeviceState, BluetoothDeviceState> {
+
+  @override
+  Stream<BluetoothDeviceState> bind(Stream<BluetoothDeviceState> stream) => Stream<BluetoothDeviceState>.eventTransformed(
+      stream,
+      (EventSink<BluetoothDeviceState> sink) => DeviceStateSink(sink));
 }

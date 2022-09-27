@@ -36,10 +36,13 @@ class DevicePairingService extends ChangeNotifier {
         );
 
         setSelectedDevice(hydrateDevice);
+      } else if (connectedDevices.isEmpty && _pairedDevice != null && _pairedDevice!.isDisconnected) {
+        debugPrint("No devices connected, selectedDevice set to null");
+        // setSelectedDevice(null);
       }
     });
 
-    scanResults.listen((scanResults) {
+    scanResults.listen((scanResults) async {
       final bondedDeviceId = getBondedDeviceId();
       // El dispositivo asociado ya está emparejado.
       if (bondedDeviceId == _pairedDevice?.deviceId || _hasManuallyDisconnectedFromBondedDevice) {
@@ -52,7 +55,7 @@ class DevicePairingService extends ChangeNotifier {
       if (scanResultsMatchingBondedDevice.length == 1) {
         debugPrint("Found a scan result that can be paired, based on user preferences");
         final hydrateDevice = HydrateDevice.fromBleDevice(scanResultsMatchingBondedDevice.first.device);
-        setSelectedDevice(hydrateDevice);
+        await setSelectedDevice(hydrateDevice);
       }
     });
   }
@@ -108,7 +111,7 @@ class DevicePairingService extends ChangeNotifier {
       for (final hydrationRecordListener in _onNewHydrationSubscriptions.entries) { 
         final listenerKey = hydrationRecordListener.key;
 
-        debugPrint("Canceling subscription of hydration records listener: $listenerKey");
+        debugPrint("Cancelling subscription of hydration records listener: $listenerKey");
         _onNewHydrationSubscriptions[listenerKey]?.cancel();
         _onNewHydrationSubscriptions[listenerKey] = null;
       }
