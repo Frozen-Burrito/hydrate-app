@@ -230,6 +230,33 @@ class SettingsItems extends StatelessWidget {
           ),
 
           const Divider( height: 1.0, ),
+          Padding(
+            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
+            child: StreamBuilder<bool>(
+              stream: _editSettings.isGoogleFitIntegrated,
+              initialData: currentSettings.isGoogleFitIntegrated,
+              builder: (context, snapshot) {
+
+                final isGoogleFitIntegrationEnabled = snapshot.data ?? false;
+
+                return SwitchListTile(
+                  secondary: const Icon(
+                    Icons.fitness_center, 
+                    size: 24.0, 
+                  ),
+                  //TODO: agregar i18n.
+                  title: Text("Conectar apps de salud"),
+                  subtitle: Text("Integra Hydrate con Google Fit"),
+                  value: isGoogleFitIntegrationEnabled,
+                  onChanged: (bool value) {
+                    _editSettings.isGoogleFitIntegratedSink.add(value);
+                  },
+                );
+              }
+            ),
+          ),
+
+          const Divider( height: 1.0, ),
           _UrlListTile(
             title: localizations.sendComments, 
             leadingIcon: Icons.question_answer,

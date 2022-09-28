@@ -1,41 +1,42 @@
 {
   "project_info": {
-    "project_number": "432198579055",
-    "project_id": "hydrate-service",
-    "storage_bucket": "hydrate-service.appspot.com"
+    "project_number": "845399101862",
+    "project_id": "hydrate-349220",
+    "storage_bucket": "hydrate-349220.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:432198579055:android:2677ec57d0e71b707c6e9a",
+        "mobilesdk_app_id": "1:845399101862:android:f96e877ce5bb2a9c0fff67",
         "android_client_info": {
           "package_name": "com.ceti.fernando.hydrate"
         }
       },
       "oauth_client": [
         {
-          "client_id": "432198579055-bubn8t46ad9kvd0j55ndaksoitm34riq.apps.googleusercontent.com",
+          "client_id": "845399101862-05j142vf3o72u5pbfod1er178dgcde9e.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ceti.fernando.hydrate",
+            "certificate_hash": "a46d2c734e2577cc466ff43c4deba9a2bd95b70b"
+          }
+        },
+        {
+          "client_id": "845399101862-pun774h7sia2f41708prpsmlfu6d61to.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCyYxhyZPFefFleVg_hZPShf0YSCLU0ZIo"
+          "current_key": "AIzaSyDrJLzkFcotzSu_GCPjjbEeX52X7_mRe2g"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "432198579055-bubn8t46ad9kvd0j55ndaksoitm34riq.apps.googleusercontent.com",
+              "client_id": "845399101862-pun774h7sia2f41708prpsmlfu6d61to.apps.googleusercontent.com",
               "client_type": 3
-            },
-            {
-              "client_id": "432198579055-veprhik3fbv0k240m38j1n81bfmjf0fv.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.hydrateApp"
-              }
             }
           ]
         }

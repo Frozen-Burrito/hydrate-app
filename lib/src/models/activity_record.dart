@@ -299,7 +299,10 @@ class ActivityRecord extends SQLiteModel {
 
   bool get isExhausting => (duration > 60 * 5 || distance > 20 || kiloCaloriesBurned > 2000);
 
+  int get durationInNanoseconds => duration * 60 * 1000000000;
+
   /// Calcula la cantidad de monedas de recompensa por realizar esta actividad.
+  //TODO: otorgar recompensa acorde a la actividad.
   int get coinReward => 50;
 
   String get formattedDuration => "$duration min.";

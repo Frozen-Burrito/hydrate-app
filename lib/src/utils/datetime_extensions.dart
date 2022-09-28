@@ -27,6 +27,29 @@ extension DateTimeExtensions on DateTime {
     return isAfter(begin) && isBefore(end);
   }
 
+  int get nanosecondsSinceEpoch => microsecondsSinceEpoch * 1000;
+
+  String toRfc3999String() {
+
+    final hoursOffset = timeZoneOffset.inHours;
+    final offsetInMinutes = timeZoneOffset.inMinutes;
+
+    final strBuf = StringBuffer();
+
+    strBuf.write(hoursOffset.isNegative ? "-" : "+");
+    strBuf.write(hoursOffset.abs().toString().padLeft(2, "0"));
+    strBuf.write(":");
+    strBuf.write((offsetInMinutes % (hoursOffset * 60)).toString().padLeft(2, "0"));
+
+    final strTimeZoneOffset = strBuf.toString();
+
+    assert(strTimeZoneOffset.characters.length == 6, "RFC3999 Format error: time zone offset has incorrect length");
+
+    final isoSeconds = toIso8601String().split(".").first;
+
+    return isoSeconds + strTimeZoneOffset;
+  }
+
   /// Produce un string legible por humanos, localizado a la región y zona horaria
   /// del usuario.
   String get toLocalizedDateTime {

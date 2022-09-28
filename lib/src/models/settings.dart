@@ -7,7 +7,8 @@ class Settings {
     this.appThemeMode, 
     this.allowedNotifications, 
     this.shouldContributeData, 
-    this.areWeeklyFormsEnabled
+    this.areWeeklyFormsEnabled,
+    this.isGoogleFitIntegrated,
   ); 
 
   factory Settings.defaults() {
@@ -15,7 +16,8 @@ class Settings {
       ThemeMode.light,
       NotificationTypes.disabled,
       false, 
-      false
+      false,
+      false,
     );
   }
 
@@ -24,12 +26,14 @@ class Settings {
     other.allowedNotifications, 
     other.shouldContributeData, 
     other.areWeeklyFormsEnabled,
+    other.isGoogleFitIntegrated,
   );
 
   ThemeMode appThemeMode;
   NotificationTypes allowedNotifications;
   bool shouldContributeData; 
   bool areWeeklyFormsEnabled;
+  bool isGoogleFitIntegrated;
 
   @override
   String toString() {
@@ -41,6 +45,7 @@ class Settings {
     strBuf.writeAll(["allowedNotifications: ", allowedNotifications, ", "]);
     strBuf.writeAll(["shouldContributeData: ", shouldContributeData, ", "]);
     strBuf.writeAll(["areWeeklyFormsEnabled: ", areWeeklyFormsEnabled, ", "]);
+    strBuf.writeAll(["isGoogleFitIntegrated: ", isGoogleFitIntegrated, ", "]);
 
     strBuf.write("}");
 
@@ -54,9 +59,10 @@ class Settings {
     final areNotifsEqual = allowedNotifications == other.allowedNotifications;
     final areDataContributionsEqual = shouldContributeData == other.shouldContributeData;
     final bothHaveWeeklyForms = areWeeklyFormsEnabled == other.areWeeklyFormsEnabled;
+    final bothAreIntegratedWithFit = isGoogleFitIntegrated == other.isGoogleFitIntegrated;
 
     return areThemesEqual && areNotifsEqual && areDataContributionsEqual 
-        && bothHaveWeeklyForms;
+        && bothHaveWeeklyForms && bothAreIntegratedWithFit;
   }
 
   @override 
@@ -65,5 +71,6 @@ class Settings {
     allowedNotifications,
     shouldContributeData,
     areWeeklyFormsEnabled,
+    isGoogleFitIntegrated,
   ]);
 }

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:hydrate_app/src/utils/background_tasks.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,6 +32,7 @@ class SettingsService with ChangeNotifier {
     notificationSettings,
     isSharingData,
     areWeeklyFormsEnabled,
+    isGoogleFitIntegrated,
   );
 
   void setCurrentSettings(Settings changes, int profileId, { String userAccountId = "" }) {
@@ -40,6 +42,7 @@ class SettingsService with ChangeNotifier {
       notificationSettings,
       isSharingData,
       areWeeklyFormsEnabled,
+      isGoogleFitIntegrated,
     );
 
     final hasThemeChanged = currentSettings.appThemeMode != changes.appThemeMode;
@@ -68,6 +71,18 @@ class SettingsService with ChangeNotifier {
 
     if (hasWeeklyFormsChanged) {
       areWeeklyFormsEnabled = changes.areWeeklyFormsEnabled;
+    }
+
+    final hasIntegrationWithGoogleFitChanged = currentSettings.isGoogleFitIntegrated != changes.isGoogleFitIntegrated;
+
+    if (hasIntegrationWithGoogleFitChanged) {
+      isGoogleFitIntegrated = changes.isGoogleFitIntegrated;
+
+      if (changes.isGoogleFitIntegrated) {
+        GoogleFitService.instance.signInWithGoogle();
+      } else {
+        GoogleFitService.instance.disableDataCollection();
+      }
     }
 
     final hasDataContributionChanged = currentSettings.shouldContributeData != changes.shouldContributeData;
@@ -111,6 +126,7 @@ class SettingsService with ChangeNotifier {
   static const String contributeDataKey = "aportarDatos";
   static const String weeklyFormsEnabledKey = "formRecurrentes";
   static const String allowedNotificationsKey = "notificaciones";
+  static const String isIntegratedWithGoogleFitKey = "google_fit_conectado";
   static const String localeCodeKey = "codigoFormato";
   static const String deviceIdKey = "idDispositivo";
   static const String appStartupCountKey = "inicios_app";
@@ -148,6 +164,18 @@ class SettingsService with ChangeNotifier {
   /// Guarda en Shared Preferences una nueva configuración de formularios semanales.
   set areWeeklyFormsEnabled (bool formsEnabled) {
     _sharedPreferences?.setBool(weeklyFormsEnabledKey, formsEnabled);
+  }
+
+  /// La configuración del usuario para la integración de la app con Google Fit.
+  /// 
+  /// Es [true] si la app está integrada con Google Fit, [false] por el contrario. 
+  /// Por defecto es [false].
+  bool get isGoogleFitIntegrated => _sharedPreferences?.getBool(isIntegratedWithGoogleFitKey) ?? false;
+
+  /// Guarda en Shared Preferences una nueva configuración para la integración 
+  /// de la app con Google Fit.
+  set isGoogleFitIntegrated (bool integratedWithFit) {
+    _sharedPreferences?.setBool(isIntegratedWithGoogleFitKey, integratedWithFit);
   }
 
   /// Obtiene de Shared Preferences los tipos de notificaciones que ha activado 

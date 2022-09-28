@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
@@ -76,7 +78,7 @@ class HydrateApp extends StatelessWidget {
       child: Consumer<ProfileService>(
         builder: (_, profileProvider, __) {
           return Consumer<SettingsService>(
-            builder: (context, settingsProvider, __) {
+            builder: (context, settingsService, __) {
 
               final activityProvider = Provider.of<ActivityService>(context, listen: false);
               activityProvider.forProfile(profileProvider.profileId);
@@ -92,15 +94,25 @@ class HydrateApp extends StatelessWidget {
                 hydrationProvider.saveHydrationRecord(hydrationRecord, refreshImmediately: true);
               });
 
+              GoogleFitService.instance.hydrateProfileId = profileProvider.profileId;
+
+              if (settingsService.isGoogleFitIntegrated && profileProvider.profileId != UserProfile.defaultProfileId) {
+                GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
+                  GoogleFitService.instance.syncActivitySessions().then((totalSyncSessions) {
+                    debugPrint("$totalSyncSessions sessions were synchronized with Google Fit");
+                  });
+                });
+              }
+
               return MaterialApp(
                 title: "Hydrate App",
-                initialRoute: (settingsProvider.appStartups > 0)
+                initialRoute: (settingsService.appStartups > 0)
                   ? RouteNames.home
                   : RouteNames.initialForm,
                 // Configuracion del tema de color.
                 theme: AppThemes.appLightTheme,
                 darkTheme: AppThemes.appDarkTheme,
-                themeMode: settingsProvider.appThemeMode,
+                themeMode: settingsService.appThemeMode,
                 // Rutas de la app
                 routes: Routes.appRoutes,
                 onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),

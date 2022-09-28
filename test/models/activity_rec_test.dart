@@ -4,6 +4,7 @@ import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/validators/activity_validator.dart';
+import 'package:hydrate_app/src/utils/google_fit_activity_type.dart';
 
 void main() {
 
@@ -13,7 +14,7 @@ void main() {
       final tomorrowWithSmallDiff = DateTime.now()
           .add(const Duration( days: 1, minutes: 9));
 
-      final walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2);
+      final walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2, googleFitActivityType: GoogleFitActivityType.walking);
 
       final activityA = ActivityRecord(
         title: '', 
@@ -45,7 +46,7 @@ void main() {
       final differentDate = DateTime.now()
         .subtract(const Duration( days: 3, hours: 8, minutes: 15));
 
-      final walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2);
+      final walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2, googleFitActivityType: GoogleFitActivityType.walking);
 
       final activityA = ActivityRecord(
         title: '', 

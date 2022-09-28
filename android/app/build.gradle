@@ -23,6 +23,7 @@ if (flutterVersionName == null) {
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.google.gms.google-services'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 def keystoreProperties = new Properties()
@@ -69,7 +70,7 @@ android {
            signingConfig signingConfigs.release
            shrinkResources true
            minifyEnabled true
-           proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+           proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
        }
    }
 }
@@ -79,6 +80,11 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation "androidx.core:core-splashscreen:1.0.0-beta02"
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version'
+    implementation 'androidx.core:core-splashscreen:1.0.0-beta02'
+    implementation platform('com.google.firebase:firebase-bom:30.4.1')
+    implementation 'com.google.firebase:firebase-analytics-ktx'
+    implementation 'com.google.firebase:firebase-messaging-ktx'
+    implementation 'com.google.android.gms:play-services-fitness:21.1.0'
+    implementation 'com.google.android.gms:play-services-auth:20.3.0'
 }

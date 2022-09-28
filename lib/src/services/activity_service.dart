@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
@@ -58,6 +61,8 @@ class ActivityService extends ChangeNotifier {
   final RoutineActivities _routineActivities = RoutineActivities.empty();
 
   final Map<DateTime, List<RoutineOccurrence>> _activitiesByDay = {};
+
+  static const int maxHealthDataPointsPerFetch = 100;
 
   /// Es [true] si el provider está cargando los [ActivityRecords].
   bool get hasActivityData => _activitiesCache.hasData;
