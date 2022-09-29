@@ -115,7 +115,7 @@ class SettingsService with ChangeNotifier {
     // Solo notificar a los listeners cuando realmente sucedieron cambios
     // de configuración.
     if (hasThemeChanged || hasNotificationsChanged || 
-        hasDataContributionChanged || hasWeeklyFormsChanged) {
+        hasDataContributionChanged || hasWeeklyFormsChanged || hasIntegrationWithGoogleFitChanged) {
       notifyListeners();
     }
   }

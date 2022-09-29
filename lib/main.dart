@@ -80,6 +80,9 @@ class HydrateApp extends StatelessWidget {
           return Consumer<SettingsService>(
             builder: (context, settingsService, __) {
 
+              final bool isGoogleFitIntegrated = settingsService.isGoogleFitIntegrated && 
+                  profileProvider.profileId != UserProfile.defaultProfileId;
+
               final activityProvider = Provider.of<ActivityService>(context, listen: false);
               activityProvider.forProfile(profileProvider.profileId);
 
@@ -94,10 +97,18 @@ class HydrateApp extends StatelessWidget {
                 hydrationProvider.saveHydrationRecord(hydrationRecord, refreshImmediately: true);
               });
 
-              GoogleFitService.instance.hydrateProfileId = profileProvider.profileId;
+              if (isGoogleFitIntegrated) {
+                GoogleFitService.instance.hydrateProfileId = profileProvider.profileId;
 
-              if (settingsService.isGoogleFitIntegrated && profileProvider.profileId != UserProfile.defaultProfileId) {
+                GoogleFitService.instance.signInWithGoogle();
+
                 GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
+
+                  devicePairingService.addOnNewHydrationRecordListener(
+                    "sync_hydration_to_fit", 
+                    GoogleFitService.instance.addHydrationRecordToSyncQueue
+                  );
+
                   GoogleFitService.instance.syncActivitySessions().then((totalSyncSessions) {
                     debugPrint("$totalSyncSessions sessions were synchronized with Google Fit");
                   });

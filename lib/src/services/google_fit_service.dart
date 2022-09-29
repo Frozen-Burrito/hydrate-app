@@ -13,6 +13,7 @@ import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/google_fit_activity_type.dart';
 
@@ -35,9 +36,14 @@ class GoogleFitService {
 
   AuthClient? _underlyingAuthClient;
 
+  String? _hydrationDataStreamId;
+
   //TODO: obtener la fecha de la sincronizacion mas reciente de FitnessData, para
   // solo obtener los datos a partir de esa fecha.
   DateTime? _tempStartTime;
+  DateTime? _tempLatestHydrationSyncTime;
+
+  List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
 
   static final List<int> _supportedFitnessApiActTypes = [
     GoogleFitActivityType.unknown,
@@ -55,6 +61,8 @@ class GoogleFitService {
   static const List<String> scopes = <String>[
     FitnessApi.fitnessActivityReadScope,
     FitnessApi.fitnessBodyReadScope,
+    FitnessApi.fitnessNutritionReadScope,
+    FitnessApi.fitnessNutritionWriteScope,
   ];
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -67,13 +75,39 @@ class GoogleFitService {
   static const String _currentUserId = "me";
 
   static const String _caloriesBurnedDataTypeName = "com.google.calories.expended";
+  static const String _hydrationDataTypeName = "com.google.hydration";
+  
+  static final DataType _hydrationDataType = DataType(
+    name: _hydrationDataTypeName,
+    field: <DataTypeField>[
+      DataTypeField(
+        name: "volume",
+        format: "floatPoint",
+        optional: false,
+      )
+    ]
+  );
+
+  static const String _hydrateHydrationDataSourceName = "HydrateAppHydration";
 
   static const String _mergeCaloriesExpDataStreamId = "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended";
   static const String _userInputCaloriesExpDataStreamId = "raw:com.google.calories.expended:com.google.android.apps.fitness:user_input";
 
+  static const String _rawDataSourceType = "raw";
+
+  static const String _dataStreamIdField = "dataStreamId";
+  static const String _dataSourceStreamIdFieldAndName = "dataSource.$_dataStreamIdField,dataSource.dataStreamName,dataSource.type";
   static const String _sessionListFields = "session.id,session.name,session.startTimeMillis,session.endTimeMillis,session.activityType,session.activeTimeMillis,session.modifiedTimeMillis";
 
   static const int _caloriesDataPointsLimitPerResponse = 50;
+  static const int _hydrationRecordsPerWrite = 5;
+
+  static final Application hydrateAppDetails = Application(
+    name: "Hydrate",
+    // packageName: "com.ceti.fernando.hydrate",
+    // version: SettingsService.versionName,
+    // detailsUrl: "https://servicio-web-hydrate.azurewebsites.net/",
+  );
 
   set hydrateProfileId(int profileId) => _hydrateProfileId = profileId;
 
@@ -97,30 +131,134 @@ class GoogleFitService {
   }
 
   Future<bool> disableDataCollection() async {
-    // _currentUser = await _googleSignIn.disconnect();
+    _currentUser = await _googleSignIn.disconnect();
 
     debugPrint("Signed out of Google account: $_currentUser");
 
     return (_currentUser == null);
   }
 
+  void addHydrationRecordToSyncQueue(HydrationRecord hydrationRecord) {
+
+    _hydrationRecordsPendingSync.add(hydrationRecord);
+
+    if (_hydrationRecordsPendingSync.length >= _hydrationRecordsPerWrite) {
+      addHydrationData(_hydrationRecordsPendingSync).then((numRecordsSync) {
+        debugPrint("Added $numRecordsSync hydration record(s) to Google Fit");
+        if (numRecordsSync == _hydrationRecordsPendingSync.length) {
+          _hydrationRecordsPendingSync.clear();
+        }
+      });
+    }
+  }
+
   Future<int> addHydrationData(List<HydrationRecord> hydrationRecords) async {
+
+    if (hydrationRecords.isEmpty) {
+      debugPrint("List of hydration records to sync is empty");
+      return 0;
+    }
+
+    if (_currentUser == null || _fitnessApi == null) {
+      debugPrint("No user or API instance from which to sync Sessions data");
+      return 0;
+    }
+
+    final dataSourcesResponse = await _fitnessApi?.users.dataSources.list(
+      _currentUserId, 
+      dataTypeName: <String>[ _hydrationDataType.name ?? _hydrationDataTypeName ],
+      // $fields: _dataSourceStreamIdFieldAndName,
+    );
+
+    final hydrationDataSources = dataSourcesResponse?.dataSource
+        ?.where((dataSource) => dataSource.dataStreamName == _hydrateHydrationDataSourceName && dataSource.type == _rawDataSourceType).toList() 
+        ?? const <DataSource>[];
+
+    // Revisar si es necesario crear un DataSource para la hidratacion, antes
+    // de intentar agregar los datos de hidratacion.
+    if (hydrationDataSources.isEmpty) {
+      final newHydrationDataSource = DataSource(
+        dataStreamName: _hydrateHydrationDataSourceName,
+        application: hydrateAppDetails,
+        type: _rawDataSourceType,
+        dataType: _hydrationDataType,
+      );
+
+      try {
+        final createdDataSource = await _fitnessApi?.users.dataSources.create(
+          newHydrationDataSource, 
+          _currentUserId,
+          $fields: _dataStreamIdField,
+        );
+
+        _hydrationDataStreamId = createdDataSource?.dataStreamId;
+
+      } on AccessDeniedException catch (ex) {
+        debugPrint("La app no cuenta con permisos suficientes para crear el DataSource");
+        debugPrint(ex.toString());
+        return 0;
+      }
+      on ApiRequestError catch (error) {
+        debugPrint("Error creating new DataSource for hydration data: $error");
+        return 0;
+      }
+    } else {
+      _hydrationDataStreamId = hydrationDataSources.last.dataStreamId;
+    }
+
+    if (_hydrationDataStreamId != null && _hydrationDataStreamId!.isNotEmpty) {
+
+      final List<DataPoint> hydrationDataPoints = [];
+
+      hydrationRecords.sort((a, b) => a.date.compareTo(b.date));
+
+      final DateTime minStartTime = hydrationRecords.first.date;
+      final DateTime maxEndTime = hydrationRecords.last.date; 
+
+      for (final hydrationRecord in hydrationRecords) {
+
+        final dataPoint = DataPoint(
+          startTimeNanos: hydrationRecord.date.nanosecondsSinceEpoch.toString(),
+          endTimeNanos: hydrationRecord.date.nanosecondsSinceEpoch.toString(),
+          dataTypeName: _hydrationDataType.name,
+          value: <Value>[
+            Value(
+              fpVal: hydrationRecord.volumeInLiters,
+            ),
+          ]
+        );
+
+        hydrationDataPoints.add(dataPoint);
+      }
+
+      final Dataset hydrationRecordsDataSet = Dataset(
+        dataSourceId: _hydrationDataStreamId,
+        minStartTimeNs: minStartTime.nanosecondsSinceEpoch.toString(),
+        maxEndTimeNs: maxEndTime.nanosecondsSinceEpoch.toString(),
+        point: hydrationDataPoints
+      );
+
+      try {
+        final newDataset = await _fitnessApi?.users.dataSources.datasets.patch(
+          hydrationRecordsDataSet,
+          _currentUserId,
+          _hydrationDataStreamId!,
+          _buildDataSetId(minStartTime, maxEndTime),
+        );
+
+        if (newDataset != null) {
+          return newDataset.point?.length ?? 0;
+        }
+
+      } on ApiRequestError catch (error) {
+        debugPrint("Error adding hydration data to Google Fit: $error");
+      }
+    }
+
     return 0;
   }
 
   Future<int> syncActivitySessions() async {
-
-    _currentUser = await _googleSignIn.signInSilently();
-
-    // Si no fue posible iniciar sesión "silenciosamente", comenzar el proceso
-    // interactivo de Google Sign In.
-    if (_currentUser == null) {
-      try {
-        _currentUser = await _googleSignIn.signIn();
-      } on PlatformException catch (error) {
-        debugPrint("Error al iniciar sesion con Google ($error)");
-      }
-    }
 
     if (_currentUser == null || _fitnessApi == null) {
       debugPrint("No user or API instance from which to sync Sessions data");
@@ -166,7 +304,6 @@ class GoogleFitService {
           (actType) => actType.googleFitActivityType == session.activityType,
           orElse: () => ActivityType.uncommited()
         ),
-        //TODO: usar profileID real.
         profileId: _hydrateProfileId,
       );
 
@@ -316,9 +453,9 @@ class GoogleFitService {
   String _buildDataSetId(DateTime startTime, DateTime endTime) {
     final dataSetIdStrBuf = StringBuffer();
 
-    dataSetIdStrBuf.write(startTime.microsecondsSinceEpoch * 1000);
+    dataSetIdStrBuf.write(startTime.nanosecondsSinceEpoch * 1000);
     dataSetIdStrBuf.write("-");
-    dataSetIdStrBuf.write(endTime.microsecondsSinceEpoch * 1000);
+    dataSetIdStrBuf.write(endTime.nanosecondsSinceEpoch * 1000);
 
     return dataSetIdStrBuf.toString();
   }

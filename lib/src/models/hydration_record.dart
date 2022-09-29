@@ -25,6 +25,8 @@ class HydrationRecord extends SQLiteModel {
 
   DateTime get date => batteryRecord.date;
 
+  double get volumeInLiters => amount / 1000.0;
+
   //TODO: Quitar este constructor, es solo temporal para pruebas.
   HydrationRecord.random(Random rand, DateTime lastDate, int profileId) : this(
     id: -1,
