@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
@@ -41,6 +42,10 @@ class SettingsItems extends StatelessWidget {
       // realizó cambios, mostrar el snackbar.
       ScaffoldMessenger.of(context).clearSnackBars();
     }
+  }
+
+  void _onGoogleFitIntegratedChanged(bool value) {
+    _editSettings.isGoogleFitIntegratedSink.add(value);
   }
 
   @override
@@ -91,41 +96,39 @@ class SettingsItems extends StatelessWidget {
           const SizedBox( height: 24.0, ),
     
           const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: ListTile(
-              leading: const Icon(
-                Icons.colorize, 
-                size: 24.0, 
-              ),
-              title: Text(localizations.theme),
-              trailing: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
-                child: StreamBuilder<ThemeMode>(
-                  stream: _editSettings.appThemeMode,
-                  initialData: currentSettings.appThemeMode,
-                  builder: (context, snapshot) {
+          ListTile(
+            leading: const Icon(
+              Icons.colorize, 
+              size: 24.0, 
+            ),
+            title: Text(localizations.theme),
+            contentPadding: const EdgeInsets.all( 16.0, ),
+            trailing: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.4,
+              child: StreamBuilder<ThemeMode>(
+                stream: _editSettings.appThemeMode,
+                initialData: currentSettings.appThemeMode,
+                builder: (context, snapshot) {
 
-                    final currentTheme = snapshot.data ?? ThemeMode.system;
+                  final currentTheme = snapshot.data ?? ThemeMode.system;
 
-                    return DropdownButtonFormField(
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                      ),
-                      isExpanded: true,
-                      value: currentTheme.index,
-                      items: _themeDropdownItems,
-                      onChanged: (int? newValue) {
-                        final selectedTheme = ThemeMode.values[newValue ?? 0];
-                        _editSettings.appThemeModeSink.add(selectedTheme);
-                      },
-                    );
-                  }
-                ),
+                  return DropdownButtonFormField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    isExpanded: true,
+                    value: currentTheme.index,
+                    items: _themeDropdownItems,
+                    onChanged: (int? newValue) {
+                      final selectedTheme = ThemeMode.values[newValue ?? 0];
+                      _editSettings.appThemeModeSink.add(selectedTheme);
+                    },
+                  );
+                }
               ),
             ),
           ),
-    
+
           const Divider( height: 1.0, ),
           
           FutureBuilder<UserProfile?>(
@@ -139,121 +142,192 @@ class SettingsItems extends StatelessWidget {
                 message: userAccountId.isNotEmpty 
                   ? "Envía datos estadísticos semanalmente"
                   : "Necesitas una cuenta de usuario para aportar datos",
-                child: Padding(
-                  padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-                  child: StreamBuilder<bool>(
-                    stream: _editSettings.shouldContributeData,
-                    initialData: currentSettings.shouldContributeData,
-                    builder: (context, snapshot) {
+                child: StreamBuilder<bool>(
+                  stream: _editSettings.shouldContributeData,
+                  initialData: currentSettings.shouldContributeData,
+                  builder: (context, snapshot) {
 
-                      final isSharingData = snapshot.data ?? false;
+                    final isSharingData = snapshot.data ?? false;
 
-                      return SwitchListTile(
-                        secondary: const Icon(
-                          Icons.bar_chart, 
-                          size: 24.0, 
-                        ),
-                        title: Text(localizations.contributeData),
-                        value: isSharingData,
-                        onChanged: userAccountId.isNotEmpty && snapshot.hasData
-                        ? (bool value) {
-                          _editSettings.shouldContributeDataSink.add(value);
-                        }
-                        : null,
-                      );
-                    }
-                  ),
+                    return SwitchListTile(
+                      secondary: const Icon(
+                        Icons.bar_chart, 
+                        size: 24.0, 
+                      ),
+                      title: Text(localizations.contributeData),
+                      contentPadding: const EdgeInsets.all( 16.0, ),
+                      value: isSharingData,
+                      onChanged: userAccountId.isNotEmpty && snapshot.hasData
+                      ? (bool value) {
+                        _editSettings.shouldContributeDataSink.add(value);
+                      }
+                      : null,
+                    );
+                  }
                 ),
               );
             }
           ),
     
           const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: ListTile(
-              leading: const Icon(
-                Icons.notifications, 
-                size: 24.0,
+          ListTile(
+            leading: const Icon(
+              Icons.notifications, 
+              size: 24.0,
+            ),
+            title: Text(localizations.notifications),
+            contentPadding: const EdgeInsets.all( 16.0, ),
+            trailing: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.4,
+              child: StreamBuilder<NotificationTypes>(
+                stream: _editSettings.allowedNotifications,
+                initialData: currentSettings.allowedNotifications,
+                builder: (context, snapshot) {
+
+                  final allowedNotifications = snapshot.data ?? NotificationTypes.disabled;
+
+                  return DropdownButtonFormField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    value: allowedNotifications.index,
+                    items: _notifDropdownItems,
+                    isExpanded: true,
+                    onChanged: (int? newValue) {
+                      final selectedNotifications = NotificationTypes.values[newValue ?? 0];
+                      _editSettings.allowedNotificationsSink.add(selectedNotifications);
+                    },
+                  );
+                }
               ),
-              title: Text(localizations.notifications),
-              trailing: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
-                child: StreamBuilder<NotificationTypes>(
-                  stream: _editSettings.allowedNotifications,
-                  initialData: currentSettings.allowedNotifications,
-                  builder: (context, snapshot) {
+            ),
+          ),
 
-                    final allowedNotifications = snapshot.data ?? NotificationTypes.disabled;
+          const Divider( height: 1.0, ),
+          StreamBuilder<bool>(
+            stream: _editSettings.areWeeklyFormsEnabled,
+            initialData: currentSettings.areWeeklyFormsEnabled,
+            builder: (context, snapshot) {
 
-                    return DropdownButtonFormField(
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                      ),
-                      value: allowedNotifications.index,
-                      items: _notifDropdownItems,
-                      isExpanded: true,
-                      onChanged: (int? newValue) {
-                        final selectedNotifications = NotificationTypes.values[newValue ?? 0];
-                        _editSettings.allowedNotificationsSink.add(selectedNotifications);
-                      },
-                    );
-                  }
+              final areWeeklyFormsEnabled = snapshot.data ?? false;
+
+              return SwitchListTile(
+                secondary: const Icon(
+                  Icons.event_note, 
+                  size: 24.0, 
                 ),
-              ),
-            ),
+                title: Text(localizations.weeklyForms),
+                contentPadding: const EdgeInsets.all( 16.0, ),
+                value: areWeeklyFormsEnabled,
+                onChanged: (bool value) {
+                  _editSettings.areWeeklyFormsEnabledSink.add(value);
+                },
+              );
+            }
           ),
 
           const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: StreamBuilder<bool>(
-              stream: _editSettings.areWeeklyFormsEnabled,
-              initialData: currentSettings.areWeeklyFormsEnabled,
-              builder: (context, snapshot) {
+          StreamBuilder<bool>(
+            stream: _editSettings.isGoogleFitIntegrated,
+            initialData: currentSettings.isGoogleFitIntegrated,
+            builder: (context, snapshot) {
 
-                final areWeeklyFormsEnabled = snapshot.data ?? false;
+              final isGoogleFitIntegrationEnabled = snapshot.data ?? false;
 
-                return SwitchListTile(
-                  secondary: const Icon(
-                    Icons.event_note, 
-                    size: 24.0, 
-                  ),
-                  title: Text(localizations.weeklyForms),
-                  value: areWeeklyFormsEnabled,
-                  onChanged: (bool value) {
-                    _editSettings.areWeeklyFormsEnabledSink.add(value);
-                  },
-                );
-              }
-            ),
-          ),
-
-          const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: StreamBuilder<bool>(
-              stream: _editSettings.isGoogleFitIntegrated,
-              initialData: currentSettings.isGoogleFitIntegrated,
-              builder: (context, snapshot) {
-
-                final isGoogleFitIntegrationEnabled = snapshot.data ?? false;
-
-                return SwitchListTile(
-                  secondary: const Icon(
+              return Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric( vertical: 16.0, horizontal: 16.0 ),
+                  leading: const Icon(
                     Icons.fitness_center, 
                     size: 24.0, 
                   ),
                   //TODO: agregar i18n.
                   title: Text("Conectar apps de salud"),
+                  textColor: Theme.of(context).colorScheme.onBackground,
                   subtitle: Text("Integra Hydrate con Google Fit"),
-                  value: isGoogleFitIntegrationEnabled,
-                  onChanged: (bool value) {
-                    _editSettings.isGoogleFitIntegratedSink.add(value);
-                  },
-                );
-              }
-            ),
+                  initiallyExpanded: isGoogleFitIntegrationEnabled,
+                  maintainState: true,
+                  onExpansionChanged: _onGoogleFitIntegratedChanged,
+                  trailing: IgnorePointer(
+                    child: Switch(
+                      value: isGoogleFitIntegrationEnabled, 
+                      onChanged: (_) {},
+                    ),
+                  ),
+                  childrenPadding: const EdgeInsets.symmetric( 
+                    horizontal: 16.0,
+                    vertical: 4.0,
+                  ),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+              
+                        (GoogleFitService.instance.isSignedInWithGoogle
+                        ? Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Chip(
+                              avatar: CircleAvatar(
+                                foregroundImage: NetworkImage(
+                                  GoogleFitService.instance.googleAccountPhotoUrl ?? "",
+                                ),
+                                child: Text(
+                                  GoogleFitService.instance.googleAccountInitials,
+                                ),
+                              ),
+                              label: Text(
+                                GoogleFitService.instance.googleAccountDisplayName ?? 
+                                GoogleFitService.instance.googleAccountEmail,
+                              ),
+                            ),
+              
+                            const SizedBox( width: 8.0, ),
+              
+                            Tooltip(
+                              message: "Cerrar sesión de la cuenta de Google",
+                              child: IconButton(
+                                onPressed: () {
+                                  GoogleFitService.instance.signOut();
+                                }, 
+                                icon: const Icon(Icons.logout),
+                              ),
+                            ),
+                          ],
+                        )
+                        : TextButton(
+                            onPressed: () {
+                              GoogleFitService.instance.signInWithGoogle();
+                            },
+                            //TODO: agregar i18n.
+                            child: const Text("Inicia Sesión con Google"), 
+                          )
+                        ),
+              
+                        Tooltip(
+                          message: "Actualizar datos de Google Fit",
+                          child: IconButton(
+                            onPressed: () async {
+                              // Actualizar los datos de Google Fit manualmente.
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              await GoogleFitService.instance.syncActivitySessions();
+                                                
+                              scaffoldMessenger.clearSnackBars();
+                              scaffoldMessenger.showSnackBar(const SnackBar(
+                                content: Text("Google Fit sincronizado"),
+                                duration: Duration( seconds: 2 ),
+                              ));
+                            }, 
+                            icon: const Icon(Icons.sync_alt),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
           ),
 
           const Divider( height: 1.0, ),
@@ -327,6 +401,7 @@ class _UrlListTile extends StatelessWidget {
         size: 24.0, 
       ),
       title: Text(title),
+      contentPadding: const EdgeInsets.all( 16.0, ),
       trailing: const Icon(
         Icons.arrow_forward,
         size: 24.0,

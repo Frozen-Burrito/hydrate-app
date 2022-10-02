@@ -100,19 +100,21 @@ class HydrateApp extends StatelessWidget {
               if (isGoogleFitIntegrated) {
                 GoogleFitService.instance.hydrateProfileId = profileProvider.profileId;
 
-                GoogleFitService.instance.signInWithGoogle();
+                if (!GoogleFitService.instance.isSigningIn && !GoogleFitService.instance.isSignedInWithGoogle) {
+                  GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
 
-                GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
+                    if (wasSignInSuccessful) {
+                      devicePairingService.addOnNewHydrationRecordListener(
+                        "sync_hydration_to_fit", 
+                        GoogleFitService.instance.addHydrationRecordToSyncQueue
+                      );
 
-                  devicePairingService.addOnNewHydrationRecordListener(
-                    "sync_hydration_to_fit", 
-                    GoogleFitService.instance.addHydrationRecordToSyncQueue
-                  );
-
-                  GoogleFitService.instance.syncActivitySessions().then((totalSyncSessions) {
-                    debugPrint("$totalSyncSessions sessions were synchronized with Google Fit");
+                      GoogleFitService.instance.syncActivitySessions().then((totalSyncSessions) {
+                        debugPrint("$totalSyncSessions sessions were synchronized with Google Fit");
+                      });
+                    }
                   });
-                });
+                }
               }
 
               return MaterialApp(

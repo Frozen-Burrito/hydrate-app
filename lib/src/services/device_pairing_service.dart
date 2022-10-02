@@ -38,7 +38,7 @@ class DevicePairingService extends ChangeNotifier {
         setSelectedDevice(hydrateDevice);
       } else if (connectedDevices.isEmpty && _pairedDevice != null && _pairedDevice!.isDisconnected) {
         debugPrint("No devices connected, selectedDevice set to null");
-        // setSelectedDevice(null);
+        setSelectedDevice(null);
       }
     });
 
@@ -66,6 +66,8 @@ class DevicePairingService extends ChangeNotifier {
   Stream<HydrateDevice?> get selectedDevice => _selectedDeviceController.stream;
 
   Stream<List<ScanResult>> get scanResults => _scanResults; 
+
+  HydrateDevice? get latestSelectedDevice => _pairedDevice;
 
   final Map<String, StreamSubscription<HydrationRecord>?> _onNewHydrationSubscriptions = {};
   final Map<String, HydrationRecordCallback> _onNewHydrationListeners = {};

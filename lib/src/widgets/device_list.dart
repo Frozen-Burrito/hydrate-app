@@ -97,6 +97,7 @@ class BleDeviceList extends StatelessWidget {
               builder: (_, devicePairingService, __) {
                 return StreamBuilder<HydrateDevice?>(
                   stream: devicePairingService.selectedDevice,
+                  initialData: devicePairingService.latestSelectedDevice,
                   builder: (context, snapshot) {
 
                     if (snapshot.hasData) {

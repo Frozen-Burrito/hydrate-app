@@ -23,7 +23,7 @@ class SettingsService with ChangeNotifier {
     _sharedPreferences = await SharedPreferences.getInstance();
   }
 
-  static const String versionName = "1.0.0-beta+3";
+  static const String versionName = "1.0.0-beta+6";
 
   static const int appStartupsToShowGuides = 5;
 
@@ -81,7 +81,7 @@ class SettingsService with ChangeNotifier {
       if (changes.isGoogleFitIntegrated) {
         GoogleFitService.instance.signInWithGoogle();
       } else {
-        GoogleFitService.instance.disableDataCollection();
+        GoogleFitService.instance.signOut();
       }
     }
 

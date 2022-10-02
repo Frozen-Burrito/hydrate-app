@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/models/hydrate_device.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/hydration_record.dart';
@@ -50,13 +52,36 @@ class SettingsView extends StatelessWidget {
                 children: <Widget>[
                   Container(
                     margin: const EdgeInsets.symmetric( vertical: 24.0, horizontal: 24.0 ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           localizations.batteryHeading, 
                           style: Theme.of(context).textTheme.headline5,
                           textAlign: TextAlign.start,
                         ),
+
+                        const SizedBox( height: 8.0 ),
+
+                        Consumer<DevicePairingService>(
+                          builder: (_, devicePairingService, __) {
+                            return StreamBuilder<HydrateDevice?>(
+                              stream: devicePairingService.selectedDevice,
+                              builder: (context, snapshot) {
+                                //TODO: agregar i18n
+                                final deviceName = snapshot.data?.name ?? "Desconectado";
+
+                                return Text(
+                                  deviceName,
+                                  style: Theme.of(context).textTheme.subtitle1?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurface
+                                  ),
+                                  textAlign: TextAlign.start,
+                                );
+                              }
+                            );
+                          }
+                        )
                       ],
                     ),
                   ),

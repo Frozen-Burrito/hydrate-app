@@ -38,6 +38,8 @@ class GoogleFitService {
 
   String? _hydrationDataStreamId;
 
+  bool _isSigningIn = false;
+
   //TODO: obtener la fecha de la sincronizacion mas reciente de FitnessData, para
   // solo obtener los datos a partir de esa fecha.
   DateTime? _tempStartTime;
@@ -104,34 +106,67 @@ class GoogleFitService {
 
   static final Application hydrateAppDetails = Application(
     name: "Hydrate",
-    // packageName: "com.ceti.fernando.hydrate",
-    // version: SettingsService.versionName,
-    // detailsUrl: "https://servicio-web-hydrate.azurewebsites.net/",
+    packageName: "com.ceti.fernando.hydrate",
+    version: SettingsService.versionName,
+    detailsUrl: "https://servicio-web-hydrate.azurewebsites.net/",
   );
 
   set hydrateProfileId(int profileId) => _hydrateProfileId = profileId;
 
+  bool get isSignedInWithGoogle => _currentUser != null;
+
+  bool get isSigningIn => _isSigningIn;
+
+  String? get googleAccountDisplayName => _currentUser?.displayName;
+
+  String get googleAccountInitials {
+
+    final partsOfDisplayName = _currentUser?.displayName?.split(" ") ?? <String>[];
+
+    if (partsOfDisplayName.isNotEmpty) {
+
+      final String firstInitial = partsOfDisplayName.first.toUpperCase();
+      final String lastInitial = partsOfDisplayName.length > 1 ? partsOfDisplayName[1].toUpperCase() : "";
+      
+      return firstInitial + lastInitial;
+    }
+
+    // El usuario no tiene un display name, retornar "A" (Anónimo).
+    return "A";
+  }
+
+  String get googleAccountEmail => _currentUser?.email ?? "Cuenta de Google";
+
+  String? get googleAccountPhotoUrl => _currentUser?.photoUrl;
+
   Future<bool> signInWithGoogle() async {
 
-    _currentUser = await _googleSignIn.signInSilently();
+    if (!_isSigningIn) {
+      _isSigningIn = true;
 
-    // Si no fue posible iniciar sesión "silenciosamente", comenzar el proceso
-    // interactivo de Google Sign In.
-    if (_currentUser == null) {
       try {
-        _currentUser = await _googleSignIn.signIn();
+        _currentUser = await _googleSignIn.signInSilently();
+
+        // Si no fue posible iniciar sesión "silenciosamente", comenzar el proceso
+        // interactivo de Google Sign In.
+        _currentUser ??= await _googleSignIn.signIn();
+
       } on PlatformException catch (error) {
         debugPrint("Error al iniciar sesion con Google ($error)");
       }
-    }
 
-    debugPrint("Attempted to sign into Google account: $_currentUser");
+      _isSigningIn = false;
+    }
 
     return (_currentUser != null);
   }
 
-  Future<bool> disableDataCollection() async {
-    _currentUser = await _googleSignIn.disconnect();
+  Future<bool> signOut() async {
+    try {
+      _currentUser = await _googleSignIn.disconnect();
+    } on PlatformException catch (error) {
+      debugPrint("Error al iniciar sesion con Google ($error)");
+    }
 
     debugPrint("Signed out of Google account: $_currentUser");
 
@@ -237,6 +272,8 @@ class GoogleFitService {
         maxEndTimeNs: maxEndTime.nanosecondsSinceEpoch.toString(),
         point: hydrationDataPoints
       );
+
+      //Invalid StartTimeNanos: com.google.hydration [1970-01-01T00:00:13Z - 1970-01-01T00:00:13Z] [0.074] raw:com.google.hydration:845399101862:HydrateAppHydration
 
       try {
         final newDataset = await _fitnessApi?.users.dataSources.datasets.patch(
