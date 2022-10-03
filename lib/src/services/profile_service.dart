@@ -13,9 +13,8 @@ class ProfileService extends ChangeNotifier {
   /// El ID del perfil local del usuario.
   int _profileId;
 
-  /// El UUID de la cuenta de usuario del servicio web asociada con el 
-  /// perfil. 
-  String _accountId;
+  /// El JWT para autorizar todas las peticiones del usuario actual.
+  String _authToken;
 
   /// El número máximo de veces que el usuario puede modificar su perfil, en un 
   /// año.
@@ -28,7 +27,7 @@ class ProfileService extends ChangeNotifier {
   /// [UserProfile] por defecto.
   ProfileService() 
     : _profileId = UserProfile.defaultProfileId,
-      _accountId = "";
+      _authToken = "";
 
   static late final SharedPreferences? _sharedPreferences;
 
@@ -92,7 +91,7 @@ class ProfileService extends ChangeNotifier {
     int profileId = UserProfile.defaultProfileId, 
     String authToken = "", 
   }): _profileId = profileId,
-      _accountId = getAccountIdFromJwt(authToken);
+      _authToken = authToken;
 
   /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
   /// actual. Esta instancia de [UserProfile] es modificable.
@@ -124,7 +123,8 @@ class ProfileService extends ChangeNotifier {
   bool get hasProfileData => _profileCache.hasData;
 
   int get profileId => _profileId;
-  String get linkedAccountId => _accountId;
+  String get linkedAccountId => getAccountIdFromJwt(_authToken);
+  String get authToken => _authToken;
 
   /// Retorna una instancia de solo lectura del [UserProfile] del usuario actual.
   Future<UserProfile?> get profile => _profileCache.data;
@@ -163,7 +163,7 @@ class ProfileService extends ChangeNotifier {
     if (shouldChangeProfile) {
 
       _profileId = newProfileId;
-      _accountId = getAccountIdFromJwt(authToken);
+      _authToken = authToken;
 
       _sharedPreferences?.setInt(lastUsedProfileIdKey, profileId);
       _sharedPreferences?.setString(authTokenKey, authToken);
@@ -175,7 +175,7 @@ class ProfileService extends ChangeNotifier {
   }
 
   /// Obtiene un [UserProfile] local con un ID igual a [_profileId] o, si hay 
-  /// un ID de cuenta de usuario válido en [_accountId], un [UserProfile] local
+  /// un ID de cuenta de usuario válido en [_authToken], un [UserProfile] local
   /// que tenga ese mismo ID de cuenta de usuario.
   /// 
   /// Retorna el [UserProfile] que cumpla las condiciones anteriores, o [null]
@@ -185,13 +185,14 @@ class ProfileService extends ChangeNotifier {
     final whereQuery = [ WhereClause(UserProfile.idFieldName, _profileId.toString()), ];
     final unions = <String>[];
 
-    final isAccountIdSet = _accountId.isNotEmpty;
+    final accountId = getAccountIdFromJwt(_authToken);
+    final isAccountIdSet = accountId.isNotEmpty;
 
-    // Determinar si hay un ID de cuenta de usuario en _accountId.
+    // Determinar si hay un ID de cuenta de usuario en accountId.
     if (isAccountIdSet) {
       // Si el usuario inició sesión con una cuenta, obtener el perfil que, además
       // de tener el ID de perfil especificado, tenga el id de la cuenta del usuario.
-      whereQuery.add(WhereClause(UserProfile.userAccountIdFieldName, _accountId));
+      whereQuery.add(WhereClause(UserProfile.userAccountIdFieldName, accountId));
       unions.add("AND");
     }
 

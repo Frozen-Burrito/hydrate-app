@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -30,9 +31,6 @@ Future<void> main() async {
     SettingsService.init(),
     ProfileService.init(),
     DevicePairingService.init(),
-    NotificationsService.init(
-      isInDebugMode: true,
-    ),
     Workmanager().initialize(
       BackgroundTasks.callbackDispatcher,
       isInDebugMode: true,
@@ -55,6 +53,19 @@ Future<void> main() async {
 class HydrateApp extends StatelessWidget {
 
   const HydrateApp({Key? key}) : super(key: key);
+
+  void _setupNotifications(Set<NotificationSource> enabledNotifications, String authToken, int profileId) {
+
+    if (authToken.isNotEmpty && !enabledNotifications.contains(NotificationSource.disabled)) {
+      // Configurar las notificaciones.
+      NotificationsService.instance.init(
+        onTokenRefresh: (String? newFcmToken) {
+          //TODO: Enviar el token refrescado al servidor.
+        },
+        isInDebugMode: true,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,21 +91,21 @@ class HydrateApp extends StatelessWidget {
         ),
       ],
       child: Consumer<ProfileService>(
-        builder: (_, profileProvider, __) {
+        builder: (_, profileService, __) {
           return Consumer<SettingsService>(
             builder: (context, settingsService, __) {
 
               final bool isGoogleFitIntegrated = settingsService.isGoogleFitIntegrated && 
-                  profileProvider.profileId != UserProfile.defaultProfileId;
+                  profileService.profileId != UserProfile.defaultProfileId;
 
               final activityProvider = Provider.of<ActivityService>(context, listen: false);
-              activityProvider.forProfile(profileProvider.profileId);
+              activityProvider.forProfile(profileService.profileId);
 
               final hydrationProvider = Provider.of<HydrationRecordService>(context, listen: false);
-              hydrationProvider.forProfile(profileProvider.profileId);
+              hydrationProvider.forProfile(profileService.profileId);
 
               final goalProvider = Provider.of<GoalsService>(context, listen: false);
-              goalProvider.forProfile(profileProvider.profileId);
+              goalProvider.forProfile(profileService.profileId);
 
               final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
               devicePairingService.addOnNewHydrationRecordListener("save_records", (hydrationRecord) {
@@ -102,7 +113,7 @@ class HydrateApp extends StatelessWidget {
               });
 
               if (isGoogleFitIntegrated) {
-                GoogleFitService.instance.hydrateProfileId = profileProvider.profileId;
+                GoogleFitService.instance.hydrateProfileId = profileService.profileId;
 
                 if (!GoogleFitService.instance.isSigningIn && !GoogleFitService.instance.isSignedInWithGoogle) {
                   GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
@@ -120,6 +131,12 @@ class HydrateApp extends StatelessWidget {
                   });
                 }
               }
+
+              _setupNotifications(
+                settingsService.enabledNotificationSources,
+                profileService.authToken,
+                profileService.profileId,
+              );
 
               return MaterialApp(
                 title: "Hydrate App",

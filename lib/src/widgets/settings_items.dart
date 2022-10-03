@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hydrate_app/src/services/google_fit_service.dart';
@@ -5,7 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/api.dart';
-import 'package:hydrate_app/src/models/enums/notification_types.dart';
+import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
@@ -44,6 +46,18 @@ class SettingsItems extends StatelessWidget {
     }
   }
 
+  int _getEnabledNotificationSourcesCount(Set<NotificationSource> enabledSources) {
+    if (enabledSources.contains(NotificationSource.disabled)) {
+      assert(enabledSources.length == 1);
+
+      return 0;
+    } else if (enabledSources.contains(NotificationSource.all)) {
+      return NotificationSource.values.length - 2;
+    } else {
+      return enabledSources.length;
+    }
+  }
+
   void _onGoogleFitIntegratedChanged(bool value) {
     _editSettings.isGoogleFitIntegratedSink.add(value);
   }
@@ -58,29 +72,11 @@ class SettingsItems extends StatelessWidget {
       localizations.themeOptDark,
     ];
 
-    final notifLabels = [
-      localizations.notifOptNone,
-      localizations.notifOptGoals,
-      localizations.notifOptBattery,
-      localizations.notifOptActivity,
-      localizations.notifOptAll,
-    ];
-
     final _themeDropdownItems = ThemeMode.values
       .map((option) => DropdownMenuItem(
           value: option.index,
           child: Text(
             themeLabels[option.index],
-            overflow: TextOverflow.ellipsis
-          ),
-        ),
-      ).toList();
-
-    final _notifDropdownItems = NotificationTypes.values
-      .map((option) => DropdownMenuItem(
-          value: option.index,
-          child: Text(
-            notifLabels[option.index],
             overflow: TextOverflow.ellipsis
           ),
         ),
@@ -177,29 +173,36 @@ class SettingsItems extends StatelessWidget {
             ),
             title: Text(localizations.notifications),
             contentPadding: const EdgeInsets.all( 16.0, ),
-            trailing: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.4,
-              child: StreamBuilder<NotificationTypes>(
-                stream: _editSettings.allowedNotifications,
-                initialData: currentSettings.allowedNotifications,
-                builder: (context, snapshot) {
+            trailing: StreamBuilder<Set<NotificationSource>>(
+              stream: _editSettings.enabledNotificationSources,
+              initialData: currentSettings.allowedNotifications,
+              builder: (context, snapshot) {
 
-                  final allowedNotifications = snapshot.data ?? NotificationTypes.disabled;
+                final int enabledCount = snapshot.hasData 
+                  ? _getEnabledNotificationSourcesCount(snapshot.data!)
+                  : 0;
 
-                  return DropdownButtonFormField(
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    value: allowedNotifications.index,
-                    items: _notifDropdownItems,
-                    isExpanded: true,
-                    onChanged: (int? newValue) {
-                      final selectedNotifications = NotificationTypes.values[newValue ?? 0];
-                      _editSettings.allowedNotificationsSink.add(selectedNotifications);
-                    },
-                  );
-                }
-              ),
+                return SizedBox(
+                  width: MediaQuery.of(context).size.width * 0.4,
+                  child: OutlinedButton(
+                    onPressed: snapshot.hasData 
+                      ? () async {
+                        final enabledNotifSources = await showDialog<Set<NotificationSource>>(
+                          context: context, 
+                          builder: (_) => _NotificationSelectDialog(
+                            enabledNotificationSources: snapshot.data!,
+                          ),
+                        );
+
+                        if (enabledNotifSources != null) {
+                          _editSettings.notificationSourcesSink.add(enabledNotifSources);
+                        }
+                      }
+                      : null, 
+                    child: Text("$enabledCount activadas"),
+                  ),
+                );
+              }
             ),
           ),
 
@@ -407,6 +410,123 @@ class _UrlListTile extends StatelessWidget {
         size: 24.0,
       ),
       onTap: () => UrlLauncher.launchUrlInBrowser(uriToLaunch),
+    );
+  }
+}
+
+class _NotificationSelectDialog extends StatefulWidget {
+
+  _NotificationSelectDialog({
+    Key? key,
+    required Set<NotificationSource> enabledNotificationSources,
+  }) : currentNotificationSources = UnmodifiableSetView(enabledNotificationSources),
+       super(key: key);
+
+  final Set<NotificationSource> currentNotificationSources;
+
+  @override
+  State<_NotificationSelectDialog> createState() => _NotificationSelectDialogState();
+}
+
+class _NotificationSelectDialogState extends State<_NotificationSelectDialog> {
+
+  late final Set<NotificationSource> changedNotificationSources = Set.of(widget.currentNotificationSources);
+
+  bool _isNotificationSourceEnabled(NotificationSource notificationSource,) {
+    return changedNotificationSources.contains(notificationSource);
+  }
+
+  void _toggleNotificationSource(NotificationSource notificationSource, bool isEnabled) {
+    // Determinar si la fuente de notificaciones fue activada o desactivada.
+    if (isEnabled) {
+      if (notificationSource == NotificationSource.disabled) {
+        changedNotificationSources.clear();
+        changedNotificationSources.add(NotificationSource.disabled);
+
+      } else if (notificationSource == NotificationSource.all) {
+        changedNotificationSources.remove(NotificationSource.disabled);
+        changedNotificationSources.addAll([
+          NotificationSource.goals,
+          NotificationSource.battery,
+          NotificationSource.activity,
+          NotificationSource.rest,
+          NotificationSource.all,
+        ]);
+      } else {
+        changedNotificationSources.remove(NotificationSource.disabled);
+        changedNotificationSources.add(notificationSource);
+
+        if (changedNotificationSources.length == NotificationSource.values.length - 2) {
+          changedNotificationSources.add(NotificationSource.all);
+        }
+      }
+    } else {
+      if (notificationSource != NotificationSource.all) {
+        changedNotificationSources.remove(NotificationSource.all);
+      }
+
+      changedNotificationSources.remove(notificationSource);
+    }
+
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+    
+    final List<String> notifLabels = [
+      localizations.notifOptNone,
+      localizations.notifOptGoals,
+      localizations.notifOptBattery,
+      localizations.notifOptActivity,
+      "Descanso",
+      localizations.notifOptAll,
+    ];
+
+    return AlertDialog(
+      title: const Text("Notificaciones"),
+      content: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.5,
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            //TODO: agregar i18n.
+            const Text("Selecciona los tipos de notificaciones que deseas recibir:"),
+
+            const SizedBox(height: 8.0,),
+
+            Expanded(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemBuilder: (context, i) {                
+                  return CheckboxListTile(
+                    value: _isNotificationSourceEnabled(NotificationSource.values[i],),
+                    onChanged: (isEnabled) => _toggleNotificationSource(
+                      NotificationSource.values[i], 
+                      isEnabled ?? false
+                    ),
+                    title: Text(notifLabels[i]),
+                  );
+                },
+                itemCount: NotificationSource.values.length,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.pop(context, null), 
+          child: const Text("Cancelar"),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, changedNotificationSources), 
+          child: const Text("Confirmar"),
+        ),
+      ],
     );
   }
 }

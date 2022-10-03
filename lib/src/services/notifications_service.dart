@@ -7,6 +7,10 @@ import 'package:hydrate_app/firebase_options.dart';
 /// Messaging (FCM) en la app.
 class NotificationsService {
 
+  NotificationsService._();
+
+  static final NotificationsService instance = NotificationsService._(); 
+
   /// El número máximo de handlers de segundo plano que puede haber registrados.
   static const maxBackgroundHandlers = 3;
 
@@ -22,11 +26,18 @@ class NotificationsService {
   /// 
   /// Si [firebaseOptions] es nulo, usa [DefaultFirebaseOptions.currentPlatform]
   /// por defecto.
-  static Future<void> init({
+  Future<void> init({
+    required void Function(String?) onTokenRefresh,
     FirebaseOptions? firebaseOptions,
     bool isInDebugMode = false,
   }) async {
+    // Inicializar app de Firebase para tener acceso a FCM.
     await Firebase.initializeApp(options: firebaseOptions);
+
+    // Registrar handlers para responder a cambios en el token de FCM.
+    FirebaseMessaging.instance.onTokenRefresh
+      .listen(onTokenRefresh)
+      .onError(_onTokenRefreshError);
 
     if (isInDebugMode) {
       addForegroundHandler((RemoteMessage message) {
@@ -48,26 +59,13 @@ class NotificationsService {
 
   /// Obtiene el token de registro en FCM de esta instancia de la app. Este token
   /// debe ser actualizado con regularidad en el backend, incluyendo un timestamp.
-  static Future<String?> getToken() async {
-
-    // Registrar handlers para responder a cambios en el token de FCM.
-    FirebaseMessaging.instance.onTokenRefresh
-      .listen(_onTokenRefreshCallback)
-      .onError(_onTokenRefreshError);
+  Future<String?> get registrationToken async {
 
     final fcmToken = await FirebaseMessaging.instance.getToken();
     
     print('Token de FCM: $fcmToken');
 
     return fcmToken;
-  }
-
-  static void _onTokenRefreshCallback(String token) {
-    //TODO: Enviar token al servidor, si es necesario.
-
-    // Este callback es invocado cuando la app inicia y cada vez que 
-    // se genera un nuevo token.
-    throw UnimplementedError();
   }
 
   static void _onTokenRefreshError(error) {
@@ -102,7 +100,7 @@ class NotificationsService {
   /// 
   /// El __[handler]__ debe ser breve, asíncrono e independiente de la inicialización
   /// de una clase.
-  static void addBackgroundHandler(Future<void> Function(RemoteMessage) handler) {
+  void addBackgroundHandler(Future<void> Function(RemoteMessage) handler) {
 
     if (_backgroundActions.length < maxBackgroundHandlers) {
       _backgroundActions.add(handler);

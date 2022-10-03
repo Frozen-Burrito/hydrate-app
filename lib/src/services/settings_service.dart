@@ -5,7 +5,7 @@ import 'package:hydrate_app/src/utils/background_tasks.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:hydrate_app/src/models/enums/notification_types.dart';
+import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -29,7 +29,7 @@ class SettingsService with ChangeNotifier {
 
   Settings get currentSettings => Settings(
     appThemeMode,
-    notificationSettings,
+    enabledNotificationSources,
     isSharingData,
     areWeeklyFormsEnabled,
     isGoogleFitIntegrated,
@@ -39,7 +39,7 @@ class SettingsService with ChangeNotifier {
 
     final currentSettings = Settings(
       appThemeMode,
-      notificationSettings,
+      enabledNotificationSources,
       isSharingData,
       areWeeklyFormsEnabled,
       isGoogleFitIntegrated,
@@ -54,7 +54,7 @@ class SettingsService with ChangeNotifier {
     final hasNotificationsChanged = currentSettings.allowedNotifications != changes.allowedNotifications;
 
     if (hasNotificationsChanged) {
-      final notifsWereDisabled = changes.allowedNotifications == NotificationTypes.disabled;
+      final notifsWereDisabled = changes.allowedNotifications.contains(NotificationSource.disabled);
       
       Permission.notification.request().isGranted.then((isPermissionGranted) {
         // Si las notificaciones fueron desactivadas, no hay ningún requisito 
@@ -62,7 +62,7 @@ class SettingsService with ChangeNotifier {
         // el permiso de recibir notificaciones
         if (notifsWereDisabled || isPermissionGranted) {
           // Actualizar las preferencias de notificaciones.
-          notificationSettings = changes.allowedNotifications;
+          enabledNotificationSources = changes.allowedNotifications;
         }
       });
     }
@@ -180,17 +180,25 @@ class SettingsService with ChangeNotifier {
 
   /// Obtiene de Shared Preferences los tipos de notificaciones que ha activado 
   /// el usuario.
-  NotificationTypes get notificationSettings {
-    int notif = _sharedPreferences?.getInt(allowedNotificationsKey) ?? 0;
+  Set<NotificationSource> get enabledNotificationSources {
+    int notifTypesBitmask = _sharedPreferences?.getInt(allowedNotificationsKey) ?? 0;
 
-    int notifIndex = max(min(notif, NotificationTypes.values.length), 0);
+    final notificationSet = NotificationSourceExtension.notificationSourceFromBits(notifTypesBitmask);
 
-    return NotificationTypes.values[notifIndex];
+    return notificationSet;
   }
 
   /// Guarda la configuración de notificaciones del usuario.
-  set notificationSettings (NotificationTypes notifSettings) {
-    _sharedPreferences?.setInt(allowedNotificationsKey, notifSettings.index);
+  set enabledNotificationSources (Set<NotificationSource> notificationSettings) {
+    int notifSettingsBits = 0x00;
+
+    if (!notificationSettings.contains(NotificationSource.disabled)) {
+      for (final enabledNotifType in notificationSettings) {
+        notifSettingsBits = notifSettingsBits | enabledNotifType.bits;
+      }
+    }
+
+    _sharedPreferences?.setInt(allowedNotificationsKey, notifSettingsBits);
   }
 
   /// El código de dos letras de la región del usuario para localizar el contenido.
