@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/pages/auth_page.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 
 /// Un [PopupMenuButton] que despliega una lista de [options].
 /// 
@@ -63,11 +63,11 @@ class AuthOptionsMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final profileProvider = Provider.of<ProfileService>(context);
     final localizations = AppLocalizations.of(context)!;
     
     return OptionsPopupMenu(
-      options: settingsProvider.authToken.isEmpty 
+      options: profileProvider.linkedAccountId.isEmpty 
         ? <MenuItem> [
           MenuItem(
             icon: Icons.settings, 
@@ -83,7 +83,17 @@ class AuthOptionsMenu extends StatelessWidget {
             onSelected: () => Navigator.pushNamed(
               context, 
               RouteNames.authentication, 
-              arguments: AuthFormType.login
+              arguments: AuthActionType.signIn
+            ),
+          ),
+
+          MenuItem(
+            icon: Icons.badge_rounded, 
+            label: localizations.signUp,
+            onSelected: () => Navigator.pushNamed(
+              context, 
+              RouteNames.authentication, 
+              arguments: AuthActionType.signUp
             ),
           ),
         ]
@@ -100,7 +110,10 @@ class AuthOptionsMenu extends StatelessWidget {
           MenuItem(
             icon: Icons.logout,
             label: localizations.signOut,
-            onSelected: () => settingsProvider.logOut(),
+            onSelected: () {
+              profileProvider.logOut();
+              Navigator.pushNamed(context, RouteNames.home);
+            },
           ),
         ],
     );

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/widgets/shapes.dart';
 import 'package:provider/provider.dart';
+
+import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/widgets/count_text.dart';
+import 'package:hydrate_app/src/widgets/shapes.dart';
 
 class CoinDisplay extends StatelessWidget {
   const CoinDisplay({ Key? key }) : super(key: key);
@@ -22,12 +25,20 @@ class CoinDisplay extends StatelessWidget {
   
             const SizedBox( width: 4.0,),
   
-            Consumer<ProfileProvider>(
-              builder: (_, profileProvider, __) {
-                return Text(
-                  profileProvider.profile.coins.toString(),
-                  style: Theme.of(context).textTheme.bodyText2,
-                  textAlign: TextAlign.right,
+            Consumer<ProfileService>(
+              builder: (_, profileService, __) {
+                return FutureBuilder<UserProfile?>(
+                  future: profileService.profile,
+                  builder: (context, snapshot) {
+
+                    final int coinCount = snapshot.data?.coins ?? 0;
+
+                    return CountText(
+                      value: coinCount,
+                      style: Theme.of(context).textTheme.bodyText2,
+                      textAlign: TextAlign.right,
+                    );
+                  }
                 );
               }
             ),

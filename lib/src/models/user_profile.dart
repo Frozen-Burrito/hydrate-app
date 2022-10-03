@@ -2,48 +2,141 @@ import 'dart:math';
 
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/country.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
+import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/environment.dart';
-
-import 'country.dart';
-import 'medical_data.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:hydrate_app/src/models/medical_data.dart';
 
 class UserProfile extends SQLiteModel {
 
-  int id;
-  String firstName;
-  String lastName;
-  DateTime? birthDate;
-  UserSex sex;
-  double height;
-  double weight;
-  MedicalCondition medicalCondition;
-  Occupation occupation;
-  Country country;
-  String userAccountID;
-  int coins;
-  int modificationCount;
-  int selectedEnvId;
-  List<Environment> unlockedEnvironments;
+  final int _id;
+  String _firstName;
+  String _lastName;
+  DateTime? _birthDate;
+  UserSex _sex;
+  double _height;
+  double _weight;
+  MedicalCondition _medicalCondition;
+  Occupation _occupation;
+  Country _country;
+  String _userAccountID;
+  int _coins;
+  int _modificationCount;
+  Environment _selectedEnvironment;
+  final List<Environment> _unlockedEnvironments;
 
-  UserProfile({
-    this.id = -1,
-    this.firstName = '',
-    this.lastName = '',
-    this.birthDate,
-    this.sex = UserSex.notSpecified,
-    this.height = 0.0,
-    this.weight = 0.0,
-    this.medicalCondition = MedicalCondition.notSpecified,
-    this.occupation = Occupation.notSpecified,
-    this.userAccountID = '',
-    this.selectedEnvId = 0,
-    this.coins = 0,
-    this.modificationCount = 0,
-    required this.country,
-    required this.unlockedEnvironments,
-  });
+  final bool isReadonly;
 
-  static const String tableName = 'perfil';
+  static const defaultProfileId = 1;
+  static const maxCoins = 9999;
+
+  static const maxFirstNameLength = 64;
+  static const maxLastNameLength = 64;
+
+  static const maxFirstNameDisplayLength = 64;
+  static const maxLastNameDisplayLength = 64;
+
+  static final defaultProfile = UserProfile.uncommitted(); 
+
+  UserProfile.unmodifiable({
+    int id = -1,
+    String firstName = "",
+    String lastName = "",
+    DateTime? birthDate,
+    UserSex sex = UserSex.notSpecified,
+    double height = 0.0,
+    double weight = 0.0,
+    MedicalCondition medicalCondition = MedicalCondition.notSpecified,
+    Occupation occupation = Occupation.notSpecified,
+    String userAccountID = "",
+    int coins = 0,
+    int modificationCount = 0,
+    Environment? selectedEnvironment,
+    Country? country,
+    List<Environment> unlockedEnvironments = const <Environment>[]
+  }): isReadonly = true,
+      _id = id,
+      _firstName = firstName,
+      _lastName = lastName,
+      _birthDate = birthDate,
+      _sex = sex,
+      _height = height,
+      _weight = weight,
+      _medicalCondition = medicalCondition,
+      _occupation = occupation,
+      _userAccountID = userAccountID,
+      _coins = coins,
+      _modificationCount = modificationCount,
+      _country = country ?? Country.countryNotSpecified,
+      _selectedEnvironment = selectedEnvironment ?? Environment.firstUnlocked(),
+      _unlockedEnvironments = <Environment>[] {
+
+        if (unlockedEnvironments.isEmpty) {
+          _unlockedEnvironments.add(Environment.firstUnlocked());
+        } else {
+           _unlockedEnvironments.addAll(unlockedEnvironments);
+        }
+      }
+
+  UserProfile.uncommitted() 
+  : this.unmodifiable(id: -1,);
+
+  UserProfile.modifiableCopyOf(UserProfile other)
+    : isReadonly = false,
+      _id = other._id ,
+      _firstName = other._firstName ,
+      _lastName = other._lastName ,
+      _birthDate = other._birthDate ,
+      _sex = other._sex ,
+      _height = other._height ,
+      _weight = other._weight ,
+      _medicalCondition = other._medicalCondition ,
+      _occupation = other._occupation ,
+      _userAccountID = other._userAccountID ,
+      _coins = other._coins ,
+      _modificationCount = other._modificationCount ,
+      _selectedEnvironment = other._selectedEnvironment ,
+      _country = other._country ,
+      _unlockedEnvironments = List.from(other._unlockedEnvironments);
+
+  static const String tableName = "perfil";
+
+  static const String idFieldName = "id";
+  static const String firstNameFieldName = "nombre";
+  static const String lastNameFieldName = "apellido";
+  static const String birthDateFieldName = "fecha_nacimiento";
+  static const String sexFieldName = "sexo";
+  static const String heightFieldName = "estatura";
+  static const String weightFieldName = "peso";
+  static const String medicalConditionFieldName = "padecimientos";
+  static const String occupationFieldName = "ocupacion";
+  static const String userAccountIdFieldName = "id_usuario";
+  static const String coinsFieldName = "monedas";
+  static const String modificationCountFieldName = "num_modificaciones";
+  static const String selectedEnvFieldName = "entorno_sel";
+  static const String countryFieldName = "id_pais";
+  static const String unlockedEnvsFieldName = "entornos";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    firstNameFieldName,
+    lastNameFieldName,
+    birthDateFieldName,
+    sexFieldName,
+    heightFieldName,
+    weightFieldName,
+    medicalConditionFieldName,
+    occupationFieldName,
+    userAccountIdFieldName,
+    coinsFieldName,
+    modificationCountFieldName,
+    selectedEnvFieldName,
+    countryFieldName,
+    unlockedEnvsFieldName,
+  ];
 
   @override
   String get table => tableName;
@@ -70,49 +163,44 @@ class UserProfile extends SQLiteModel {
     )
   ''';
 
-  static UserProfile copyOf(UserProfile originalProfile) {
-    return UserProfile(
-      id: originalProfile.id,
-      firstName: originalProfile.firstName,
-      lastName: originalProfile.lastName,
-      birthDate: originalProfile.birthDate,
-      sex: originalProfile.sex,
-      height: originalProfile.height,
-      weight: originalProfile.weight,
-      medicalCondition: originalProfile.medicalCondition,
-      occupation: originalProfile.occupation,
-      userAccountID: originalProfile.userAccountID,
-      selectedEnvId: originalProfile.selectedEnvId,
-      coins: originalProfile.coins,
-      modificationCount: originalProfile.modificationCount,
-      country: Country(
-        id: originalProfile.country.id, 
-        code: originalProfile.country.code
-      ),
-      unlockedEnvironments: List.from(originalProfile.unlockedEnvironments)
-    );
-  }
-
   static UserProfile fromMap(Map<String, Object?> map) {
+
+    //TODO: considerar validar ciertos campos (especialmente que 'entornos' y 
+    // 'entorno_sel' coincidan, además de revisar el valor de 'pais').
     
-    final country = Country.fromMap(
-      (map['pais'] is Map<String, Object?>) 
-        ? map['pais'] as Map<String, Object?> 
-        : {}
-    );
+    final Country country;
+
+    if (map["pais"] is Map<String, Object?>) {
+      country = Country.fromMap(map["pais"] as Map<String, Object?>);
+    } else {
+      country = Country.countryNotSpecified;
+    }
 
     final idxUserSex = min(map['sexo'] as int, UserSex.values.length -1);
     final idxOccupation = min(map['ocupacion'] as int, Occupation.values.length -1);
     final idxMedicalCondition = min(map['padecimientos'] as int, MedicalCondition.values.length -1);
 
-    var environments = map['entornos'];
-    List<Environment> envList = <Environment>[];
+    final environments = map["entornos"];
+    final List<Environment> unlockedEnvironments = <Environment>[];
 
-    if (environments is List<Map<String, Object?>> && environments.isNotEmpty) {
-      envList = environments.map((environment) => Environment.fromMap(environment)).toList();
+    if (environments is List<Map<String, Object?>>) {
+      unlockedEnvironments.addAll(
+        environments.map((environment) => Environment.fromMap(environment))
+        .toList()
+      );
     }
 
-    return UserProfile(
+    final int selectedEnvironmentId;
+
+    if (unlockedEnvironments.isEmpty) {
+      unlockedEnvironments.add(Environment.firstUnlocked());
+      selectedEnvironmentId = unlockedEnvironments.first.id;
+      
+    } else {
+      selectedEnvironmentId = int.tryParse(map["entorno_sel"].toString()) ?? 0;
+    }
+
+    return UserProfile.unmodifiable(
       id: int.tryParse(map['id'].toString()) ?? -1,
       firstName: map['nombre'].toString(),
       lastName: map['apellido'].toString(),
@@ -123,43 +211,172 @@ class UserProfile extends SQLiteModel {
       medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
       occupation: Occupation.values[idxOccupation],
       userAccountID: map['id_usuario'].toString(),
-      selectedEnvId: int.tryParse(map['entorno_sel'].toString()) ?? 0,
+      selectedEnvironment: unlockedEnvironments.where((env) => env.id == selectedEnvironmentId).first,
       coins: int.tryParse(map['monedas'].toString()) ?? 0,
       modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
       country: country,
-      unlockedEnvironments: envList
+      unlockedEnvironments: unlockedEnvironments
     );
   } 
 
   @override
-  Map<String, Object?> toMap() {
-    final Map<String, Object?> map = {
-      'nombre': firstName,
-      'apellido': lastName,
-      'fecha_nacimiento': birthDate?.toIso8601String() ?? '',
-      'sexo': sex.index,
-      'estatura': height,
-      'peso': weight,
-      'padecimientos': medicalCondition.index,
-      'ocupacion': occupation.index,
-      'id_usuario': userAccountID,
-      'entorno_sel': selectedEnvId,
-      'monedas': coins,
-      'num_modificaciones': modificationCount,
-      'pais': country,
-      'entornos': unlockedEnvironments
-    };
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
 
-    if (id >= 0) map['id'] = id;
+    assert(
+      unlockedEnvironments.where((env) => env.id == _selectedEnvironment.id).length == 1,
+      "No hay un entorno de unlockedEnvironments con el selectedEnvId"
+    );
 
-    return map;
+    // Modificar los nombres de los atributos para el Map resultante, segun 
+    // [options].
+    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
+
+    // Comprobar que hay una entrada por cada atributo de ActivityRecord.
+    assert(attributeNames.length == baseAttributeNames.length);
+
+    final Map<String, Object?> map = {};
+
+    if (id >= 0) map[attributeNames[idFieldName]!] = id;
+
+    map.addAll({
+      attributeNames[firstNameFieldName]!: firstName,
+      attributeNames[lastNameFieldName]!: lastName,
+      attributeNames[birthDateFieldName]!: birthDate?.toIso8601String() ?? '',
+      attributeNames[sexFieldName]!: sex.index,
+      attributeNames[heightFieldName]!: height,
+      attributeNames[weightFieldName]!: weight,
+      attributeNames[medicalConditionFieldName]!: medicalCondition.index,
+      attributeNames[occupationFieldName]!: occupation.index,
+      userAccountIdFieldName: userAccountID,
+      attributeNames[selectedEnvFieldName]!: _selectedEnvironment.id,
+      attributeNames[coinsFieldName]!: coins,
+      attributeNames[modificationCountFieldName]!: modificationCount,
+    });
+
+    if (options.includeCompleteSubEntities) {
+      // Incluir mapas (no objetos en sí) de entidades anidadas.
+      map[attributeNames[countryFieldName]!] = country;
+      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments;
+    } else {
+      // Incluir mapas (no objetos en sí) de entidades anidadas.
+      map[attributeNames[countryFieldName]!] = country.id;
+      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments
+          .map((env) => env.id)
+          .toList();
+    }
+
+    return Map.unmodifiable(map);
   }
 
-  Environment get selectedEnvironment => unlockedEnvironments.isNotEmpty
-      ? unlockedEnvironments.firstWhere((env) => env.id == selectedEnvId)
-      : Environment();
+  int get id => _id;
+  String get firstName => _firstName;
+  String get lastName => _lastName;
+  DateTime? get birthDate => _birthDate;
+  UserSex get sex => _sex;
+  double get height => _height;
+  double get weight => _weight;
+  MedicalCondition get medicalCondition => _medicalCondition;
+  Occupation get occupation => _occupation;
+  Country get country => _country;
+  String get userAccountID => _userAccountID;
+  int get coins => _coins;
+  int get modificationCount => _modificationCount;
+  List<Environment> get unlockedEnvironments => isReadonly
+    ? List.unmodifiable( _unlockedEnvironments)
+    : _unlockedEnvironments;
 
-  String get fullName => '$firstName $lastName';
+  // Setters, solo si este [UserProfile] no [isReadonly].
+  set firstName(String newFirstName)  => isReadonly ? null : _firstName = newFirstName;
+  set lastName(String newLastName) => isReadonly ? null : _lastName = newLastName;
+  set birthDate(DateTime? newBirthDate) => isReadonly ? null : _birthDate = newBirthDate;
+  set sex(UserSex newSex) => isReadonly ? null : _sex = newSex;
+  set height(double newHeight) => isReadonly ? null : _height = newHeight;
+  set weight(double newWeight) => isReadonly ? null : _weight = newWeight;
+  set medicalCondition(MedicalCondition newCondition) => isReadonly ? null : _medicalCondition = newCondition;
+  set occupation(Occupation newOccupation) => isReadonly ? null : _occupation = newOccupation;
+  set country(Country newCountry) => isReadonly ? null : _country = newCountry;
+  set userAccountID(String newAccountId) => isReadonly ? null : _userAccountID = newAccountId;
+  set selectedEnvironment(Environment newSelectedEnv) {
+    if (!isReadonly) {
+      _selectedEnvironment = newSelectedEnv;
+    }
+  }
+
+  /// Revisa si este perfil tiene un [Environment] con un [id] equivalente a 
+  /// [selectedEnvId] en su colección de [unlockedEnvironments]. Luego, retorna 
+  /// el entorno seleccionado o retorna un [Environment.firstUnlocked] si el 
+  /// perfil no ha desbloqueado el entorno.
+  Environment get selectedEnvironment {
+
+    if (isReadonly) {
+      final hasSelectedEnv = hasUnlockedEnv(_selectedEnvironment.id);
+
+      return (hasSelectedEnv)
+        ? unlockedEnvironments.singleWhere(
+          (env) => env.id == _selectedEnvironment.id, 
+          orElse: () => Environment.firstUnlocked()
+        )
+        : Environment.firstUnlocked();
+    } else {
+      return _selectedEnvironment;
+    }
+  }
+
+  // Retorna **true** si este perfil tiene datos por default y no ha sido 
+  // modificado.
+  bool get isDefaultProfile {
+    final hasUncommittedId = id < defaultProfileId;
+    final isNotLinkedToAccount = userAccountID.isEmpty;
+    final hasNoModifications = modificationCount == 0;
+
+    return hasUncommittedId && isNotLinkedToAccount && hasNoModifications;
+  }
+
+  /// Determina si este perfil de usuario ha desbloqueado el entorno con [envId].
+  /// 
+  /// Retorna **false** si este perfil no ha desbloqueado ningún entorno con 
+  /// [envId], o si ha desbloqueado más de 1.  
+  bool hasUnlockedEnv(int envId) => unlockedEnvironments
+      .where((e) => e.id == envId).length == 1;
+
+  bool get hasRenalInsufficiency => medicalCondition == MedicalCondition.renalInsufficiency;
+
+  bool get hasNephroticSyndrome => medicalCondition == MedicalCondition.nephroticSyndrome;
+
+  int get ageInYears => _birthDate != null 
+    ? DateTime.now().difference(_birthDate!).inDays.abs()
+    : 0;
+
+  String get fullName {
+
+    final strBuf = StringBuffer();
+
+    if (firstName.isNotEmpty) {
+
+      final names = firstName.split(" ");
+      final maxNumberOfNames = min(names.length, 2);
+
+      final firstNames = names.sublist(0, maxNumberOfNames).join(" ");
+
+      strBuf.write(firstNames.substring(0, min(firstNames.length, maxFirstNameDisplayLength)));
+    }
+
+    if (lastName.isNotEmpty) {
+
+      if (strBuf.length > 0) strBuf.write(" ");
+
+      final lastNames = lastName.split(" ");
+      final numberOfLastNames = min(lastNames.length, 2);
+
+      final adjustedLastNames = lastNames.sublist(0, numberOfLastNames).join(" ");
+
+      strBuf.write(adjustedLastNames.substring(0, min(adjustedLastNames.length, maxLastNameDisplayLength)));
+    }
+
+    return strBuf.toString();
+  }
+
+  // => '$_firstName $_lastName';
 
   /// Obtiene las iniciales del usuario, en mayúsculas.
   String get initials {
@@ -168,6 +385,102 @@ class UserProfile extends SQLiteModel {
     
     return firstInitial + lastInitial;
   }
+
+  /// Modifica el número de monedas del perfil, incrementándolo por [amount] 
+  /// monedas.
+  /// 
+  /// Después de invocar este método, la cantidad total de monedas del perfil 
+  /// será igual a _cantidad previa de monedas_ + _[amount.abs()]_, o a 
+  /// [maxCoins] si la suma anterior sobrepasa el rango: 
+  /// 
+  /// monedas <= [maxCoins]
+  void addCoins(int amount) {
+    _coins = min(maxCoins, _coins + amount.abs());
+  }
+
+  /// Modifica el número de monedas del perfil, decrementándolo por [amount]
+  /// monedas. 
+  /// 
+  /// Si [amount] es mayor que el número, la cantidad de monedas del 
+  /// perfil no es modificada y este método retorna **false**.
+  bool spendCoins(int amount) {
+
+    final hasEnoughCoins = _coins >= amount;
+
+    if (hasEnoughCoins) _coins -= amount.abs();
+
+    return hasEnoughCoins;
+  }
+
+  /// Registra una modificación a los datos sensibles de [UserProfile].
+  /// Debería ser invocado cada vez que se guardan cambios para el perfil.
+  void recordModification() {
+    _modificationCount++;
+  }
+
+  /// Retorna __true__ si [changes] incluye cambios a alguno de los siguientes 
+  /// atributos del perfil de usuario:
+  /// - Nombre
+  /// - Apellido
+  /// - Fecha de nacimiento
+  /// - Sexo
+  /// - Condiciones médicas.
+  /// - País
+  /// - Cuenta de usuario asociada
+  bool hasCriticalChanges(UserProfile changes) {
+
+    final isNameDifferent = _firstName != changes._firstName || _lastName != changes._lastName;
+    final isDateOfBirthDifferent = !(_birthDate
+        ?.isAtSameMomentAs(changes._birthDate ?? DateTime.now()) 
+        ?? changes._birthDate == null);
+
+    final isSexDifferent = _sex != changes._sex;
+    final hasDifferentMedicalCondition = _medicalCondition != changes._medicalCondition;
+
+    final isLinkedToDifferentAccount = _userAccountID.isNotEmpty && _userAccountID != changes._userAccountID;
+    final isCountryDifferent = _country != changes._country;
+
+    return isNameDifferent || isDateOfBirthDifferent || isSexDifferent || 
+        hasDifferentMedicalCondition || isLinkedToDifferentAccount || isCountryDifferent;
+  }
+
+  @override
+  String toString() => "$_firstName $_lastName's profile, ID = $_id";
+
+  @override
+  bool operator ==(Object? other) {
+
+    if (other is! UserProfile) {
+      return false;
+    } 
+
+    final otherProfile = other;
+
+    final isIdEqual = id == otherProfile.id;
+    final isNameEqual = fullName == otherProfile.fullName;
+    final isBirthDateEqual = birthDate?.isAtSameMomentAs(otherProfile.birthDate ?? DateTime.now()) ?? false;
+    final areFeaturesEqual = sex == otherProfile.sex &&
+      medicalCondition == otherProfile.medicalCondition &&
+      occupation == otherProfile.occupation;
+    final isWeightEqual = (weight - otherProfile.weight).abs() < 0.001;
+    final isHeightEqual = (height - otherProfile.height).abs() < 0.001;
+    final isAccountEqual = userAccountID == otherProfile.userAccountID;
+    final areCoinsEqual = coins == otherProfile.coins;
+    final isSelectedEnvEqual = _selectedEnvironment.id == otherProfile._selectedEnvironment.id;
+    final isCountryEqual = country == otherProfile.country;
+    final areUnlockedEnvsEqual = unlockedEnvironments.length == otherProfile.unlockedEnvironments.length;
+
+    return isIdEqual && isNameEqual && isBirthDateEqual && areFeaturesEqual
+      && isWeightEqual && isHeightEqual && isAccountEqual && areCoinsEqual
+      && isSelectedEnvEqual && isCountryEqual && areUnlockedEnvsEqual;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([ 
+    id, firstName, lastName, birthDate, sex, height, weight, 
+    medicalCondition, occupation, userAccountID, _selectedEnvironment.id, 
+    coins, modificationCount, country, unlockedEnvironments 
+  ]);
 
   /// Verifica que [inputName] sea un string con longitud menor a 50.
   static String? validateFirstName(String? inputName) {
@@ -210,20 +523,4 @@ class UserProfile extends SQLiteModel {
         ? 'El peso debe estar entre 20 kg y 200 kg'
         : null; 
   }
-}
-
-enum UserSex {
-  woman,
-  man,
-  notSpecified,
-}
-
-enum Occupation {
-  notSpecified,
-  student,
-  officeWorker,
-  manualWorker,
-  parent,
-  athlete,
-  other
 }

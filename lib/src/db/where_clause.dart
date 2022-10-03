@@ -4,11 +4,32 @@ class WhereClause {
   final String? whereOperator;
   final String argument;
 
-  WhereClause(this.column, this.argument, { this.whereOperator });
+  const WhereClause(this.column, this.argument, { this.whereOperator });
 
   String get where => '$column ${whereOperator ?? '='} ?';
 
   String get arg => argument;
+
+  @override
+  String toString() => "$column ${whereOperator ?? "="} $argument";
+
+  @override
+  bool operator==(covariant WhereClause other) {
+
+    final isSameColumn = column == other.column; 
+    final isSameOperator = whereOperator == other.whereOperator;
+    final isSameArgument = argument == other.argument;
+
+    return isSameColumn && isSameOperator && isSameArgument;
+  }
+  
+  @override
+  int get hashCode => Object.hashAll([
+    column,
+    whereOperator,
+    argument,
+  ]);
+  
 }
 
 class MultiWhereClause {
@@ -23,7 +44,7 @@ class MultiWhereClause {
   List<String> get args => _arguments;
 
   factory MultiWhereClause.fromConditions(List<WhereClause> clauses, List<String> unions) {
-    String query = '';
+    String query = "";
     List<String> arguments = [];
 
     assert(unions.length == clauses.length - 1);
@@ -35,7 +56,7 @@ class MultiWhereClause {
       arguments.add(clause.arg);
 
       if (i < unions.length) {
-        query += ' ${unions[i]} ';
+        query += " ${unions[i]} ";
       }
     }
 

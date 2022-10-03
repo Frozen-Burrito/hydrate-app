@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:hydrate_app/src/db/migrations.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/models.dart';
 
 /// Proporciona acceso a una base de datos local de SQLite, a través de [instance].
@@ -44,6 +45,12 @@ class SQLiteDB {
     ActivityRecord.tableName,
     ActivityType.tableName
   ];
+
+  static const entityMapOptions = MapOptions(
+    includeCompleteSubEntities: true,
+    useCamelCasePropNames: false,
+    useIntBooleanValues: true,
+  );
 
   /// Abre la base de datos. Si no existe previamente, es creada.
   Future<Database> init(String filePath) async {
@@ -94,27 +101,50 @@ class SQLiteDB {
 
   /// Inserta un [SQLiteModel] en la base de datos.
   /// 
-  /// Retorna el ID de la entidad insertada.
+  /// [entity] es convertida a un mapa usando su método [SQLiteModel.toMap()], 
+  /// con las opciones especificadas en [entityMapOptions]. Estas opciones 
+  /// determinan la forma en que serán manejadas las relaciones y transformación
+  /// a columnas de SQLite.
+  /// 
+  /// Retorna el ID de la entidad insertada, o un entero negativo si la entidad 
+  /// no pudo ser insertada.
   Future<int> insert(SQLiteModel entity) async {
     final db = await database;
 
     // Todas las columnas con tipos primarios, que no son relaciones 1-m o m-m.
     final simpleEntityColumns = await _filterSimpleColumns(entity);
 
-    int totalRowsAltered = 0;
+    try {
+      // Intentar insertar la entidad principal.
+      final insertedId = await db.insert(entity.table, simpleEntityColumns);
 
-    // Insertar la entidad principal.
-    final insertedId = await db.insert(entity.table, simpleEntityColumns);
+      if (insertedId >= 0) {
 
-    if (insertedId >= 0) {
-      // Incrementar filas modificadas.
-      totalRowsAltered++;
+        int totalRowsAltered = 1;
 
-      // Manejar las relaciones muchos a muchos y uno a muchos de la entidad.
-      totalRowsAltered += await _describeRelationships(entity, insertedId: insertedId);
+        // Manejar las relaciones muchos a muchos y uno a muchos de la entidad
+        // insertada.
+        totalRowsAltered += await _describeRelationships(
+          entity, 
+          insertedId: insertedId
+        );
+
+        print("Entity inserted, rows altered: $totalRowsAltered");
+
+        // Retornar el ID de la entidad principal insertada.
+        return insertedId;
+
+      } else {
+        return -1;
+      }
+
+    } on DatabaseException catch(ex) {
+      // Ocurrió algún error relacionado con la base de datos durante esta 
+      // operación de INSERT. Imprimir el error y retornar un entero negativo.
+      //TODO: Considerar opciones para mejorar el manejo de errores de base de datos.
+      print("DatabaseException: ${ex.result}");
+      return -1;
     }
-
-    return totalRowsAltered;
   }
 
   /// Retorna una lista con todos los registros de una tabla.
@@ -122,19 +152,24 @@ class SQLiteDB {
     T Function(Map<String, Object?>) mapper,
     final String table,
     { 
-      final List<WhereClause>? where,
-      final List<String>? whereUnions,
+      final List<WhereClause> where = const <WhereClause>[],
+      final List<String> whereUnions = const <String>[],
       final int? limit,
       final bool queryManyToMany = false,
       final bool includeOneToMany = false,
       final String? orderByColumn,
       final bool? orderByAsc,
     }
-  ) async {
+  ) async 
+  {
+
+    if (where.isNotEmpty) {
+      assert(where.length == (whereUnions.length + 1), "There must be 1 less union than where clauses");
+    }
 
     final db = await database;
 
-    final fullWhere = (where != null && whereUnions != null) 
+    final fullWhere = where.isNotEmpty
       ? MultiWhereClause.fromConditions(where, whereUnions)
       : null;
 
@@ -260,9 +295,12 @@ class SQLiteDB {
   }
 
   /// Elimina de la [table] un registro con el [id] especificado.
+  /// 
+  /// Retorna el número de filas modificadas.
   Future<int> delete(final String table, final int id) async {
+
     final db = await database;
-    final result = await db.delete(table, where: 'id = ?', whereArgs: [id]);
+    final result = await db.delete(table, where: 'id = ?', whereArgs: [ id ]);
 
     return result;
   }
@@ -277,7 +315,7 @@ class SQLiteDB {
     final db = await database;
     
     /// Mapa de la entidad con los valores sin convertir. 
-    final Map<String, Object?> mappedEntity = entity.toMap();
+    final Map<String, Object?> mappedEntity = entity.toMap(options: entityMapOptions);
 
     /// Mapa con los valores finales de las columnas de la entidad.
     final Map<String, Object?> entityColumnValues = {};
@@ -292,7 +330,7 @@ class SQLiteDB {
 
       if (columnValue is SQLiteModel) {
         // Definir la llave foránea para la relación con la otra entidad.
-        final otherEntity = columnValue.toMap();
+        final otherEntity = columnValue.toMap(options: entityMapOptions);
         final otherEntityId = (otherEntity['id'] is int ? otherEntity['id'] as int : -1); 
 
         if (otherEntityId < 0) {
@@ -347,19 +385,17 @@ class SQLiteDB {
     final db = await database;
 
     /// Mapa de la entidad con los valores sin convertir. 
-    final Map<String, Object?> mappedEntity = entity.toMap();
+    final Map<String, Object?> mappedEntity = entity.toMap(options: entityMapOptions);
 
     // Determinar si se están describiendo las relaciones de una inserción o de 
     // una actualización.
     final isInsertOp = (insertedId != null);
 
     /// El número de filas modificadas.
-    int totalRowsAltered = 0;
+    int totalRowsAltered = 0; 
 
-    if (isInsertOp) {
-      // Es una inserción, usar el id de la entidad original insertada.
-      mappedEntity['id'] = insertedId;
-    }
+    // Es una inserción, usar el id de la entidad original insertada.
+    final int entityId = isInsertOp ? insertedId! : mappedEntity["id"] as int;
 
     /// Mapa con todas las inserciones colaterales que deben realizarse.
     Map<String, List<int>> secondaryInsertions = {};
@@ -371,15 +407,17 @@ class SQLiteDB {
     // el nombre de la tabla relacionada, y su valor es una lista con todos los 
     // IDs de las entidades modificadas en la relación m-m con dicha tabla.
 
-    for (var column in mappedEntity.entries) {
+    for (final column in mappedEntity.entries) {
 
-      Object? colValue = column.value;
+      final columnValue = column.value;
 
-      if (colValue is Iterable<SQLiteModel> && colValue.isNotEmpty) {
+      if (columnValue is Iterable<SQLiteModel> && columnValue.isNotEmpty) {
 
-        final relatedIds = reduceIds(colValue.map((e) => e.toMap()).toList(), 'id').toList();
+        final rows = columnValue.map((e) => e.toMap(options: entityMapOptions)).toList();
 
-        final String relatedTable = colValue.first.table;
+        final relatedIds = reduceIds(rows, 'id').toList();
+
+        final String relatedTable = columnValue.first.table;
         final String? mtmTable = manyToManyTables[entity.table]?[relatedTable];
 
         // Obtener las entidades de la tabla mtm.
@@ -387,14 +425,15 @@ class SQLiteDB {
           ? await db.query(
             mtmTable,
             where: 'id_${entity.table} = ?',
-            whereArgs: [ mappedEntity['id'] ]
+            whereArgs: [ entityId ]
           )
           : <Map<String, Object?>>[];
 
         // Determinar inserciones a tabla muchos-a-muchos. 
-        for (var principalEntity in colValue) {
+        for (var principalEntity in columnValue) {
 
-          final principalEntityMap = principalEntity.toMap();
+          final principalEntityMap = principalEntity.toMap(options: entityMapOptions);
+          
           final principalId = (principalEntityMap['id'] is int ? principalEntityMap['id'] as int : -1);
 
           if (isInsertOp) {
@@ -403,7 +442,7 @@ class SQLiteDB {
 
             if (principalId < 0) {
               // La otra entidad no existe, es necesario insertarla primero.
-              int secondaryId = await db.insert(principalEntity.table, principalEntity.toMap()); 
+              int secondaryId = await db.insert(principalEntity.table, principalEntityMap); 
 
               if (secondaryId >= 0) {
                 
@@ -424,7 +463,13 @@ class SQLiteDB {
             }
           } else {
             // Agregar a mtm si principalEntity no existe en ella.
-            if (relationshipEntities.indexWhere((e) => e['id'] == principalId) < 0) {
+            final principalIdColumn = 'id_${principalEntity.table}';
+
+            final isPrincipalEntityNotCreated = relationshipEntities
+              .where((e) => e[principalIdColumn] == principalId)
+              .isEmpty;
+
+            if (isPrincipalEntityNotCreated) {
 
               if (secondaryInsertions[principalEntity.table] != null) {
                 secondaryInsertions[principalEntity.table]?.add(principalId); 
@@ -454,16 +499,19 @@ class SQLiteDB {
           }
         } 
       }
+    }
 
-      if (mappedEntity['id'] is int) {
-        // Hacer las operaciones necesarias en tablas muchos-a-muchos.
-        totalRowsAltered += await _modifyManyToMany(
-          entity.table, 
-          mappedEntity['id'] as int,
-          otherInsertedRowIds: secondaryInsertions,
-          otherDeletedRowIds: secondaryDeletions,
-        );
-      }
+    final requiresMtmOperations = secondaryInsertions.isNotEmpty 
+      || secondaryDeletions.isNotEmpty;
+
+    if (entityId >= 0 && requiresMtmOperations) {
+      // Hacer las operaciones necesarias en tablas muchos-a-muchos.
+      totalRowsAltered += await _modifyManyToMany(
+        entity.table, 
+        entityId,
+        otherInsertedRowIds: secondaryInsertions,
+        otherDeletedRowIds: secondaryDeletions,
+      );
     }
 
     return totalRowsAltered;

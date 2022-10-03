@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/provider/nav_provider.dart';
+import 'package:hydrate_app/src/services/nav_provider.dart';
 
 class TabPageView extends StatelessWidget {
 

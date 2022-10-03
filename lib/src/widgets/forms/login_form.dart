@@ -1,123 +1,33 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
-import 'package:hydrate_app/src/models/api.dart';
-import 'package:hydrate_app/src/models/user_credentials.dart';
-import 'package:hydrate_app/src/provider/profile_provider.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
+import 'package:hydrate_app/src/widgets/form_state_provider.dart';
 
-class LoginForm extends StatefulWidget {
-  const LoginForm({ Key? key }) : super(key: key);
+class LoginForm extends StatelessWidget {
 
-  @override
-  State<LoginForm> createState() => _LoginFormState();
-}
+  LoginForm({Key? key}) : super(key: key);
 
-class _LoginFormState extends State<LoginForm> {
+  final AuthFormBloc bloc = AuthFormBloc.emailSignIn();
 
-  final _formKey = GlobalKey<FormState>();
+  Future<void> _handleLoginSubmit(BuildContext context) async {
+    // Submit the form.
+    bloc.formSubmit.add(context);
 
-  final loginApiUrl = '/usuarios/login';
-
-  String emailOrUsername = '';
-  String password = '';
-
-  bool editedEmail = false;
-  bool editedPassword = false;
-
-  bool isLoading = false;
-  bool hasError = false;
-  AuthError authError = AuthError.none;
-
-  void _validateAndAuthenticate(BuildContext context) async {
-    
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() { isLoading = true; });
-
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-
-    final userCredentials = UserCredentials(
-      email: AuthValidators.isValidEmail(emailOrUsername) ? emailOrUsername : '',
-      username: AuthValidators.isValidEmail(emailOrUsername) ? '' : emailOrUsername,
-      password: password
-    );
-
-    try {
-      final res = await API.post(loginApiUrl, userCredentials.toMap());
-
-      final resBody = json.decode(res.body);
-
-      print('Respuesta (${res.statusCode}): $resBody');
-
-      if (res.statusCode == 200 && resBody['token'] is String) {
-
-        // La autenticación fue exitosa.
-        String jwt = resBody['token'];
-
-        // Guardar el token JWT.
-        settingsProvider.authToken = jwt;
-
-        final tokenClaims = parseJWT(jwt);
-
-        print('Claims: $tokenClaims');
-
-        String accountId = tokenClaims['id'];
-
-        if (profileProvider.profile.userAccountID.isNotEmpty) {
-          int profileLinkedToAccount = await profileProvider.findAndSetProfileLinkedToAccount(accountId);
-
-          if (profileLinkedToAccount < 0) {
-            // Aun no existe un perfil asociado con la cuenta. Crear uno nuevo.
-            profileProvider.newDefaultProfile(accountID: accountId);
-
-            Navigator.of(context).popAndPushNamed(RouteNames.authentication, result: resBody['token']);
-          } else {
-            // Ya existe un perfil para esta cuenta.
-            profileProvider.loadUserProfile(profileId: profileLinkedToAccount, accountId: accountId);
-
-            Navigator.of(context).popAndPushNamed(RouteNames.home, result: resBody['token']);
-          }
-        } else {
-          // Asociar el perfil actual con la cuenta autenticada.
-          profileProvider.profileChanges.userAccountID = accountId;
-
-          profileProvider.saveProfileChanges(restrictModifications: false);
-
-          Navigator.of(context).popAndPushNamed('/', result: resBody['token']);
-        }     
-      } else if (res.statusCode >= 400) {
-        // Existe un error en las credenciales del usuario.
-        final error = AuthError.values[resBody['tipo'] ?? 1];
-
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          authError = error;
-        });
-      } else if (res.statusCode >= 500) {
-        // Hubo un error en el servidor.
-        setState(() {
-          isLoading = false;
-          hasError = true;
-          authError = AuthError.serviceUnavailable;
-        });
+    // Wait for the result of the submit event.
+    await for(final result in bloc.formState) {
+      if (result == AuthResult.authenticated) {
+        // El usuario ya tiene un perfil. Redirigir a vista de inicio.
+        Navigator.of(context).popAndPushNamed(RouteNames.home);
+      } else if (result == AuthResult.newProfileCreated) {
+        // El usuario todavía no ha llenado su perfil inicial. Redirigir
+        // al formulario inicial para que el usuario pueda configurar su nuevo
+        // perfil.
+        Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
       }
-
-    } on SocketException {
-      setState(() {
-        isLoading = false;
-        hasError = true;
-        authError = AuthError.serviceUnavailable;
-      });
     }
   }
 
@@ -125,27 +35,146 @@ class _LoginFormState extends State<LoginForm> {
   Widget build(BuildContext context) {
 
     final localizations = AppLocalizations.of(context)!;
+    
+    return FormStateProvider(
+      model: bloc,
+      child: Form(
+        key: bloc.formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        child: Card(
+          margin: const EdgeInsets.only( top: 48.0 ),
+          child: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.9,
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    localizations.signIn, 
+                    style: Theme.of(context).textTheme.headline4,
+                  ),
+    
+                  const SizedBox( height: 32.0, ),
+    
+                  const _LoginFormGroup(),
+    
+                  StreamBuilder<AuthResult>(
+                    stream: bloc.formState,
+                    initialData: AuthResult.none,
+                    builder: (context, snapshot) {
+                      
+                      if (snapshot.data == AuthResult.none) {
+                        return const SizedBox( height: 32.0, );
+                      }
+    
+                      final isServiceUnavailable = snapshot.data == AuthResult.serviceUnavailable;
+    
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Icon(isServiceUnavailable
+                              ? Icons.cloud_off
+                              : Icons.error
+                            ),
+    
+                            const SizedBox( width: 8.0, ),
+                            
+                            Expanded(
+                              child: Text(
+                                isServiceUnavailable 
+                                  ? localizations.errCheckInternetConn
+                                  //TODO: Add i18n
+                                  : 'Your credentials are incorrect.', 
+                                textAlign: TextAlign.start,
+                                maxLines: 2,
+                                softWrap: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  ),
+    
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.5,
+                    child: StreamBuilder<bool>(
+                      initialData: false,
+                      stream: bloc.isLoading,
+                      builder: (context, snapshot) {
+    
+                        final isFormLoading = snapshot.data ?? false;
 
-    return Form(
-      key: _formKey,
-      autovalidateMode: AutovalidateMode.onUserInteraction,
-      child: Card(
-        margin: const EdgeInsets.only( top: 48.0 ),
-        child: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.9,
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  localizations.signIn, 
-                  style: Theme.of(context).textTheme.headline4,
-                ),
+                        if (isFormLoading) {
+                          return ElevatedButton(
+                            onPressed: null,
+                            style: ElevatedButton.styleFrom(
+                              primary: Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                              textStyle: Theme.of(context).textTheme.bodyText1,
+                            ), 
+                            child: const SizedBox(
+                              height: 24.0,
+                              width: 24.0,
+                              child: CircularProgressIndicator()
+                            ),
+                          );
+                        } else {
+                          return ElevatedButton(
+                            onPressed: () {
+                              FocusScope.of(context).unfocus();
+                              _handleLoginSubmit(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              primary: Theme.of(context).colorScheme.primary,
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                              textStyle: Theme.of(context).textTheme.bodyText1,
+                            ), 
+                            child: Text(
+                              localizations.continueAction, 
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              )
+            )
+          )
+        )
+      ),
+    );  
+  }
+}
 
-                const SizedBox( height: 32.0, ),
+class _LoginFormGroup extends StatelessWidget {
+  const _LoginFormGroup({Key? key,}) : super(key: key);
 
-                TextFormField(
+  @override
+  Widget build(BuildContext context) {
+
+    final bloc = FormStateProvider.of(context).model;
+    final localizations = AppLocalizations.of(context)!;
+    final validationMsgBuilder = ValidationMessageBuilder.of(context);
+
+    return StreamBuilder<bool>(
+      initialData: false,
+      stream: bloc.isLoading,
+      builder: (context, snapshot) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            StreamBuilder<UsernameError>(
+              initialData: UsernameError.none,
+              stream: bloc.usernameError,
+              builder: (context, snapshot) {
+                return TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
@@ -153,23 +182,20 @@ class _LoginFormState extends State<LoginForm> {
                     prefixIcon: const Icon(Icons.person),
                     labelText: localizations.emailOrUsername,
                     helperText: ' ',
-                    errorText: hasError 
-                      && (authError == AuthError.userDoesNotExist || authError == AuthError.credentialsError)
-                      ? localizations.errNoUser
-                      : null
+                    errorText: validationMsgBuilder.messageForUsername(snapshot.data!),
                   ),
-                  onChanged: (value) => setState(() {
-                    emailOrUsername = value;
-                    editedEmail = true;
-                  }),
-                  validator: (value) => value != null && value.contains('@')
-                    ? AuthValidators.emailValidator(value, editedEmail)
-                    : AuthValidators.usernameValidator(value, editedEmail),
-                ),
+                  onChanged: (inputValue) => bloc.usernameSink.add(inputValue),
+                );
+              }
+            ),
 
-                const SizedBox( height: 16.0, ),
+            const SizedBox( height: 16.0, ),
 
-                TextFormField(
+            StreamBuilder<PasswordError>(
+              initialData: PasswordError.none,
+              stream: bloc.passwordError,
+              builder: (context, snapshot) {
+                return TextFormField(
                   autocorrect: false,
                   obscureText: true,
                   keyboardType: TextInputType.visiblePassword,
@@ -178,64 +204,15 @@ class _LoginFormState extends State<LoginForm> {
                     prefixIcon: const Icon(Icons.vpn_key),
                     labelText: localizations.password,
                     helperText: ' ',
-                    errorText: hasError 
-                      && (authError == AuthError.incorrectPassword)
-                      ? localizations.errIncorrectPassword
-                      : null
+                    errorText: validationMsgBuilder.messageForPassword(snapshot.data!),
                   ),
-                  onChanged: (value) => setState(() {
-                    editedPassword = true;
-                    password = value;
-                  }),
-                  validator: (value) => AuthValidators.passwordValidator(value, editedPassword)
-                ),
-
-                authError == AuthError.serviceUnavailable 
-                  ? Padding(
-                    padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        const Icon(Icons.cloud_off),
-
-                        const SizedBox( width: 8.0, ),
-                        
-                        Expanded(
-                          child: Text(
-                            localizations.errCheckInternetConn, 
-                            textAlign: TextAlign.start,
-                            maxLines: 2,
-                            softWrap: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  : const SizedBox( height: 32.0, ),
-
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.4,
-                  child: ElevatedButton(
-                    child: isLoading 
-                      ? const SizedBox(
-                          height: 24.0,
-                          width: 24.0,
-                          child: CircularProgressIndicator()
-                        )
-                      : Text(localizations.signIn),
-                    style: ElevatedButton.styleFrom(
-                      primary: Theme.of(context).colorScheme.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                      textStyle: Theme.of(context).textTheme.bodyText1,
-                    ),
-                    onPressed: isLoading ? null : () => _validateAndAuthenticate(context),
-                  ),
-                ),
-              ],
-            )
-          )
-        )
-      )
+                  onChanged: (inputValue) => bloc.passwordSink.add(inputValue),
+                );
+              }
+            ),
+          ],
+        );
+      },
     );
   }
 }

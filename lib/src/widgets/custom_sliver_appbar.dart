@@ -38,7 +38,7 @@ class CustomSliverAppBar extends StatelessWidget {
       titleSpacing: 4.0,
       centerTitle: true,
       floating: true,
-      leadingWidth: MediaQuery.of(context).size.width * 0.4,
+      leadingWidth: MediaQuery.of(context).size.width * 0.25,
       leading: Row(children: leading ?? <Widget>[],),
       actions: actions,
       bottom: bottom ?? const PreferredSize(

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/models/activity_record.dart';
-import 'package:hydrate_app/src/provider/activity_provider.dart';
+import 'package:hydrate_app/src/models/routine_occurrence.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/utils/activities_with_routines.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
+import 'package:hydrate_app/src/utils/dropdown_labels.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
 
@@ -17,7 +19,7 @@ class ActivitySliverList extends StatelessWidget {
       bottom: false,
       child: Builder(
         builder: (context) {
-          return Consumer<ActivityProvider>(
+          return Consumer<ActivityService>(
             builder: (_, provider, __) {
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -28,46 +30,70 @@ class ActivitySliverList extends StatelessWidget {
 
                   SliverToBoxAdapter(
                     child: WeekTotalsChart(
-                      isLoading: provider.isLoading,
-                      dailyTotals: provider.weekDailyTotals,
+                      dailyTotals: provider.prevWeekKcalTotals,
                       yUnit: 'kCal',
+                      maxYValue: 3000.0,
                     ),
                   ),
 
                   SliverPadding(
                     padding: const EdgeInsets.all(8.0),
-                    sliver: Builder(
-                      builder: (context) {
-                        String msg = '';
-                        IconData placeholderIcon = Icons.info;
+                    sliver: FutureBuilder(
+                      future: provider.routineActivities,
+                      builder: (context, AsyncSnapshot<RoutineActivities> snapshot) {
+                        // Revisar si hay datos en el snapshot del future.
+                        if (snapshot.hasData ) {
 
-                        if (provider.isLoading || provider.activityRecords.isEmpty) {
+                          final routineActivities = snapshot.data;
 
-                          if (provider.activityRecords.isEmpty) {
-                            msg = 'Aún no hay actividad física registrada.';
-                            placeholderIcon = Icons.fact_check_rounded;
+                          final activityCount = routineActivities?.activitiesWithRoutines.length ?? 0;
+                          final activites = routineActivities != null
+                            ? routineActivities.activitiesWithRoutines
+                            : List<RoutineOccurrence>.empty();
+
+                          if (activites.isNotEmpty) {
+                            
+                            // Si hay datos y la lista de actividades no esta vacia, 
+                            // mostrar los registros de actividad.
+                            return SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int i) {
+                                  return _ActivityCard(
+                                    activityRecord: activites[i],
+                                  );
+                                },
+                                childCount: activityCount
+                              ),
+                            );
+                          } else {
+                            // Retornar un placeholder si los datos están cargando, o no hay datos aín.
+                            return const SliverToBoxAdapter(
+                              child: DataPlaceholder(
+                                //TODO: agregar i18n
+                                message: 'Aún no hay actividad física registrada.',
+                                icon: Icons.fact_check_rounded,
+                              ),
+                            );  
                           }
-
-                          // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-                          return SliverDataPlaceholder(
-                            isLoading: provider.isLoading,
-                            message: msg,
-                            icon: placeholderIcon,
-                          );                          
-          
-                        } else {
-                          // Retornar la lista de registros de hidratacion del usuario.
-                          return SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (BuildContext context, int i) {
-                                return _ActivityCard(
-                                  activityRecord: provider.activityRecords[i],
-                                );
-                              },
-                              childCount: provider.activityRecords.length,
+                        } else if (snapshot.hasError) {
+                          // Retornar un placeholder, indicando que hubo un error.
+                          return const SliverToBoxAdapter(
+                            child: DataPlaceholder(
+                              isLoading: false,
+                              //TODO: agregar i18n
+                              message: 'Hubo un error obteniendo tus registros de actividad.',
+                              icon: Icons.error,
                             ),
-                          );
+                          ); 
                         }
+
+                        // El future no tiene datos ni error, aún no ha sido
+                        // completado.
+                        return const SliverToBoxAdapter(
+                          child: DataPlaceholder(
+                            isLoading: true,
+                          ),
+                        );  
                       }
                     ),
                   ),
@@ -83,15 +109,19 @@ class ActivitySliverList extends StatelessWidget {
 
 class _ActivityCard extends StatelessWidget {
 
-  final ActivityRecord activityRecord;
+  final RoutineOccurrence activityRecord;
 
-  const _ActivityCard({ required this.activityRecord, Key? key }) : super(key: key);
+  const _ActivityCard({ 
+    required this.activityRecord, 
+    Key? key 
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
 
-    final int activityTypeIdx = activityRecord.activityType.activityTypeValue.index;
-    final activityTypeLabel = DropdownLabels.activityLabels(context)[activityTypeIdx];
+    final activity = activityRecord.activity;
+    
+    final activityTypeLabel = DropdownLabels.activityLabels(context)[activity.activityType.id];
 
     return Card(
       color: Theme.of(context).colorScheme.surface,
@@ -106,37 +136,63 @@ class _ActivityCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 SizedBox( 
-                  width: MediaQuery.of(context).size.width * 0.75,
+                  width: MediaQuery.of(context).size.width * 0.7,
                   child: Text(
-                    activityRecord.title,
+                    activity.title,
                     style: Theme.of(context).textTheme.headline6,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),                
 
-                (activityRecord.isIntense)
-                ? Container(
-                    width: 24.0,
-                    child: const Icon(
-                      Icons.directions_walk, 
-                      color: Colors.yellow,
-                      size: 24.0,
-                    ),
-                    decoration: BoxDecoration(
+                SizedBox( 
+                  width: MediaQuery.of(context).size.width * 0.14,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
 
-                      shape: BoxShape.circle,
-                      color: Colors.yellow[300]?.withOpacity(0.3),
-                    ),
+                      (activity.isRoutine && activityRecord.routine != null)
+                      ? Container(
+                          width: 24.0,
+                          margin: const EdgeInsets.only(right: 4.0),
+                          child: const Icon(
+                            Icons.alarm, 
+                            color: Colors.blue,
+                            size: 22.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.blue.shade300.withOpacity(0.3),
+                          ),
+                        )
+                      : const SizedBox(),
+
+                      (activity.isIntense)
+                      ? Container(
+                          width: 24.0,
+                          child: const Icon(
+                            Icons.directions_walk, 
+                            color: Colors.yellow,
+                            size: 22.0,
+                          ),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.yellow[300]?.withOpacity(0.3),
+                          ),
+                        )
+                      : const SizedBox(),
+                    ],
                   )
-                : const SizedBox(),
+                ),
               ],
             ),
+
 
             const SizedBox( height: 8.0 ),
 
             Text(
-              activityRecord.formattedDate,
+              activityRecord.date.toLocalizedDateTime,
               style: Theme.of(context).textTheme.bodyText2?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -173,15 +229,15 @@ class _ActivityCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   _ActivityCardStatIcon(
-                    statLabel: activityRecord.formattedDistance,
+                    statLabel: activity.formattedDistance,
                     icon: Icons.directions_run
                   ),
                   _ActivityCardStatIcon(
-                    statLabel: activityRecord.formattedDuration,
+                    statLabel: activity.formattedDuration,
                     icon: Icons.schedule
                   ),
                   _ActivityCardStatIcon(
-                    statLabel: activityRecord.formattedKcal,
+                    statLabel: activity.formattedKcal,
                     icon: Icons.bolt
                   ),
                 ],

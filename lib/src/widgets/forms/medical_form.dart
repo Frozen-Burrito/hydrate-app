@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
 
 class MedicalForm extends StatefulWidget {
 
@@ -16,15 +17,19 @@ class _MedicalFormState extends State<MedicalForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final MedicalData _userMedicalData = MedicalData();
+  final MedicalData _userMedicalData = MedicalData.uncommitted();
 
   final nextAppointmentController = TextEditingController();
 
   /// Verifica cada campo del formulario. Si no hay errores, registra la nueva
   /// información del usuario en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
+    // Asegurar que el Form está en un estado válido.
     if (_formKey.currentState!.validate()) {
-      int resultado = await SQLiteDB.instance.insert(_userMedicalData);
+
+      final saveReport = Provider.of<GoalsService>(context, listen: false).saveMedicalReport;
+      // Guardar el reporte medico.
+      int resultado = await saveReport(_userMedicalData);
 
       if (resultado >= 0) {
         if (redirectRoute != null) {
@@ -32,6 +37,12 @@ class _MedicalFormState extends State<MedicalForm> {
         } else {
           Navigator.of(context).pop();
         }
+      } else {
+        // Si el reporte no fue guardado, mantener la app en la vista actual y 
+        // notificar al usuario.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No fue posible guardar el reporte.')),
+        );
       }
     }
   }
@@ -167,9 +178,8 @@ class _MedicalFormState extends State<MedicalForm> {
                 lastDate: DateTime(2100)
               );
 
-              _userMedicalData.nextAppointment = nextAppointmentDate;
-
               if (nextAppointmentDate != null) {
+                _userMedicalData.nextAppointment = nextAppointmentDate;
                 nextAppointmentController.text = nextAppointmentDate.toString().substring(0,10);
               }
             },

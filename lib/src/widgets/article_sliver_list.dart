@@ -1,28 +1,29 @@
 import 'dart:math';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/article.dart';
-import 'package:hydrate_app/src/provider/article_provider.dart';
+import 'package:hydrate_app/src/services/article_service.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
-import 'package:provider/provider.dart';
+import 'package:hydrate_app/src/widgets/floating_progress_indicator.dart';
 
 class ArticleSliverList extends StatelessWidget {
 
-  final List<Article> articles;
-
-  final bool isBookmarks;
-  final bool hasError;
-  final bool isLoading;
-
   const ArticleSliverList({ 
-    required this.articles, 
-    this.isBookmarks = false,
-    this.isLoading = false, 
-    this.hasError = false,
+    required this.articleSource,
     Key? key 
-    }) : super(key: key);
+  }) : super(key: key);
+
+  /// Define la fuente de los artículos mostrados en esta lista. Puede tener
+  /// los siguientes valores:
+  /// 
+  /// - [ArticleSource.bookmarks] Los artículos mostrados son aquellos 
+  /// marcados y guardados localmente.
+  /// - [ArticleSource.network] Los artículos mostrados son los obtenidos
+  /// desde la API web de recursos informativos.
+  final ArticleSource articleSource;
 
   @override
   Widget build(BuildContext context) {
@@ -32,53 +33,66 @@ class ArticleSliverList extends StatelessWidget {
     return SafeArea(
       top: false,
       bottom: false,
-      child: Builder(
-        builder: (context) {
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: <Widget> [
-              SliverOverlapInjector(
-                handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.all(8.0),
-                sliver: Builder(
-                  builder: (context) {
+      child: Consumer<ArticleService>(
+        builder: (_, articleProvider, __) {
 
-                    String msg = '';
-                    IconData placeholderIcon = Icons.error;
+          final articles = articleSource == ArticleSource.network
+            ? articleProvider.allArticles
+            : articleProvider.bookmarks;
 
-                    if (hasError) {
-                      msg = localizations.resourcesErr;
-                      placeholderIcon = isBookmarks ? Icons.folder_open : Icons.cloud_off_rounded;
+          final isLoading = articleSource == ArticleSource.network
+            ? articleProvider.isFetchingAllArticles
+            : articleProvider.isFetchingBookmarks;
 
-                    } else if (!isLoading && articles.isEmpty) {
-                      msg = isBookmarks 
-                        ? localizations.noBookmarks
-                        : localizations.resourcesUnavailable;
-                      placeholderIcon = Icons.inbox;
-                    }
+          final hasError = articleSource == ArticleSource.network
+            ? articleProvider.hasErrorForAllArticles
+            : articleProvider.hasErrorForBookmarks;
 
-                    if (isLoading || hasError || articles.isEmpty) {
-                      return SliverDataPlaceholder(
-                        isLoading: isLoading,
-                        message: msg,
-                        icon: placeholderIcon,
-                      );
-                    }
-
-                    return SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int i) {
-                          return _ArticleCard(article: articles[i]);
-                        },
-                        childCount: articles.length
+          return Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: <Widget> [
+                  SliverOverlapInjector(
+                    handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(8.0),
+                    sliver: hasError 
+                      // Mostrar un placeholder de error.
+                      ? SliverToBoxAdapter(
+                          child: DataPlaceholder(
+                            message: localizations.resourcesErr,
+                            icon: articleSource == ArticleSource.bookmarks
+                              ? Icons.folder_open 
+                              : Icons.cloud_off_rounded,
+                          ),
+                        )
+                      : SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int i) {
+                            return _ArticleCard(
+                              article: articles[i],
+                              source: articleSource,
+                            );
+                          },
+                          childCount: articles.length
+                        )
                       ),
-                    );
-                  }
-                )
+                  )
+                ]
               ),
-            ]
+
+              if (isLoading) 
+              Positioned(
+                bottom: 32.0,
+                left: MediaQuery.of(context).size.width * 0.5 - 16.0,
+                child: const FloatingProgressIndicator(
+                  width: 32.0,
+                  height: 32.0,
+                ),
+              ),
+            ],
           );
         }
       ),
@@ -92,18 +106,24 @@ class _ArticleCard extends StatelessWidget {
   /// EL [Article] de la tarjeta.
   final Article article;
 
-  const _ArticleCard({ required this.article, Key? key }) : super(key: key);
+  final ArticleSource source;
+
+  const _ArticleCard({ 
+    Key? key,
+    required this.article, 
+    required this.source,
+  }) : super(key: key);
 
   /// Activa o desactiva una marca de leer más tarde de un [Artículo]
   /// 
   /// Si el [Article] no está marcado, guarda el artículo en la base de datos
-  /// usando [ArticleProvider.bookmarkArticle()]. 
+  /// usando [ArticleService.bookmarkArticle()]. 
   ///  
   /// Si el [Article] ya está marcado, remueve el artículo en la base de datos
-  /// usando [ArticleProvider.removeArticle()].  
+  /// usando [ArticleService.removeArticle()].  
   /// 
   /// Retorna un SnackBar con un mensaje de confirmación.
-  Future<SnackBar> addOrRemoveBookmark(BuildContext context, ArticleProvider provider) async {
+  Future<SnackBar> addOrRemoveBookmark(BuildContext context, ArticleService provider) async {
     // El mensaje para confirmar la marca/eliminación.
     String snackMsg = '';
 
@@ -111,13 +131,17 @@ class _ArticleCard extends StatelessWidget {
 
     if (article.isBookmarked) {
       // Si está marcado, quitar marca.
-      int id = await provider.removeArticle(article.id);
-      snackMsg = id > -1 ? localizations.resourceRemoved : localizations.resourceNotRemoved;
+      bool wasBookmarkRemoved = await provider.removeBookmark(article);
+      snackMsg = wasBookmarkRemoved 
+        ? localizations.resourceRemoved 
+        : localizations.resourceNotRemoved;
 
     } else {
       // Si no está marcado, marcar y guardar el recurso informativo.
-      final id = await provider.bookmarkArticle(article);
-      snackMsg = id > -1 ? localizations.resourceAdded : localizations.resourceNotAdded;
+      final wasBookmarkCreated = await provider.bookmarkArticle(article);
+      snackMsg = wasBookmarkCreated 
+        ? localizations.resourceAdded 
+        : localizations.resourceNotAdded;
     }
 
     return SnackBar(
@@ -128,8 +152,6 @@ class _ArticleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final articleProvider = Provider.of<ArticleProvider>(context);
-
     final localizations = AppLocalizations.of(context)!;
 
     final rawPublishDateStr = article.publishDate.toString();
@@ -138,15 +160,26 @@ class _ArticleCard extends StatelessWidget {
       ? rawPublishDateStr.substring(0, min(article.publishDate.toString().length, 10))
       : localizations.noDate;
 
+    if (article.id == Article.invalidArticleId) {
+      return DataPlaceholder(
+        //TODO: revisar y actualizar i18n si es necesario.
+        message: source == ArticleSource.bookmarks
+          ? localizations.noBookmarks
+          : localizations.resourcesUnavailable,
+        icon: Icons.inbox,
+      );
+    }
+
     return Card(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ListTile(
             visualDensity: VisualDensity.comfortable,
             minVerticalPadding: 16.0,
             title: GestureDetector(
-              onTap: article.url.startsWith('https')
-                ? () => UrlLauncher.launchUrlInBrowser(Uri.parse(article.url))
+              onTap: article.url != null
+                ? () => UrlLauncher.launchUrlInBrowser(article.url!)
                 : null,
               child: Text(
                 article.title, 
@@ -162,14 +195,18 @@ class _ArticleCard extends StatelessWidget {
                 )
               ),
             ),
-            trailing: IconButton(
-              icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
-              color: article.isBookmarked ? Colors.blue : Colors.grey,
-              onPressed: () async {
-                final snackBar = await addOrRemoveBookmark(context, articleProvider);
-                ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(snackBar);
-              },
+            trailing: Consumer<ArticleService>(
+              builder: (_, articleProvider, __) {
+                return IconButton(
+                  icon: Icon(article.isBookmarked ? Icons.bookmark_added: Icons.bookmark_border_outlined), 
+                  color: article.isBookmarked ? Colors.blue : Colors.grey,
+                  onPressed: () async {
+                    final snackBar = await addOrRemoveBookmark(context, articleProvider);
+                    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                  },
+                );
+              }
             ),
           ),
 
@@ -178,7 +215,8 @@ class _ArticleCard extends StatelessWidget {
             child: Text(
               article.description ?? '', 
               style: Theme.of(context).textTheme.bodyText2,
-              textAlign: TextAlign.start, 
+              textAlign: TextAlign.start,
+              overflow: TextOverflow.ellipsis, 
               maxLines: 3,
             ),
           ),

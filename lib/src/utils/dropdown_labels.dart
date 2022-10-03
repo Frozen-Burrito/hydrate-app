@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/models/enums/user_sex.dart';
 
 class DropdownLabels {
 
@@ -66,16 +68,16 @@ class DropdownLabels {
 
     return activityTypes.map((activityType) {
       return DropdownMenuItem(
-        value: activityType.activityTypeValue.index,
+        value: activityType.id,
         child: Row(
           children: [
             
-            Icon(activityLabels[activityType.activityTypeValue.index].icon),
+            Icon(activityLabels[activityType.id].icon),
 
             const SizedBox( width: 4.0,),
 
             Text(
-              activityLabels[activityType.activityTypeValue.index].label, 
+              activityLabels[activityType.id].label, 
               overflow: TextOverflow.ellipsis,
             ),
           ],

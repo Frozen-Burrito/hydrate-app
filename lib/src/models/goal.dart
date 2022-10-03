@@ -1,53 +1,92 @@
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/enums/time_term.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
-
-enum GoalTerm {
-  daily,
-  weekly,
-  monthly,
-}
 
 class Goal extends SQLiteModel {
 
   int id;
   int profileId;
-  GoalTerm term;
+  TimeTerm term;
   DateTime? startDate;
   DateTime? endDate;
   int reward;
   int quantity;
+  bool isMainGoal;
   String? notes;
   final List<Tag> tags;
 
   Goal({
-    this.id = -1,
+    required this.id,
     required this.profileId,
     required this.term,
-    this.startDate,
+    required this.startDate,
     required this.endDate,
-    this.reward = 0,
+    required this.reward,
     required this.quantity,
-    this.notes,
+    required this.isMainGoal,
+    required this.notes,
     required this.tags,
   });
 
+  Goal.uncommited() : this(
+    id: -1,
+    profileId: -1,
+    term: TimeTerm.daily,
+    startDate: null,
+    endDate: null,
+    reward: 0,
+    quantity: 0,
+    isMainGoal: false,
+    notes: '',
+    tags: <Tag>[]
+  );
+
+  static const int maxSimultaneousGoals = 3;
+
   static const String tableName = 'meta';
+
+  static const String idFieldName = "id";
+  static const String profileIdFieldName = "id_perfil";
+  static const String termFieldName = "plazo";
+  static const String startDateFieldName = "fecha_inicio";
+  static const String endDateFieldName = "fecha_final";
+  static const String rewardFieldName = "recompensa";
+  static const String quantityFieldName = "cantidad";
+  static const String isMainGoalFieldName = "es_principal";
+  static const String notesFieldName = "notas";
+  static const String tagsFieldName = "${Tag.tableName}s";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    profileIdFieldName,
+    termFieldName,
+    startDateFieldName,
+    endDateFieldName,
+    rewardFieldName,
+    quantityFieldName,
+    isMainGoalFieldName,
+    notesFieldName,
+    tagsFieldName,
+  ];
 
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteKeywords.idType},
-      plazo ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      fecha_inicio ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      fecha_final ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      recompensa ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      notas ${SQLiteKeywords.textType},
-      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $termFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $startDateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $endDateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $rewardFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $quantityFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $isMainGoalFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $notesFieldName ${SQLiteKeywords.textType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
@@ -70,11 +109,12 @@ class Goal extends SQLiteModel {
 
     final goal = Goal(
       id: (map['id'] is int ? map['id'] as int : -1),
-      term: GoalTerm.values[indexPlazo],
+      term: TimeTerm.values[indexPlazo],
       startDate: DateTime.parse(map['fecha_inicio'].toString()),
       endDate: DateTime.parse(map['fecha_final'].toString()),
       reward: (map['recompensa'] is int ? map['recompensa'] as int : -1),
       quantity: (map['cantidad'] is int ? map['cantidad'] as int : -1),
+      isMainGoal: (int.tryParse(map['es_principal'].toString()) ?? 0) != 0,
       notes: map['notas'].toString(),
       tags: tagList,
       profileId: valProfileId
@@ -84,13 +124,14 @@ class Goal extends SQLiteModel {
   } 
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'plazo': term.index,
       'fecha_inicio': startDate?.toIso8601String(), 
       'fecha_final': endDate?.toIso8601String(),
       'recompensa': reward,
       'cantidad': quantity,
+      'es_principal': isMainGoal ? 1 : 0, 
       'notas': notes,
       'etiquetas': tags,
       'id_${UserProfile.tableName}': profileId,
@@ -113,43 +154,62 @@ class Goal extends SQLiteModel {
 
     if (inputValue == null) return 0;
 
-    final strTags = inputValue.split(',');
+    final strTags = inputValue.split(',').toList();
 
-    if (strTags.isNotEmpty) {
+    if (strTags.isNotEmpty && strTags.first.isNotEmpty) {
 
       int tagCount = tags.length;
       int newTagCount = strTags.length;
 
       if (tagCount == newTagCount) {
         // Si el numero de tags es el mismo, solo cambió el valor de la última.
-        tags.last.value = strTags.last;
+        tags.last = _tryToFindExistingTag(strTags.last, existingTags);
       
-      } else if (tagCount < newTagCount && strTags.last.isNotEmpty) {
-        // Revisar si la etiqueta introducida ya fue creado por el usuario.
-        final tagsFound = existingTags.where((t) => t.value == strTags.last);
-
-        if (tagsFound.isNotEmpty) {
-          // Ya existe una etiqueta con el valor, hacer referencia a ella.
-          tags.add(tagsFound.first);
-        } else {
-          // Crear una nueva etiqueta para el usuario.
-          tags.add(Tag(strTags.last));
+      } else {
+        if (strTags.last.isNotEmpty) {
+          if (tagCount < newTagCount) {
+            // Crear una nueva etiqueta para el usuario.
+            tags.add(_tryToFindExistingTag(strTags.last, existingTags));
+          } else {
+            // Si hay un tag menos, quita el último.
+            tags.removeLast();
+          }
         }
-
-      } else if (strTags.last.isNotEmpty) {
-        // Si hay un tag menos, quita el último.
-        tags.removeLast();
       }
+    } else {
+      tags.clear();
     }
 
     return inputValue.isEmpty ? 0 : tags.length;
+  }
+
+  Tag _tryToFindExistingTag(String inputTagValue, List<Tag> existingTags) {
+    // Revisar si la etiqueta introducida ya fue creado por el usuario.
+    final matchingTags = existingTags.where((tag) => tag.value == inputTagValue);
+
+    if (matchingTags.isNotEmpty) {
+      // Ya existe una etiqueta con el valor, hacer referencia a ella.
+      final existingTag = matchingTags.first;
+
+      return Tag(
+        existingTag.value, 
+        id: existingTag.id, 
+        profileId: existingTag.profileId
+      );
+    } else {
+      return Tag(
+        inputTagValue,
+        id: -1,
+        profileId: -1,
+      );
+    }
   }
 
   static String? validateTerm(int? termIndex) {
 
     if (termIndex == null) return 'Selecciona un plazo para la meta.';
 
-    return (termIndex >= 0 && termIndex < GoalTerm.values.length) 
+    return (termIndex >= 0 && termIndex < TimeTerm.values.length) 
         ? null
         : 'Plazo para meta no válido';
   }
@@ -161,11 +221,13 @@ class Goal extends SQLiteModel {
 
       if (endDateValue != null && startDateValue != null)
       {
-        return (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue))
-          ? 'La fecha de termino debe ser mayor que la fecha de inicio.' 
-          : null;
+        if (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue)) {
+          return 'La fecha de termino debe ser mayor que la fecha de inicio.';
+        }
       }
     }
+
+    return null;
   }
 
   static String? validateWaterQuantity(String? inputValue) {
@@ -174,10 +236,12 @@ class Goal extends SQLiteModel {
     int? waterQuantity = int.tryParse(inputValue);
     
     if (waterQuantity != null) {
-      return (waterQuantity > 0 && waterQuantity < 1000) 
-          ? null 
-          : 'La cantidad debe ser entre 0 y 1000 ml.'; 
+      if (waterQuantity < 1 || waterQuantity > 1000) {
+        return 'La cantidad debe ser entre 0 y 1000 ml.';
+      }
     }
+
+    return null;
   }
 
   static String? validateReward(String? inputValue) {
@@ -185,10 +249,12 @@ class Goal extends SQLiteModel {
     int? reward = int.tryParse(inputValue ?? '0');
     
     if (reward != null) {
-      return (reward >= 0 && reward <= 1000) 
-          ? null 
-          : 'La recompensa debe estar entre 0 y 1000.'; 
+      if (reward < 0 || reward > 1000) {
+        return 'La recompensa debe estar entre 0 y 1000.';
+      }
     }
+
+    return null;
   }
 
   static String? validateTags(String? inputValue) {
@@ -204,10 +270,12 @@ class Goal extends SQLiteModel {
 
       if (totalLength > 30) return 'Exceso de caracteres para etiquetas.';
 
-      return (strTags.length > 3 && strTags.last.isNotEmpty) 
-        ? 'Una meta debe tener 3 etiquetas o menos.'
-        : null;
+      if (strTags.length > 3 && strTags.last.isNotEmpty) {
+        return 'Una meta debe tener 3 etiquetas o menos.';
+      }
     }
+
+    return null;
   } 
 
   static String? validateNotes(String? inputValue) {

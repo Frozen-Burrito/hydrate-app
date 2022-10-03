@@ -1,40 +1,74 @@
+import 'dart:math';
+
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 
 class HydrationRecord extends SQLiteModel {
 
-  int id;
-  int amount;
-  int batteryPercentage;
-  double temperature;
-  DateTime date;
-  int profileId;
-
   HydrationRecord({
     this.id = -1,
     this.amount = 0,
-    this.batteryPercentage = 0,
+    int batteryPercentage = 0,
     this.temperature = 0.0,
-    required this.date,
+    required DateTime date,
     this.profileId = -1
-  });
+  }) : batteryRecord = BatteryRecord( date, batteryPercentage );
+
+  final int id;
+  final int amount;
+  final double temperature;
+  int profileId;
+
+  final BatteryRecord batteryRecord; 
+
+  DateTime get date => batteryRecord.date;
+
+  double get volumeInLiters => amount / 1000.0;
+
+  //TODO: Quitar este constructor, es solo temporal para pruebas.
+  HydrationRecord.random(Random rand, DateTime lastDate, int profileId) : this(
+    id: -1,
+    amount: rand.nextInt(200), 
+    batteryPercentage: rand.nextInt(100), 
+    date: lastDate,
+    temperature: rand.nextDouble() * 50,
+    profileId: profileId
+  );
 
   static const String tableName = 'consumo';
+
+  static const String idFieldName = "id";
+  static const String amountFieldName = "cantidad";
+  static const String batteryLvlFieldName = "porcentaje_bateria";
+  static const String dateFieldName = "fecha";
+  static const String temperatureFieldName = "temperatura";
+  static const String profileIdFieldName = "id_perfil";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    amountFieldName,
+    batteryLvlFieldName,
+    dateFieldName,
+    temperatureFieldName,
+    profileIdFieldName,
+  ];
 
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE ${HydrationRecord.tableName} (
-      id ${SQLiteKeywords.idType},
-      cantidad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      porcentaje_bateria ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      fecha ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      temperatura ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
-      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $amountFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $batteryLvlFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $dateFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $temperatureFieldName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteKeywords.fk} (id_perfil) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+      ${SQLiteKeywords.fk} ($profileIdFieldName) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';
@@ -51,12 +85,12 @@ class HydrationRecord extends SQLiteModel {
   } 
 
   @override
-  Map<String, Object?> toMap() {
+  Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
     final Map<String, Object?> map = {
       'cantidad': amount, 
-      'porcentaje_bateria': batteryPercentage,
+      'porcentaje_bateria': batteryRecord.level,
       'temperatura': temperature,
-      'fecha': date.toIso8601String(),
+      'fecha': batteryRecord.date.toIso8601String(),
       'id_perfil': profileId
     };
 
@@ -64,4 +98,31 @@ class HydrationRecord extends SQLiteModel {
 
     return map;
   }
+
+  @override
+  String toString() {
+    final strBuf = StringBuffer("Test Hydration record = {");
+
+    strBuf.writeAll(["id:", id, ", "]);
+    strBuf.writeAll(["amount:", amount, " ml, "]);
+    strBuf.writeAll(["temperature:", temperature, " °C, "]);
+    strBuf.writeAll(["remaining battery:", batteryRecord.level, "%, "]);
+    strBuf.writeAll(["date:", batteryRecord.date.toIso8601String(), ", "]);
+    strBuf.writeAll(["profileId:", profileId, ", "]);
+
+    strBuf.write("}");
+
+    return strBuf.toString();    
+  }
+}
+
+class BatteryRecord {
+
+  const BatteryRecord( this.date, this.level );
+
+  final DateTime date;
+  final int level;
+
+  @override
+  String toString() => "BatteryLevel: { date: $date, level: $level% }";
 }

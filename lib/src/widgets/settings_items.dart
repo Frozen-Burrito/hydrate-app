@@ -1,118 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
+import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/api.dart';
-import 'package:hydrate_app/src/provider/settings_provider.dart';
+import 'package:hydrate_app/src/models/enums/notification_types.dart';
+import 'package:hydrate_app/src/models/settings.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 
-class SettingsItems extends StatefulWidget {
+class SettingsItems extends StatelessWidget {
 
-  final SettingsProvider settingsProvider;
+  SettingsItems({ 
+    Key? key, 
+    required this.currentSettings,
+  }) : _editSettings = EditSettingsBloc(currentSettings), super(key: key);
 
-  const SettingsItems(this.settingsProvider, {
-    Key? key,
-  }) : super(key: key);
+  final Settings currentSettings;
 
-  @override
-  State<SettingsItems> createState() => _SettingsItemsState();
-}
+  final EditSettingsBloc _editSettings;
 
-class _SettingsItemsState extends State<SettingsItems> {
-
-  ThemeMode _selectedThemeMode = ThemeMode.system;
-  ThemeMode _originalThemeMode = ThemeMode.system;
-
-  NotificationSettings _selectedNotifications = NotificationSettings.disabled;
-  NotificationSettings _originalNotifications = NotificationSettings.disabled;
-
-  bool _contributeData = false; 
-  bool _originalContributeData = false; 
-
-  bool _weeklyForms = false; 
-  bool _originalWeeklyForms = false; 
-
-  bool _isSnackbarActive = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _originalThemeMode = widget.settingsProvider.appThemeMode;
-    _originalContributeData = widget.settingsProvider.isSharingData;
-    _originalNotifications = widget.settingsProvider.notificationSettings;
-    _originalWeeklyForms = widget.settingsProvider.areWeeklyFormsEnabled;
-
-    _selectedThemeMode = _originalThemeMode;
-    _contributeData = _originalContributeData;
-    _selectedNotifications = _originalNotifications;
-    _weeklyForms = _originalWeeklyForms;
-  }
-
-  /// Compara los valores originales con los ajustes modificados. Si son diferentes,
-  /// muestra un [SnackBar] para confirmar los cambios.
-  void compareChanges(BuildContext context) {
-    
-    bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
-    bool hasDataContributionChanged = _originalContributeData != _contributeData;
-    bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
-    bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
-
-    bool settingsChanged = hasThemeChanged || hasDataContributionChanged || hasNotificationsChanged || hasWeeklyFormsChanged;
-
-    if (!_isSnackbarActive && settingsChanged) {
+  void _toggleSaveSnackbar(BuildContext context, bool isSnackbarActive) {
+    if (isSnackbarActive) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.unsavedChanges),
-          duration: const Duration(minutes: 30),
+          duration: EditSettingsBloc.savePromptDuration,
           action: SnackBarAction(
             label: AppLocalizations.of(context)!.save, 
             onPressed: () {
-              saveChanges();
-              _isSnackbarActive = false;
+              _editSettings.saveChanges(context);
             },
           ),
         )
       );
-
-      _isSnackbarActive = true;
+    } else {
+      // Si no hay ya un Snackbar de confirmación de cambios y el usuario 
+      // realizó cambios, mostrar el snackbar.
+      ScaffoldMessenger.of(context).clearSnackBars();
     }
   }
 
-  /// Guarda los cambios de ajustes en SharedPreferences usando [SettingsProvider].
-  /// 
-  /// Solo guarda las modificaciones necesarias.
-  void saveChanges() {
-
-    bool hasThemeChanged = _originalThemeMode != _selectedThemeMode;
-    bool hasDataContributionChanged = _originalContributeData != _contributeData;
-    bool hasNotificationsChanged = _originalNotifications != _selectedNotifications;
-    bool hasWeeklyFormsChanged = _originalWeeklyForms != _originalWeeklyForms;
-
-
-    if (hasThemeChanged) {
-      widget.settingsProvider.appThemeMode = _selectedThemeMode;
-      _originalThemeMode = _selectedThemeMode;
-    }
-
-    if (hasDataContributionChanged) {
-      widget.settingsProvider.isSharingData = _contributeData;
-      _originalContributeData = _contributeData;
-    }
-
-    if (hasNotificationsChanged) {
-      widget.settingsProvider.notificationSettings = _selectedNotifications;
-      _originalNotifications = _selectedNotifications;
-    }
-
-    if (hasWeeklyFormsChanged) {
-      widget.settingsProvider.areWeeklyFormsEnabled = _weeklyForms;
-      _originalWeeklyForms = _weeklyForms;
-    }
+  void _onGoogleFitIntegratedChanged(bool value) {
+    _editSettings.isGoogleFitIntegratedSink.add(value);
   }
 
   @override
   Widget build(BuildContext context) {
-
     final localizations = AppLocalizations.of(context)!;
 
     final themeLabels = [
@@ -139,7 +76,7 @@ class _SettingsItemsState extends State<SettingsItems> {
         ),
       ).toList();
 
-    final _notifDropdownItems = NotificationSettings.values
+    final _notifDropdownItems = NotificationTypes.values
       .map((option) => DropdownMenuItem(
           value: option.index,
           child: Text(
@@ -159,136 +96,317 @@ class _SettingsItemsState extends State<SettingsItems> {
           const SizedBox( height: 24.0, ),
     
           const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: ListTile(
-              leading: const Icon(
-                Icons.colorize, 
-                size: 24.0, 
-              ),
-              title: Text(localizations.theme),
-              trailing: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
-                child: DropdownButtonFormField(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
-                  isExpanded: true,
-                  value: _selectedThemeMode.index,
-                  items: _themeDropdownItems,
-                  onChanged: (int? newValue) {
-                    _selectedThemeMode = ThemeMode.values[newValue ?? 0];
-                    compareChanges(context);
-                  },
-                ),
-              ),
+          ListTile(
+            leading: const Icon(
+              Icons.colorize, 
+              size: 24.0, 
             ),
-          ),
-    
-          const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: SwitchListTile(
-              secondary: const Icon(
-                Icons.bar_chart, 
-                size: 24.0, 
-              ),
-              title: Text(localizations.contributeData),
-              value: _contributeData,
-              onChanged: (bool value) {
-                setState(() {
-                  _contributeData = value;
-                  compareChanges(context);
-                });
-              },
-            ),
-          ),
-    
-          const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: ListTile(
-              leading: const Icon(
-                Icons.notifications, 
-                size: 24.0,
-              ),
-              title: Text(localizations.notifications),
-              trailing: SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
-                child: DropdownButtonFormField(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _selectedNotifications.index,
-                  items: _notifDropdownItems,
-                  isExpanded: true,
-                  onChanged: (int? newValue) {
-                    _selectedNotifications = NotificationSettings.values[newValue ?? 0];
-                    compareChanges(context);
-                  },
-                ),
+            title: Text(localizations.theme),
+            contentPadding: const EdgeInsets.all( 16.0, ),
+            trailing: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.4,
+              child: StreamBuilder<ThemeMode>(
+                stream: _editSettings.appThemeMode,
+                initialData: currentSettings.appThemeMode,
+                builder: (context, snapshot) {
+
+                  final currentTheme = snapshot.data ?? ThemeMode.system;
+
+                  return DropdownButtonFormField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    isExpanded: true,
+                    value: currentTheme.index,
+                    items: _themeDropdownItems,
+                    onChanged: (int? newValue) {
+                      final selectedTheme = ThemeMode.values[newValue ?? 0];
+                      _editSettings.appThemeModeSink.add(selectedTheme);
+                    },
+                  );
+                }
               ),
             ),
           ),
 
           const Divider( height: 1.0, ),
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 16.0, ),
-            child: SwitchListTile(
-              secondary: const Icon(
-                Icons.event_note, 
-                size: 24.0, 
-              ),
-              title: Text(localizations.weeklyForms),
-              value: _weeklyForms,
-              onChanged: (bool value) {
-                setState(() {
-                  _weeklyForms = value;
-                  compareChanges(context);
-                });
-              },
-            ),
-          ),
+          
+          FutureBuilder<UserProfile?>(
+            future: Provider.of<ProfileService>(context).profile,
+            builder: (context, snapshot) {
 
-          const Divider( height: 1.0, ),
-          ListTile(
-            minVerticalPadding: 24.0,
-            leading: const Icon(
-              Icons.question_answer, 
-              size: 24.0, 
-            ),
-            title: Text(localizations.sendComments),
-            trailing: const Icon(
-              Icons.arrow_forward,
-              size: 24.0,
-            ),
-            onTap: () => UrlLauncher.launchUrlInBrowser(API.uriFor('comentarios')),
+              final userAccountId = snapshot.data?.userAccountID ?? ""; 
+
+              return Tooltip(
+                //TODO: Agregar i18n.
+                message: userAccountId.isNotEmpty 
+                  ? "Envía datos estadísticos semanalmente"
+                  : "Necesitas una cuenta de usuario para aportar datos",
+                child: StreamBuilder<bool>(
+                  stream: _editSettings.shouldContributeData,
+                  initialData: currentSettings.shouldContributeData,
+                  builder: (context, snapshot) {
+
+                    final isSharingData = snapshot.data ?? false;
+
+                    return SwitchListTile(
+                      secondary: const Icon(
+                        Icons.bar_chart, 
+                        size: 24.0, 
+                      ),
+                      title: Text(localizations.contributeData),
+                      contentPadding: const EdgeInsets.all( 16.0, ),
+                      value: isSharingData,
+                      onChanged: userAccountId.isNotEmpty && snapshot.hasData
+                      ? (bool value) {
+                        _editSettings.shouldContributeDataSink.add(value);
+                      }
+                      : null,
+                    );
+                  }
+                ),
+              );
+            }
           ),
     
           const Divider( height: 1.0, ),
           ListTile(
-            minVerticalPadding: 24.0,
             leading: const Icon(
-              Icons.lightbulb,
-              size: 24.0, 
-            ),
-            title: Text(localizations.userGuides),
-            trailing: const Icon(
-              Icons.arrow_forward,
+              Icons.notifications, 
               size: 24.0,
             ),
-            onTap: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias')),
+            title: Text(localizations.notifications),
+            contentPadding: const EdgeInsets.all( 16.0, ),
+            trailing: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.4,
+              child: StreamBuilder<NotificationTypes>(
+                stream: _editSettings.allowedNotifications,
+                initialData: currentSettings.allowedNotifications,
+                builder: (context, snapshot) {
+
+                  final allowedNotifications = snapshot.data ?? NotificationTypes.disabled;
+
+                  return DropdownButtonFormField(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    value: allowedNotifications.index,
+                    items: _notifDropdownItems,
+                    isExpanded: true,
+                    onChanged: (int? newValue) {
+                      final selectedNotifications = NotificationTypes.values[newValue ?? 0];
+                      _editSettings.allowedNotificationsSink.add(selectedNotifications);
+                    },
+                  );
+                }
+              ),
+            ),
+          ),
+
+          const Divider( height: 1.0, ),
+          StreamBuilder<bool>(
+            stream: _editSettings.areWeeklyFormsEnabled,
+            initialData: currentSettings.areWeeklyFormsEnabled,
+            builder: (context, snapshot) {
+
+              final areWeeklyFormsEnabled = snapshot.data ?? false;
+
+              return SwitchListTile(
+                secondary: const Icon(
+                  Icons.event_note, 
+                  size: 24.0, 
+                ),
+                title: Text(localizations.weeklyForms),
+                contentPadding: const EdgeInsets.all( 16.0, ),
+                value: areWeeklyFormsEnabled,
+                onChanged: (bool value) {
+                  _editSettings.areWeeklyFormsEnabledSink.add(value);
+                },
+              );
+            }
+          ),
+
+          const Divider( height: 1.0, ),
+          StreamBuilder<bool>(
+            stream: _editSettings.isGoogleFitIntegrated,
+            initialData: currentSettings.isGoogleFitIntegrated,
+            builder: (context, snapshot) {
+
+              final isGoogleFitIntegrationEnabled = snapshot.data ?? false;
+
+              return Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric( vertical: 16.0, horizontal: 16.0 ),
+                  leading: const Icon(
+                    Icons.fitness_center, 
+                    size: 24.0, 
+                  ),
+                  //TODO: agregar i18n.
+                  title: Text("Conectar apps de salud"),
+                  textColor: Theme.of(context).colorScheme.onBackground,
+                  subtitle: Text("Integra Hydrate con Google Fit"),
+                  initiallyExpanded: isGoogleFitIntegrationEnabled,
+                  maintainState: true,
+                  onExpansionChanged: _onGoogleFitIntegratedChanged,
+                  trailing: IgnorePointer(
+                    child: Switch(
+                      value: isGoogleFitIntegrationEnabled, 
+                      onChanged: (_) {},
+                    ),
+                  ),
+                  childrenPadding: const EdgeInsets.symmetric( 
+                    horizontal: 16.0,
+                    vertical: 4.0,
+                  ),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+              
+                        (GoogleFitService.instance.isSignedInWithGoogle
+                        ? Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Chip(
+                              avatar: CircleAvatar(
+                                foregroundImage: NetworkImage(
+                                  GoogleFitService.instance.googleAccountPhotoUrl ?? "",
+                                ),
+                                child: Text(
+                                  GoogleFitService.instance.googleAccountInitials,
+                                ),
+                              ),
+                              label: Text(
+                                GoogleFitService.instance.googleAccountDisplayName ?? 
+                                GoogleFitService.instance.googleAccountEmail,
+                              ),
+                            ),
+              
+                            const SizedBox( width: 8.0, ),
+              
+                            Tooltip(
+                              message: "Cerrar sesión de la cuenta de Google",
+                              child: IconButton(
+                                onPressed: () {
+                                  GoogleFitService.instance.signOut();
+                                }, 
+                                icon: const Icon(Icons.logout),
+                              ),
+                            ),
+                          ],
+                        )
+                        : TextButton(
+                            onPressed: () {
+                              GoogleFitService.instance.signInWithGoogle();
+                            },
+                            //TODO: agregar i18n.
+                            child: const Text("Inicia Sesión con Google"), 
+                          )
+                        ),
+              
+                        Tooltip(
+                          message: "Actualizar datos de Google Fit",
+                          child: IconButton(
+                            onPressed: () async {
+                              // Actualizar los datos de Google Fit manualmente.
+                              final scaffoldMessenger = ScaffoldMessenger.of(context);
+                              await GoogleFitService.instance.syncActivitySessions();
+                                                
+                              scaffoldMessenger.clearSnackBars();
+                              scaffoldMessenger.showSnackBar(const SnackBar(
+                                content: Text("Google Fit sincronizado"),
+                                duration: Duration( seconds: 2 ),
+                              ));
+                            }, 
+                            icon: const Icon(Icons.sync_alt),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
+          ),
+
+          const Divider( height: 1.0, ),
+          _UrlListTile(
+            title: localizations.sendComments, 
+            leadingIcon: Icons.question_answer,
+            uriToLaunch: API.uriFor("comentarios"),
+          ),
+    
+          const Divider( height: 1.0, ),
+          _UrlListTile(
+            title: localizations.userGuides, 
+            leadingIcon: Icons.lightbulb,
+            uriToLaunch: API.uriFor("guias"),
           ),
     
           Padding(
             padding: const EdgeInsets.symmetric( horizontal: 24.0, vertical: 8.0,),
-            child: Text(
-              '${localizations.version}: 0.2.1+0',
-              style: const TextStyle(color: Colors.grey),
+            child: Consumer<SettingsService>(
+              builder: (_, settingsProvider, __) {
+                // Mostrar el identificador de la versión actual.
+                final versionText = "${localizations.version}: ${SettingsService.versionName}";
+
+                return Text(
+                  versionText,
+                  style: const TextStyle(color: Colors.grey),
+                );
+              }
             ),
-          )
+          ),
+        
+          StreamBuilder<bool>(
+            stream: _editSettings.isSavePromptActive,
+            builder: (_, snapshot) {
+              
+              _editSettings.isSavePromptActive.listen((isPromptActive) {
+                _toggleSaveSnackbar(context, isPromptActive);
+              });
+
+              return const SizedBox( height: 0.0 );
+            }
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _UrlListTile extends StatelessWidget {
+
+  const _UrlListTile({ 
+    Key? key, 
+    required this.title,
+    this.leadingIcon = Icons.question_answer,
+    required this.uriToLaunch, 
+  }) : super(key: key);
+
+  final String title;
+
+  final IconData leadingIcon;
+
+  final Uri uriToLaunch;
+
+  @override
+  Widget build(BuildContext context) {
+
+    return ListTile(
+      minVerticalPadding: 24.0,
+      leading: Icon(
+        leadingIcon, 
+        size: 24.0, 
+      ),
+      title: Text(title),
+      contentPadding: const EdgeInsets.all( 16.0, ),
+      trailing: const Icon(
+        Icons.arrow_forward,
+        size: 24.0,
+      ),
+      onTap: () => UrlLauncher.launchUrlInBrowser(uriToLaunch),
     );
   }
 }

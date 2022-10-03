@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 
 class CreateGoalForm extends StatefulWidget {
 
-  const CreateGoalForm(this.currentProfileId, { Key? key, }) : super(key: key);
-
-  final int currentProfileId;
+  const CreateGoalForm({ Key? key, }) : super(key: key);
 
   @override
   State<CreateGoalForm> createState() => _CreateGoalFormState();
@@ -20,32 +21,14 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
   final _formKey = GlobalKey<FormState>();
 
-  final Goal newGoal = Goal( 
-    term: GoalTerm.daily, 
-    startDate: DateTime.now(), 
-    endDate: DateTime.now(),
-    tags: <Tag>[],
-    profileId: -1,
-    quantity: 0,
-  );
+  final Goal newGoal = Goal.uncommited();
 
-  bool isLoading = false;
-
-  final List<Tag> existingTags = [];
-
-  int tagsLength = 0;
   int notesLength = 0;
-
   int? selectedTerm;
 
+  // Controladores para los campos de fechas.
   final startDateController = TextEditingController();
   final endDateController = TextEditingController();
-  
-  @override
-  void initState() {
-    super.initState();
-    _getExistingTags(profileId: widget.currentProfileId);
-  }
 
   @override
   void dispose() {
@@ -54,7 +37,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     super.dispose();
   }
 
-  final _termDropdownItems = GoalTerm.values
+  final _termDropdownItems = TimeTerm.values
     .map((e) {
 
       const termLabels = <String>['Diario','Semanal','Mensual'];
@@ -68,38 +51,84 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   /// Verifica cada campo del formulario. Si no hay errores, inserta la nueva
   /// meta en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
-    if (_formKey.currentState!.validate()) {
-      // Asociar el perfil del usuario actual con la nueva meta.
-      newGoal.profileId = widget.currentProfileId;
 
-      // Asociar el perfil del usuario actual con las etiquetas de la meta.
-      for (var tag in newGoal.tags) {
-        tag.profileId = widget.currentProfileId;
+    if (_formKey.currentState!.validate()) {
+
+      final goalProvider = Provider.of<GoalsService>(context, listen: false);
+
+      // Obtener el número de metas creadas.
+      final numOfExistingGoals = (await goalProvider.goals).length;
+      
+      final hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
+      bool userChoseGoalsToDelete = false;
+
+      if (hasReachedGoalLimit) {
+        // Si el usuario ha llegado al límite de metas simultáneas, preguntarle
+        // si desea reemplazar metas existentes usando un Dialog.
+        List<int>? goalIdsToReplace = await showAskGoalReplacemente(context); 
+  
+        userChoseGoalsToDelete = goalIdsToReplace != null && goalIdsToReplace.isNotEmpty;
+
+        if (userChoseGoalsToDelete) {
+          
+          for (var id in goalIdsToReplace) {
+            // Remover todas las metas especificadas por el usuario.
+            int result = await goalProvider.deleteHydrationGoal(id);
+            print('Delete result: $result');
+
+            if (hasReachedGoalLimit && result >= 0) {
+              // Si se había llegado al límite de metas, pero se removió al menos 
+              // una de ellas, si debería crear la nueva meta.
+              // Asociar el perfil del usuario actual con la nueva meta.
+              userChoseGoalsToDelete = true;
+            }
+          }
+        }
       }
 
-      int resultado = await SQLiteDB.instance.insert(newGoal);
+      final int goalCreateResult = (!hasReachedGoalLimit || userChoseGoalsToDelete)
+        ? await _createGoal(context)
+        : -1;
 
-      if (resultado >= 0) {
+      if (goalCreateResult >= 0) {
         if (redirectRoute != null) {
           Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
         } else {
           Navigator.of(context).pop();
         }
-      }
+      } else if (userChoseGoalsToDelete) {
+        // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar( 
+            content: Text('Hubo un error al crear la meta'),
+          ),
+        );
+      } 
     }
   }
 
-  /// Obtiene las [Tag] creadas por el usuario anteriormente. 
-  Future<void> _getExistingTags({int profileId = 0}) async {
-    existingTags.clear();
+  Future<int> _createGoal(BuildContext context) async {
 
-    final tagResults = await SQLiteDB.instance.select<Tag>(
-      Tag.fromMap, 
-      Tag.tableName, 
-      where: [ WhereClause('id_perfil', widget.currentProfileId.toString())]
+    final goalProvider = Provider.of<GoalsService>(context, listen: false);
+    final profile = await Provider.of<ProfileService>(context, listen: false).profile;
+
+    newGoal.profileId = profile?.id ?? -1;
+
+    // Asociar el perfil del usuario actual con las etiquetas de la meta.
+    for (var tag in newGoal.tags) {
+      tag.profileId = profile?.id ?? -1;
+    }
+
+    int newGoalId = await goalProvider.createHydrationGoal(newGoal);
+
+    return newGoalId;
+  }
+
+  Future<List<int>?> showAskGoalReplacemente(BuildContext context) {
+    return showDialog<List<int>>(
+      context: context,
+      builder: (context) => const ReplaceGoalDialog(),
     );
-
-    existingTags.addAll(tagResults);
   }
 
   @override
@@ -116,13 +145,14 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               helperText: ' ',
+              //TODO: agregar i18n
               hintText: '¿Cuál es el plazo de tu meta?' 
             ),
             items: _termDropdownItems,
             value: selectedTerm,
             validator: (int? value) => Goal.validateTerm(value),
             onChanged: (int? newValue) {
-              newGoal.term = GoalTerm.values[newValue ?? 0];
+              newGoal.term = TimeTerm.values[newValue ?? 0];
               setState(() {
                 selectedTerm = newValue ?? 0;
               });
@@ -140,6 +170,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   controller: startDateController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Inicio',
                     helperText: ' ', // Para evitar cambios en la altura del widget
                     suffixIcon: Icon(Icons.event_rounded)
@@ -169,6 +200,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   controller: endDateController,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Término',
                     helperText: ' ',
                     suffixIcon: Icon(Icons.event_rounded)
@@ -203,6 +235,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Recompensa',
                     hintText: '20',
                     helperText: ' ',
@@ -221,6 +254,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
+                    //TODO: agregar i18n
                     labelText: 'Cantidad (ml)',
                     hintText: '100ml',
                     helperText: ' ',
@@ -234,18 +268,10 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
           const SizedBox( height: 16.0, ),
 
-          TextFormField(
-            keyboardType: TextInputType.text,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              labelText: 'Etiquetas',
-              helperText: ' ',
-              counterText: '${tagsLength.toString()}/3'
-            ),
-            onChanged: (value) => setState(() {
-              tagsLength = newGoal.parseTags(value, existingTags);
-            }),
-            validator: (value) => Goal.validateTags(value),
+          _TagFormField(
+            initialTagCount: newGoal.tags.length,
+            onTagsChanged: newGoal.parseTags,
+            onValidate: Goal.validateTags,
           ),
 
           const SizedBox( height: 16.0, ),
@@ -255,6 +281,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             maxLength: 100,
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
+              //TODO: agregar i18n
               labelText: 'Anotaciones',
               hintText: 'Debo recordar tomar agua antes de...',
               helperText: ' ',
@@ -274,6 +301,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             children: <Widget>[
               Expanded(
                 child: ElevatedButton(
+                  //TODO: agregar i18n
                   child: const Text('Cancelar'),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.grey.shade700,
@@ -286,6 +314,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
               Expanded(
                 child: ElevatedButton(
+                  //TODO: agregar i18n
                   child: const Text('Crear'),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.blue,
@@ -297,6 +326,69 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TagFormField extends StatefulWidget {
+
+  const _TagFormField({
+    Key? key,
+    required this.onTagsChanged, 
+    required this.onValidate,
+    this.initialTagCount = 0,
+  }) : super(key: key);
+
+  final int initialTagCount;
+
+  final int Function(String, List<Tag>) onTagsChanged;
+  final String? Function(String?) onValidate;
+  
+  @override
+  State<_TagFormField> createState() => _TagFormFieldState();
+}
+
+class _TagFormFieldState extends State<_TagFormField> {
+
+  int numberOfTags = 0;
+
+  @override
+  void initState() {
+    numberOfTags = widget.initialTagCount;
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final goalProvider = Provider.of<GoalsService>(context);
+
+    return FutureBuilder<List<Tag>?>(
+      future: goalProvider.tags,
+      initialData: const <Tag>[],
+      builder: (context, snapshot) {
+
+        final existingTags = snapshot.hasData 
+          ? snapshot.data!
+          : const <Tag>[];
+
+        //TODO: usar el widget Autocomplete para mostrar posibles etiquetas
+        // ver tambien: https://api.flutter.dev/flutter/material/Autocomplete-class.html
+        return TextFormField(
+          keyboardType: TextInputType.text,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            //TODO: agregar i18n
+            labelText: 'Etiquetas',
+            helperText: ' ',
+            counterText: '${numberOfTags.toString()}/3'
+          ),
+          onChanged: (value) => setState(() {
+            numberOfTags = widget.onTagsChanged(value, existingTags);
+          }),
+          validator: (value) => widget.onValidate(value),
+        );
+      }
     );
   }
 }
