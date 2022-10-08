@@ -28,6 +28,7 @@ class AuthFormBloc {
   String _username= "";
   String _email= "";
   String _password = "";
+  String _passwordConfirm = "";
 
   bool _isLoading = false;
   AuthResult _formState = AuthResult.none;
@@ -36,6 +37,10 @@ class AuthFormBloc {
   UsernameError _emailError = UsernameError.none;
   PasswordError _passwordError = PasswordError.none;
   PasswordError _passwordConfirmError = PasswordError.none;
+
+  final Set<String> _requiredFields;
+
+  Set<String> get requiredFields => Set.unmodifiable(_requiredFields);
 
   /// Es __true__ cuando el formulario fue enviado, o está obteniendo
   /// información.
@@ -63,11 +68,13 @@ class AuthFormBloc {
 
   /// Recibe los valores para la confirmación de password, si la hay.
   Sink<String> get passwordConfirmSink => _passwordConfirmController.sink;
-  
-  /// Permite enviar el formulario, pasando el [BuildContext] del mismo.
-  Sink<BuildContext> get formSubmit => _formSubmitController.sink;
 
-  final StreamController<BuildContext> _formSubmitController = StreamController();
+  static const String usernameFieldName = "username";
+  static const String emailFieldName = "email";
+  static const String passwordFieldName = "password";
+  static const String passwordConfirmFieldName = "passwordConfirm";
+
+  static const int noErrorIndex = 0;
 
   final StreamController<String> _usernameController = StreamController();
   final StreamController<String> _emailController = StreamController();
@@ -86,21 +93,39 @@ class AuthFormBloc {
   /// un formulario de inicio de sesión usando email (o nombre de 
   /// usuario) y password.
   factory AuthFormBloc.emailSignIn() {
+
+    const Set<String> requiredFields = <String>{
+      usernameFieldName,
+      passwordFieldName,
+    };
+
     return AuthFormBloc._internal(
       authAction: AuthActionType.signIn,
+      requiredFields: requiredFields,
     );
   }
 
   /// Crea una nueva instancia, dedicada a mantener el estado de un 
   /// formulario de creación de cuenta con email. 
   factory AuthFormBloc.emailSignUp() {
+
+    const Set<String> requiredFields = <String>{
+      usernameFieldName,
+      emailFieldName,
+      passwordFieldName,
+      passwordConfirmFieldName,
+    };
+
     return AuthFormBloc._internal(
       authAction: AuthActionType.signUp,
+      requiredFields: requiredFields,
     );
   }
 
-  AuthFormBloc._internal({ required AuthActionType authAction}) 
-    : _authAction = authAction {
+  AuthFormBloc._internal({ 
+    required AuthActionType authAction,
+    required Set<String> requiredFields,
+  }) : _authAction = authAction, _requiredFields = requiredFields {
     // Send current value to each new subscription on listen.
     _authResultController.onListen = () {
       _authResultController.add(_formState);
@@ -126,9 +151,6 @@ class AuthFormBloc {
       _passwordConfirmErrorController.add(_passwordConfirmError);
     };
 
-    // Listen for input on streams connected to public sinks.
-    _formSubmitController.stream.listen(_submit);
-
     _usernameController.stream.listen(_handleUsernameChange);
     _emailController.stream.listen(_handleEmailChange);
 
@@ -136,7 +158,7 @@ class AuthFormBloc {
     _passwordConfirmController.stream.listen(_handlePasswordConfirmChange);
   }
 
-  Future<void> _submit(BuildContext context) async {
+  Future<void> submitForm(BuildContext context) async {
 
     _isLoading = true;
     _loadingController.add(_isLoading);
@@ -151,29 +173,18 @@ class AuthFormBloc {
     if (isFormInInvalidSate) return;
 
     try {
+      final profileProvider = Provider.of<ProfileService>(context, listen: false);
+
       // Intentar autenticar al usuario.
       final authToken = await _sendAuthRequest();
 
-      // Obtener o crear un perfil para la cuenta de usuario. 
-      final profileProvider = Provider.of<ProfileService>(context, listen: false);
+      final bool canCurrentProfileBeLinked = await profileProvider.setLocalProfileForAccount(authToken);
 
-      final linkResult = await profileProvider.handleAccountLink(
-        authToken,
-        wasAccountJustCreated: _authAction == AuthActionType.signUp,
-      );
-
-      switch (linkResult) { 
-        case AccountLinkResult.localProfileInSync:
-          _authResultController.add(AuthResult.authenticated);
-          break;
-        case AccountLinkResult.requiresInitialData:
-          _authResultController.add(AuthResult.newProfileCreated);
-          break;
-        case AccountLinkResult.error:
-          _authResultController.add(AuthResult.serviceUnavailable);
-          break;
-      }
-      
+      if (canCurrentProfileBeLinked) {
+        _authResultController.add(AuthResult.canLinkProfileToAccount);
+      } else {
+        _authResultController.add(AuthResult.authenticated);
+      }     
     } on ApiException catch (ex) {
       
       switch (ex.type) {
@@ -194,6 +205,21 @@ class AuthFormBloc {
     } finally {
       _isLoading = false;
       _loadingController.add(false);
+    }
+  }
+
+  Future<void> linkAccountToProfile(BuildContext context) async {
+
+    final profileProvider = Provider.of<ProfileService>(context, listen: false);
+
+    try {
+      await profileProvider.handleAccountLink();
+
+      _authResultController.add(AuthResult.authenticated);
+
+    } on Exception catch (ex) {
+      debugPrint("Excepcion al asociar perfil con cuenta ($ex)");
+      _authResultController.add(AuthResult.serviceUnavailable);
     }
   }
 
@@ -265,6 +291,8 @@ class AuthFormBloc {
     _passwordConfirmError = AuthValidators.validatePasswordConfirm(_password, inputPasswordConfirm);
 
     _passwordConfirmErrorController.add(_passwordConfirmError);
+
+    _passwordConfirm = inputPasswordConfirm;
     
     if (canSubmitForm()) {
       _authResultController.add(AuthResult.canSendAuthRequest);
@@ -272,10 +300,26 @@ class AuthFormBloc {
   }
 
   bool canSubmitForm() { 
-    return _usernameError == UsernameError.none && 
-           _emailError == UsernameError.none && 
-           _passwordError == PasswordError.none && 
-           _passwordConfirmError == PasswordError.none;
+
+    final isUsernameValid = _isFieldValid(usernameFieldName, _username, _usernameError.index);
+    final isEmailValid = _isFieldValid(emailFieldName, _email, _emailError.index);
+    final isPasswordValid = _isFieldValid(passwordFieldName, _password, _passwordError.index);
+    final isPasswordConfirmValid = _isFieldValid(emailFieldName, _passwordConfirm, _passwordConfirmError.index);
+
+    return isUsernameValid && isEmailValid && isPasswordValid && isPasswordConfirmValid;
+  }
+
+  bool _isFieldValid(String fieldName, String fieldValue, int errorIndex) {
+
+    final isFieldRequired = _requiredFields.contains(fieldName);
+
+    bool isFieldValid = errorIndex == noErrorIndex;
+
+    if (isFieldRequired) {
+      isFieldValid = isFieldValid && fieldValue.isNotEmpty;
+    } 
+    
+    return isFieldValid;
   }
 
   @override

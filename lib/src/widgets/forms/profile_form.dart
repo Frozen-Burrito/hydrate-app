@@ -65,20 +65,31 @@ class _ProfileFormState extends State<ProfileForm> {
       => Navigator.pushReplacementNamed(context, RouteNames.home);
 
   void _pickBirthDate(BuildContext context) async {
-    // Mostrar el selector de fechas.
-    DateTime? newBirthDate = await showDatePicker(
-      context: context, 
-      initialDate: DateTime(DateTime.now().year - 10), 
-      firstDate: DateTime(1900), 
-      lastDate: DateTime(DateTime.now().year)
-    );
 
     final profileChanges = Provider.of<ProfileService>(context, listen: false).profileChanges;
 
-    profileChanges.birthDate = newBirthDate;
+    final int currentYear = DateTime.now().year;
+    final DateTime initialDate;
+    final DateTime lastDate = DateTime(currentYear);
+    
+    if (profileChanges.dateOfBirth != null && profileChanges.dateOfBirth!.isBefore(lastDate)) {
+      initialDate = profileChanges.dateOfBirth!;
+    } else {
+      initialDate = DateTime(currentYear - 20);
+    }
 
-    if (profileChanges.birthDate != null) {
-      birthDateController.text = profileChanges.birthDate.toString().substring(0,10);
+    // Mostrar el selector de fechas.
+    DateTime? newBirthDate = await showDatePicker(
+      context: context, 
+      initialDate: initialDate, 
+      firstDate: DateTime(1900), 
+      lastDate: lastDate,
+    );
+
+    profileChanges.dateOfBirth = newBirthDate;
+
+    if (profileChanges.dateOfBirth != null) {
+      birthDateController.text = profileChanges.dateOfBirth.toString().substring(0,10);
     }
   }
 
@@ -101,7 +112,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
     final profileChanges = profileProvider.profileChanges;
     
-    birthDateController.text = profileChanges.birthDate?.toLocalizedDate ?? '';
+    birthDateController.text = profileChanges.dateOfBirth?.toLocalizedDate ?? '';
 
     return Form(
       key: _formKey,

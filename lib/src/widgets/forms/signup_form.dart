@@ -5,6 +5,7 @@ import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
+import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
 
 class SignupForm extends StatelessWidget {
@@ -14,20 +15,44 @@ class SignupForm extends StatelessWidget {
   final AuthFormBloc bloc = AuthFormBloc.emailSignUp();
 
   Future<void> _handleFormSubmit(BuildContext context) async {
-    // Submit the form.
-    bloc.formSubmit.add(context);
+
+    await bloc.submitForm(context);
 
     // Wait for the result of the submit event.
     await for(final result in bloc.formState) {
-      if (result == AuthResult.authenticated) {
-        // El usuario ya tiene un perfil. Redirigir a vista de inicio.
-        Navigator.of(context).popAndPushNamed(RouteNames.home);
-      } else if (result == AuthResult.newProfileCreated) {
-        // El usuario todavía no ha llenado su perfil inicial. Redirigir
-        // al formulario inicial para que el usuario pueda configurar su nuevo
-        // perfil.
-        Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
+      switch (result) {
+        case AuthResult.authenticated:
+          // El usuario ya tiene un perfil. Redirigir a vista de inicio.
+          Navigator.of(context).popAndPushNamed(RouteNames.home);
+          break;
+        case AuthResult.newProfileCreated:
+          Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
+          break;
+        case AuthResult.canLinkProfileToAccount:
+          await askUserForAccountLinkConfirm(context);
+          Navigator.of(context).popAndPushNamed(RouteNames.home);
+          break; 
+        case AuthResult.none: return;
+        case AuthResult.canSendAuthRequest:
+        case AuthResult.credentialsError:
+        case AuthResult.serviceUnavailable:
+          // Intencionalmente no hacer nada.
+          break;
       }
+    }
+  }
+
+  Future<void> askUserForAccountLinkConfirm(BuildContext context) async {
+
+    final shouldLinkProfile = (await showDialog<bool?>(
+      context: context, 
+      builder: (_) => const LinkAccountDialog(),
+    )) ?? false;
+
+    if (shouldLinkProfile) {
+      
+      await bloc.linkAccountToProfile(context);
+
     }
   }
 
@@ -40,6 +65,7 @@ class SignupForm extends StatelessWidget {
       case AuthResult.authenticated:
       case AuthResult.newProfileCreated:
       case AuthResult.canSendAuthRequest:
+      case AuthResult.canLinkProfileToAccount:
         message = "";
         break;
       case AuthResult.credentialsError:

@@ -67,7 +67,7 @@ class AuthOptionsMenu extends StatelessWidget {
     final localizations = AppLocalizations.of(context)!;
     
     return OptionsPopupMenu(
-      options: profileProvider.linkedAccountId.isEmpty 
+      options: profileProvider.authToken.isEmpty 
         ? <MenuItem> [
           MenuItem(
             icon: Icons.settings, 

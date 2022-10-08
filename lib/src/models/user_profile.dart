@@ -8,13 +8,14 @@ import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/environment.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
+import 'package:hydrate_app/src/utils/numbers_common.dart';
 
 class UserProfile extends SQLiteModel {
 
-  final int _id;
+  int _id;
   String _firstName;
   String _lastName;
-  DateTime? _birthDate;
+  DateTime? _dateOfBirth;
   UserSex _sex;
   double _height;
   double _weight;
@@ -22,6 +23,10 @@ class UserProfile extends SQLiteModel {
   Occupation _occupation;
   Country _country;
   String _userAccountID;
+  int _linkedProfileId;
+  final DateTime _createdAt;
+  DateTime? _modifiedAt;
+  DateTime? _latestSyncWithGoogleFit;
   int _coins;
   int _modificationCount;
   Environment _selectedEnvironment;
@@ -38,21 +43,28 @@ class UserProfile extends SQLiteModel {
   static const maxFirstNameDisplayLength = 64;
   static const maxLastNameDisplayLength = 64;
 
-  static final defaultProfile = UserProfile.uncommitted(); 
+  static final defaultProfile = UserProfile.unmodifiable(
+    id: defaultProfileId,
+    userAccountID: "",
+  ); 
 
   UserProfile.unmodifiable({
     int id = -1,
     String firstName = "",
     String lastName = "",
-    DateTime? birthDate,
+    DateTime? dateOfBirth,
     UserSex sex = UserSex.notSpecified,
     double height = 0.0,
     double weight = 0.0,
     MedicalCondition medicalCondition = MedicalCondition.notSpecified,
     Occupation occupation = Occupation.notSpecified,
     String userAccountID = "",
+    int? linkedProfileId,
     int coins = 0,
     int modificationCount = 0,
+    DateTime? createdAt,
+    DateTime? modifiedAt,
+    DateTime? latestSyncWithGoogleFit,
     Environment? selectedEnvironment,
     Country? country,
     List<Environment> unlockedEnvironments = const <Environment>[]
@@ -60,15 +72,19 @@ class UserProfile extends SQLiteModel {
       _id = id,
       _firstName = firstName,
       _lastName = lastName,
-      _birthDate = birthDate,
+      _dateOfBirth = dateOfBirth,
       _sex = sex,
       _height = height,
       _weight = weight,
       _medicalCondition = medicalCondition,
       _occupation = occupation,
       _userAccountID = userAccountID,
+      _linkedProfileId = linkedProfileId ?? id,
       _coins = coins,
       _modificationCount = modificationCount,
+      _createdAt = createdAt ?? DateTime.now(),
+      _modifiedAt = modifiedAt,
+      _latestSyncWithGoogleFit = latestSyncWithGoogleFit,
       _country = country ?? Country.countryNotSpecified,
       _selectedEnvironment = selectedEnvironment ?? Environment.firstUnlocked(),
       _unlockedEnvironments = <Environment>[] {
@@ -85,19 +101,23 @@ class UserProfile extends SQLiteModel {
 
   UserProfile.modifiableCopyOf(UserProfile other)
     : isReadonly = false,
-      _id = other._id ,
-      _firstName = other._firstName ,
-      _lastName = other._lastName ,
-      _birthDate = other._birthDate ,
-      _sex = other._sex ,
-      _height = other._height ,
-      _weight = other._weight ,
-      _medicalCondition = other._medicalCondition ,
-      _occupation = other._occupation ,
-      _userAccountID = other._userAccountID ,
-      _coins = other._coins ,
-      _modificationCount = other._modificationCount ,
-      _selectedEnvironment = other._selectedEnvironment ,
+      _id = other._id,
+      _firstName = other._firstName,
+      _lastName = other._lastName,
+      _dateOfBirth = other._dateOfBirth,
+      _sex = other._sex,
+      _height = other._height,
+      _weight = other._weight,
+      _medicalCondition = other._medicalCondition,
+      _occupation = other._occupation,
+      _userAccountID = other._userAccountID,
+      _linkedProfileId = other._linkedProfileId,
+      _coins = other._coins,
+      _modificationCount = other._modificationCount,
+      _createdAt = other._createdAt,
+      _modifiedAt = other._modifiedAt,
+      _latestSyncWithGoogleFit = other._latestSyncWithGoogleFit,
+      _selectedEnvironment = other._selectedEnvironment,
       _country = other._country ,
       _unlockedEnvironments = List.from(other._unlockedEnvironments);
 
@@ -106,116 +126,152 @@ class UserProfile extends SQLiteModel {
   static const String idFieldName = "id";
   static const String firstNameFieldName = "nombre";
   static const String lastNameFieldName = "apellido";
-  static const String birthDateFieldName = "fecha_nacimiento";
+  static const String dateOfBirthFieldName = "fecha_nacimiento";
   static const String sexFieldName = "sexo";
   static const String heightFieldName = "estatura";
   static const String weightFieldName = "peso";
   static const String medicalConditionFieldName = "padecimientos";
   static const String occupationFieldName = "ocupacion";
   static const String userAccountIdFieldName = "id_usuario";
+  static const String linkedProfileIdFieldName = "id_perfil_asociado";
   static const String coinsFieldName = "monedas";
   static const String modificationCountFieldName = "num_modificaciones";
   static const String selectedEnvFieldName = "entorno_sel";
   static const String countryFieldName = "id_pais";
   static const String unlockedEnvsFieldName = "entornos";
+  static const String createdAtFieldName = "fecha_creacion";
+  static const String modifiedAtFieldName = "fecha_modificacion";
+  static const String latestSyncWithGoogleFitFieldName = "fecha_sync_con_google_fit";
 
   /// Una lista con todos los nombres base de los atributos de la entidad.
   static const baseAttributeNames = <String>[
     idFieldName,
     firstNameFieldName,
     lastNameFieldName,
-    birthDateFieldName,
+    dateOfBirthFieldName,
     sexFieldName,
     heightFieldName,
     weightFieldName,
     medicalConditionFieldName,
     occupationFieldName,
     userAccountIdFieldName,
+    linkedProfileIdFieldName,
     coinsFieldName,
     modificationCountFieldName,
+    createdAtFieldName,
+    modifiedAtFieldName,
+    latestSyncWithGoogleFitFieldName,
     selectedEnvFieldName,
     countryFieldName,
     unlockedEnvsFieldName,
   ];
+
+  static const Map<String, String> jsonApiAttributeNames = <String, String>{
+    sexFieldName: "sexoUsuario",
+    medicalConditionFieldName: "condicionMedica",
+    userAccountIdFieldName: "idCuentaUsuario",
+    coinsFieldName: "cantidadMonedas",
+    selectedEnvFieldName: "idEntornoSeleccionado",
+    countryFieldName: "idPaisDeResidencia",
+    unlockedEnvsFieldName: "idsEntornosDesbloqueados",
+  };
 
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE $tableName (
-      id ${SQLiteKeywords.idType},
-      nombre ${SQLiteKeywords.textType},
-      apellido ${SQLiteKeywords.textType},
-      fecha_nacimiento ${SQLiteKeywords.textType},
-      sexo ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      estatura ${SQLiteKeywords.realType},
-      peso ${SQLiteKeywords.realType}, 
-      padecimientos ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      ocupacion ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      entorno_sel ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      monedas ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      num_modificaciones ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      id_usuario ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      id_pais ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $firstNameFieldName ${SQLiteKeywords.textType},
+      $lastNameFieldName ${SQLiteKeywords.textType},
+      $dateOfBirthFieldName ${SQLiteKeywords.textType},
+      $sexFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $heightFieldName ${SQLiteKeywords.realType},
+      $weightFieldName ${SQLiteKeywords.realType}, 
+      $medicalConditionFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $occupationFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $selectedEnvFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $coinsFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $modificationCountFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $createdAtFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $modifiedAtFieldName ${SQLiteKeywords.textType},
+      $latestSyncWithGoogleFitFieldName ${SQLiteKeywords.textType},
+      $userAccountIdFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $linkedProfileIdFieldName ${SQLiteKeywords.integerType},
+      $countryFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       ${SQLiteKeywords.fk} (id_pais) ${SQLiteKeywords.references} pais (id)
         ${SQLiteKeywords.onDelete} ${SQLiteKeywords.setNullAction}
     )
   ''';
 
-  static UserProfile fromMap(Map<String, Object?> map) {
+  static UserProfile fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) {
 
-    //TODO: considerar validar ciertos campos (especialmente que 'entornos' y 
-    // 'entorno_sel' coincidan, además de revisar el valor de 'pais').
+    final bool obtainedFromJson = options.useCamelCasePropNames;
+    // Modificar los nombres de los atributos que serán usados para acceder
+    // a los elementos del mapa, según la configuración de [options].
+    final attributeNames = MapOptions.mapAttributeNames(
+      baseAttributeNames, 
+      options,
+      specificAttributeMappings: obtainedFromJson 
+        ? jsonApiAttributeNames 
+        : {
+          userAccountIdFieldName: userAccountIdFieldName,
+          linkedProfileIdFieldName: linkedProfileIdFieldName,
+        }
+    );
     
-    final Country country;
+    final Country country = map.getCountryOrDefault(
+      attributeName: attributeNames[countryFieldName]!,
+      includesFullSubEntities: options.includeCompleteSubEntities,
+    );
 
-    if (map["pais"] is Map<String, Object?>) {
-      country = Country.fromMap(map["pais"] as Map<String, Object?>);
-    } else {
-      country = Country.countryNotSpecified;
-    }
+    final userSexIndex = map.getEnumIndex(
+      attributeName: attributeNames[sexFieldName]!,
+      enumValuesLength: UserSex.values.length,
+    );
 
-    final idxUserSex = min(map['sexo'] as int, UserSex.values.length -1);
-    final idxOccupation = min(map['ocupacion'] as int, Occupation.values.length -1);
-    final idxMedicalCondition = min(map['padecimientos'] as int, MedicalCondition.values.length -1);
+    final occupationIndex = map.getEnumIndex(
+      attributeName: attributeNames[occupationFieldName]!,
+      enumValuesLength: Occupation.values.length,
+    );
 
-    final environments = map["entornos"];
-    final List<Environment> unlockedEnvironments = <Environment>[];
+    final medicalConditionIndex = map.getEnumIndex(
+      attributeName: attributeNames[medicalConditionFieldName]!,
+      enumValuesLength: MedicalCondition.values.length,
+    );
 
-    if (environments is List<Map<String, Object?>>) {
-      unlockedEnvironments.addAll(
-        environments.map((environment) => Environment.fromMap(environment))
-        .toList()
-      );
-    }
+    final unlockedEnvironments = map.getUnlockedEnvironmentsOrDefault(
+      attributeName: attributeNames[unlockedEnvsFieldName]!,
+      existingEnvironments: []
+    );
 
-    final int selectedEnvironmentId;
+    final selectedEnvIdAttributeValue = map[attributeNames[selectedEnvFieldName]].toString();
+    final int selectedEnvironmentId = int.tryParse(selectedEnvIdAttributeValue) ?? Environment.firstUnlockedId;
 
-    if (unlockedEnvironments.isEmpty) {
-      unlockedEnvironments.add(Environment.firstUnlocked());
-      selectedEnvironmentId = unlockedEnvironments.first.id;
-      
-    } else {
-      selectedEnvironmentId = int.tryParse(map["entorno_sel"].toString()) ?? 0;
-    }
+    final int profileId = int.tryParse(map[attributeNames[idFieldName]].toString()) ?? -1;
+    final int? linkedProfileId = int.tryParse(map[attributeNames[linkedProfileIdFieldName]].toString());
 
     return UserProfile.unmodifiable(
-      id: int.tryParse(map['id'].toString()) ?? -1,
-      firstName: map['nombre'].toString(),
-      lastName: map['apellido'].toString(),
-      birthDate: DateTime.tryParse(map['fecha_nacimiento'].toString()),
-      sex: UserSex.values[idxUserSex],
-      height: double.tryParse(map['estatura'].toString()) ?? 0.0,
-      weight: double.tryParse(map['peso'].toString()) ?? 0.0,
-      medicalCondition: MedicalCondition.values[int.tryParse(idxMedicalCondition.toString()) ?? 0],
-      occupation: Occupation.values[idxOccupation],
-      userAccountID: map['id_usuario'].toString(),
+      id: profileId,
+      firstName: map[attributeNames[firstNameFieldName]].toString(),
+      lastName: map[attributeNames[lastNameFieldName]].toString(),
+      dateOfBirth: map.getDateTimeOrDefault(attributeName: attributeNames[dateOfBirthFieldName]!),
+      sex: UserSex.values[userSexIndex],
+      height: double.tryParse(map[attributeNames[heightFieldName]].toString()) ?? 0.0,
+      weight: double.tryParse(map[attributeNames[weightFieldName]].toString()) ?? 0.0,
+      medicalCondition: MedicalCondition.values[medicalConditionIndex],
+      occupation: Occupation.values[occupationIndex],
+      userAccountID: map[attributeNames[userAccountIdFieldName]]?.toString() ?? "",
+      linkedProfileId: linkedProfileId,
       selectedEnvironment: unlockedEnvironments.where((env) => env.id == selectedEnvironmentId).first,
-      coins: int.tryParse(map['monedas'].toString()) ?? 0,
-      modificationCount: int.tryParse(map['num_modificaciones'].toString()) ?? 0,
+      coins: int.tryParse(map[attributeNames[coinsFieldName]].toString()) ?? 0,
+      modificationCount: int.tryParse(map[attributeNames[modificationCountFieldName]].toString()) ?? 0,
       country: country,
-      unlockedEnvironments: unlockedEnvironments
+      unlockedEnvironments: unlockedEnvironments,
+      createdAt: map.getDateTimeOrDefault(attributeName: attributeNames[createdAtFieldName]!),
+      modifiedAt: map.getDateTimeOrDefault(attributeName: attributeNames[modifiedAtFieldName]!),
+      latestSyncWithGoogleFit: map.getDateTimeOrDefault(attributeName: attributeNames[latestSyncWithGoogleFitFieldName]!),
     );
   } 
 
@@ -229,38 +285,54 @@ class UserProfile extends SQLiteModel {
 
     // Modificar los nombres de los atributos para el Map resultante, segun 
     // [options].
-    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
+    final attributeNames = MapOptions.mapAttributeNames(
+      baseAttributeNames, 
+      options,
+      specificAttributeMappings: options.useCamelCasePropNames ? jsonApiAttributeNames : {
+        userAccountIdFieldName: userAccountIdFieldName,
+        linkedProfileIdFieldName: linkedProfileIdFieldName,
+      }
+    );
 
     // Comprobar que hay una entrada por cada atributo de ActivityRecord.
     assert(attributeNames.length == baseAttributeNames.length);
 
     final Map<String, Object?> map = {};
 
-    if (id >= 0) map[attributeNames[idFieldName]!] = id;
+    if (id >= 0) {
+      map[attributeNames[idFieldName]!] = id;
+    }
+
+    if (!options.useCamelCasePropNames && hasSpecificLinkedProfileId) {
+      map[attributeNames[linkedProfileIdFieldName]!] = linkedProfileId;
+    } 
 
     map.addAll({
-      attributeNames[firstNameFieldName]!: firstName,
-      attributeNames[lastNameFieldName]!: lastName,
-      attributeNames[birthDateFieldName]!: birthDate?.toIso8601String() ?? '',
-      attributeNames[sexFieldName]!: sex.index,
-      attributeNames[heightFieldName]!: height,
-      attributeNames[weightFieldName]!: weight,
-      attributeNames[medicalConditionFieldName]!: medicalCondition.index,
-      attributeNames[occupationFieldName]!: occupation.index,
-      userAccountIdFieldName: userAccountID,
+      attributeNames[firstNameFieldName]!: _firstName,
+      attributeNames[lastNameFieldName]!: _lastName,
+      attributeNames[dateOfBirthFieldName]!: _dateOfBirth?.toIso8601String() ?? '',
+      attributeNames[sexFieldName]!: _sex.index,
+      attributeNames[heightFieldName]!: _height,
+      attributeNames[weightFieldName]!: _weight,
+      attributeNames[medicalConditionFieldName]!: _medicalCondition.index,
+      attributeNames[occupationFieldName]!: _occupation.index,
+      attributeNames[userAccountIdFieldName]!: _userAccountID,
       attributeNames[selectedEnvFieldName]!: _selectedEnvironment.id,
-      attributeNames[coinsFieldName]!: coins,
-      attributeNames[modificationCountFieldName]!: modificationCount,
+      attributeNames[coinsFieldName]!: _coins,
+      attributeNames[modificationCountFieldName]!: _modificationCount,
+      attributeNames[createdAtFieldName]!: _createdAt.toIso8601String(),
+      attributeNames[modifiedAtFieldName]!: _modifiedAt?.toIso8601String(),
+      attributeNames[latestSyncWithGoogleFitFieldName]!: _latestSyncWithGoogleFit?.toIso8601String(),
     });
 
     if (options.includeCompleteSubEntities) {
       // Incluir mapas (no objetos en sí) de entidades anidadas.
-      map[attributeNames[countryFieldName]!] = country;
-      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments;
+      map[attributeNames[countryFieldName]!] = _country;
+      map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments;
     } else {
       // Incluir mapas (no objetos en sí) de entidades anidadas.
-      map[attributeNames[countryFieldName]!] = country.id;
-      map[attributeNames[unlockedEnvsFieldName]!] = unlockedEnvironments
+      map[attributeNames[countryFieldName]!] = _country.id;
+      map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments
           .map((env) => env.id)
           .toList();
     }
@@ -271,7 +343,7 @@ class UserProfile extends SQLiteModel {
   int get id => _id;
   String get firstName => _firstName;
   String get lastName => _lastName;
-  DateTime? get birthDate => _birthDate;
+  DateTime? get dateOfBirth => _dateOfBirth;
   UserSex get sex => _sex;
   double get height => _height;
   double get weight => _weight;
@@ -279,16 +351,21 @@ class UserProfile extends SQLiteModel {
   Occupation get occupation => _occupation;
   Country get country => _country;
   String get userAccountID => _userAccountID;
+  int get linkedProfileId => _linkedProfileId;
   int get coins => _coins;
   int get modificationCount => _modificationCount;
+  DateTime get createdAt => _createdAt;
+  DateTime? get modifiedAt => _modifiedAt;
+  DateTime? get latestSyncWithGoogleFit => _latestSyncWithGoogleFit;
   List<Environment> get unlockedEnvironments => isReadonly
     ? List.unmodifiable( _unlockedEnvironments)
     : _unlockedEnvironments;
 
   // Setters, solo si este [UserProfile] no [isReadonly].
+  set id(int newId)  => isReadonly ? null : _id = newId;
   set firstName(String newFirstName)  => isReadonly ? null : _firstName = newFirstName;
   set lastName(String newLastName) => isReadonly ? null : _lastName = newLastName;
-  set birthDate(DateTime? newBirthDate) => isReadonly ? null : _birthDate = newBirthDate;
+  set dateOfBirth(DateTime? newBirthDate) => isReadonly ? null : _dateOfBirth = newBirthDate;
   set sex(UserSex newSex) => isReadonly ? null : _sex = newSex;
   set height(double newHeight) => isReadonly ? null : _height = newHeight;
   set weight(double newWeight) => isReadonly ? null : _weight = newWeight;
@@ -296,6 +373,9 @@ class UserProfile extends SQLiteModel {
   set occupation(Occupation newOccupation) => isReadonly ? null : _occupation = newOccupation;
   set country(Country newCountry) => isReadonly ? null : _country = newCountry;
   set userAccountID(String newAccountId) => isReadonly ? null : _userAccountID = newAccountId;
+  set linkedProfileId(int newLinkedProfileId) => isReadonly ? null : _linkedProfileId = newLinkedProfileId;
+  set modifiedAt(DateTime? newModifiedAt) => isReadonly ? null : _modifiedAt = newModifiedAt;
+  set latestSyncWithGoogleFit(DateTime? newLatestSyncWithGoogleFit) => isReadonly ? null : _latestSyncWithGoogleFit = newLatestSyncWithGoogleFit;
   set selectedEnvironment(Environment newSelectedEnv) {
     if (!isReadonly) {
       _selectedEnvironment = newSelectedEnv;
@@ -339,12 +419,16 @@ class UserProfile extends SQLiteModel {
   bool hasUnlockedEnv(int envId) => unlockedEnvironments
       .where((e) => e.id == envId).length == 1;
 
+  bool get isLinkedToAccount => _userAccountID.isNotEmpty;
+
+  bool get hasSpecificLinkedProfileId => _id != _linkedProfileId && _linkedProfileId > 0;
+
   bool get hasRenalInsufficiency => medicalCondition == MedicalCondition.renalInsufficiency;
 
   bool get hasNephroticSyndrome => medicalCondition == MedicalCondition.nephroticSyndrome;
 
-  int get ageInYears => _birthDate != null 
-    ? DateTime.now().difference(_birthDate!).inDays.abs()
+  int get ageInYears => _dateOfBirth != null 
+    ? DateTime.now().difference(_dateOfBirth!).inDays.abs() ~/ 365
     : 0;
 
   String get fullName {
@@ -430,9 +514,9 @@ class UserProfile extends SQLiteModel {
   bool hasCriticalChanges(UserProfile changes) {
 
     final isNameDifferent = _firstName != changes._firstName || _lastName != changes._lastName;
-    final isDateOfBirthDifferent = !(_birthDate
-        ?.isAtSameMomentAs(changes._birthDate ?? DateTime.now()) 
-        ?? changes._birthDate == null);
+    final isDateOfBirthDifferent = !(_dateOfBirth
+        ?.isAtSameMomentAs(changes._dateOfBirth ?? DateTime.now()) 
+        ?? changes._dateOfBirth == null);
 
     final isSexDifferent = _sex != changes._sex;
     final hasDifferentMedicalCondition = _medicalCondition != changes._medicalCondition;
@@ -458,7 +542,7 @@ class UserProfile extends SQLiteModel {
 
     final isIdEqual = id == otherProfile.id;
     final isNameEqual = fullName == otherProfile.fullName;
-    final isBirthDateEqual = birthDate?.isAtSameMomentAs(otherProfile.birthDate ?? DateTime.now()) ?? false;
+    final isBirthDateEqual = dateOfBirth?.isAtSameMomentAs(otherProfile.dateOfBirth ?? DateTime.now()) ?? false;
     final areFeaturesEqual = sex == otherProfile.sex &&
       medicalCondition == otherProfile.medicalCondition &&
       occupation == otherProfile.occupation;
@@ -477,7 +561,7 @@ class UserProfile extends SQLiteModel {
 
   @override
   int get hashCode => Object.hashAll([ 
-    id, firstName, lastName, birthDate, sex, height, weight, 
+    id, firstName, lastName, dateOfBirth, sex, height, weight, 
     medicalCondition, occupation, userAccountID, _selectedEnvironment.id, 
     coins, modificationCount, country, unlockedEnvironments 
   ]);
@@ -522,5 +606,74 @@ class UserProfile extends SQLiteModel {
     return (weightValue < 20 || weightValue > 200) 
         ? 'El peso debe estar entre 20 kg y 200 kg'
         : null; 
+  }
+}
+
+extension _UserProfileMapExtension on Map<String, Object?> {
+
+  Country getCountryOrDefault({
+    required String attributeName,
+    required bool includesFullSubEntities,
+  }) {
+
+    Country country = Country.countryNotSpecified;
+
+    if (this[attributeName] is Map<String, Object?>) {
+      country = Country.fromMap(this[attributeName] as Map<String, Object?>);
+    } 
+
+    return country;
+  }
+
+  List<Environment> getUnlockedEnvironmentsOrDefault({
+    required String attributeName,
+    List<Environment> existingEnvironments = const <Environment>[],
+  }) {
+    final List<Environment> unlockedEnvironments = <Environment>[];
+    final unlockedEnvironmentsFromMap = this[attributeName];
+
+    if (unlockedEnvironmentsFromMap is List<Map<String, Object?>>) {
+      unlockedEnvironments.addAll(
+        unlockedEnvironmentsFromMap.map((environment) => Environment.fromMap(environment))
+        .toList()
+      );
+    } else if (unlockedEnvironmentsFromMap is List<int>) {
+      unlockedEnvironments.addAll(
+        existingEnvironments.where((environment) => unlockedEnvironmentsFromMap.contains(environment.id))
+      );
+    }
+
+    if (unlockedEnvironments.isEmpty) {
+      unlockedEnvironments.add(Environment.firstUnlocked());
+    }
+
+    return unlockedEnvironments;
+  }
+
+  int getEnumIndex({
+    required String attributeName,
+    required int enumValuesLength,
+  }) 
+  {
+
+    final int parsedIndex = int.tryParse(this[attributeName].toString()) ?? 0;
+    final int constrainedIndex = constrain(
+      parsedIndex, 
+      min: 0,
+      max: enumValuesLength - 1,
+    );
+
+    return constrainedIndex;
+  }
+
+  DateTime? getDateTimeOrDefault({
+    required String attributeName, 
+    DateTime? defaultValue,
+  }) {
+    
+    final parsedDateTime = DateTime.tryParse(this[attributeName].toString()) 
+        ?? defaultValue;
+
+    return parsedDateTime;
   }
 }

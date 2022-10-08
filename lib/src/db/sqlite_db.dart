@@ -142,7 +142,7 @@ class SQLiteDB {
       // Ocurrió algún error relacionado con la base de datos durante esta 
       // operación de INSERT. Imprimir el error y retornar un entero negativo.
       //TODO: Considerar opciones para mejorar el manejo de errores de base de datos.
-      print("DatabaseException: ${ex.result}");
+      print("DatabaseException: $ex");
       return -1;
     }
   }

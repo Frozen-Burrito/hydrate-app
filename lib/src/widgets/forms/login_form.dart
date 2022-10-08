@@ -5,6 +5,7 @@ import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
+import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
 
 class LoginForm extends StatelessWidget {
@@ -13,23 +14,61 @@ class LoginForm extends StatelessWidget {
 
   final AuthFormBloc bloc = AuthFormBloc.emailSignIn();
 
-  Future<void> _handleLoginSubmit(BuildContext context) async {
-    // Submit the form.
-    bloc.formSubmit.add(context);
+  void _handleLoginSubmit(BuildContext context) {
+    FocusScope.of(context).unfocus();
+    bloc.submitForm(context);
+  }
 
-    // Wait for the result of the submit event.
-    await for(final result in bloc.formState) {
-      if (result == AuthResult.authenticated) {
+  void _handleAuthResult(BuildContext context, AuthResult? authResult) {
+
+    Future.microtask(() {
+      if (authResult == AuthResult.authenticated) {
         // El usuario ya tiene un perfil. Redirigir a vista de inicio.
         Navigator.of(context).popAndPushNamed(RouteNames.home);
-      } else if (result == AuthResult.newProfileCreated) {
-        // El usuario todavía no ha llenado su perfil inicial. Redirigir
-        // al formulario inicial para que el usuario pueda configurar su nuevo
-        // perfil.
+      } else if (authResult == AuthResult.newProfileCreated) {
         Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
+      } else if (authResult == AuthResult.canLinkProfileToAccount) {
+        askUserForAccountLinkConfirm(context);
       }
+    });
+  }
+
+  Future<void> askUserForAccountLinkConfirm(BuildContext context) async {
+
+    final shouldLinkProfile = (await showDialog<bool?>(
+      context: context, 
+      builder: (_) => const LinkAccountDialog(),
+    )) ?? false;
+
+    if (shouldLinkProfile) {
+      bloc.linkAccountToProfile(context);
     }
   }
+  
+  String _buildMessageForAuthResult(AppLocalizations localizations, AuthResult authResult) {
+
+    final String message;
+
+    switch (authResult) {
+      case AuthResult.none:
+      case AuthResult.authenticated:
+      case AuthResult.newProfileCreated:
+      case AuthResult.canSendAuthRequest:
+      case AuthResult.canLinkProfileToAccount:
+        message = "";
+        break;
+      case AuthResult.credentialsError:
+        //TODO: Add i18n
+        message = "El login o la contraseña no coinciden";
+        break;
+      case AuthResult.serviceUnavailable:
+        message = localizations.errCheckInternetConn;
+        break;
+    }
+
+    return message;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +103,7 @@ class LoginForm extends StatelessWidget {
                     initialData: AuthResult.none,
                     builder: (context, snapshot) {
                       
-                      if (snapshot.data == AuthResult.none) {
+                      if (snapshot.data == AuthResult.none || snapshot.data == AuthResult.canSendAuthRequest){
                         return const SizedBox( height: 32.0, );
                       }
     
@@ -84,10 +123,7 @@ class LoginForm extends StatelessWidget {
                             
                             Expanded(
                               child: Text(
-                                isServiceUnavailable 
-                                  ? localizations.errCheckInternetConn
-                                  //TODO: Add i18n
-                                  : 'Your credentials are incorrect.', 
+                                _buildMessageForAuthResult(localizations, snapshot.data!), 
                                 textAlign: TextAlign.start,
                                 maxLines: 2,
                                 softWrap: true,
@@ -108,37 +144,36 @@ class LoginForm extends StatelessWidget {
     
                         final isFormLoading = snapshot.data ?? false;
 
-                        if (isFormLoading) {
-                          return ElevatedButton(
-                            onPressed: null,
-                            style: ElevatedButton.styleFrom(
-                              primary: Theme.of(context).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
-                              textStyle: Theme.of(context).textTheme.bodyText1,
-                            ), 
-                            child: const SizedBox(
-                              height: 24.0,
-                              width: 24.0,
-                              child: CircularProgressIndicator()
-                            ),
-                          );
-                        } else {
-                          return ElevatedButton(
-                            onPressed: () {
-                              FocusScope.of(context).unfocus();
-                              _handleLoginSubmit(context);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              primary: Theme.of(context).colorScheme.primary,
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
-                              textStyle: Theme.of(context).textTheme.bodyText1,
-                            ), 
-                            child: Text(
-                              localizations.continueAction, 
-                              textAlign: TextAlign.center,
-                            ),
-                          );
-                        }
+                        return StreamBuilder<AuthResult>(
+                          stream: bloc.formState,
+                          builder: (context, snapshot) {
+
+                            final canFormBeSubmitted = snapshot.data == AuthResult.canSendAuthRequest;
+
+                            _handleAuthResult(context, snapshot.data);
+
+                            return ElevatedButton(
+                              onPressed: (canFormBeSubmitted && !isFormLoading)
+                                ? () => _handleLoginSubmit(context)
+                                : null,
+                              style: ElevatedButton.styleFrom(
+                                primary: Theme.of(context).colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                                textStyle: Theme.of(context).textTheme.bodyText1,
+                              ), 
+                              child: (isFormLoading)
+                                ? const SizedBox(
+                                  height: 24.0,
+                                  width: 24.0,
+                                  child: CircularProgressIndicator()
+                                )
+                                : Text(
+                                  localizations.continueAction, 
+                                  textAlign: TextAlign.center,
+                                ),
+                            );
+                          }
+                        );
                       },
                     ),
                   ),

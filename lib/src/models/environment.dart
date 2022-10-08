@@ -14,7 +14,7 @@ class Environment extends SQLiteModel {
     required this.price
   });
 
-  static const int firstUnlockedId = 0;
+  static const int firstUnlockedId = 1;
 
   static const int _dryEnvironmentThresholdMl = -250;
   static const int _moistEnvironmentThresholdMl = 250;
@@ -29,7 +29,7 @@ class Environment extends SQLiteModel {
 
   Environment.firstUnlocked() : this(
     id: firstUnlockedId,
-    imagePath: "assets/img/entorno_1.png",
+    imagePath: "1",
     price: 0,
   );
 

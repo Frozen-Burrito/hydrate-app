@@ -4,9 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart';
 
 import 'package:hydrate_app/src/api/api.dart';
-import 'package:hydrate_app/src/db/sqlite_db.dart';
-import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
@@ -15,10 +14,15 @@ class AuthApi {
 
   // La instancia de cliente HTTP usada para realizar todas las 
   // peticiones a la API de autenticación.
-  static final _apiClient = ApiClient();
+  final _apiClient = ApiClient();
+
+  bool _isClientClosed = false;
 
   static const String _signInWithEmailEndpoint = "login";
   static const String _createAccountWithEmailEndpoint = "signUp";
+  static const String _profileEndpoint = "perfil";
+
+  bool get isClosed => _isClientClosed;
   
   /// Envía una petición de inicio de sesión con email y password. Si obtiene
   /// una respuesta exitosa, retorna el JWT de autenticación.
@@ -45,7 +49,11 @@ class AuthApi {
         final String authToken = _decodeAuthToken(response);
 
         if (authToken.isEmpty) {
-          throw const ApiException(ApiErrorType.serviceUnavailable);
+          throw ApiException(
+            ApiErrorType.serviceUnavailable,
+            httpStatusCode: response.statusCode,
+            message: "No auth token in response"
+          );
         }
 
         // Asegurar que authToken puede ser descompuesto en claims. Si esta
@@ -63,17 +71,17 @@ class AuthApi {
       // Probablmente, la conexión a internet fue interrumpida, haciendo 
       // que la petición no pudiera ser completada.
       return Future.error(
-        ApiException(ApiErrorType.unreachableHost, ex.message)
+        ApiException.connectionError(ApiErrorType.unreachableHost, ex.message)
       );
 
     } on SocketException catch (ex) {
       // El dispositivo no tiene conexión a internet y no puede descubrir
       // el host de la API web, o la API web no está disponible.
-      throw ApiException(ApiErrorType.unreachableHost, ex.message);
+      throw ApiException.connectionError(ApiErrorType.unreachableHost, ex.message);
     } on FormatException catch (ex) {
       // FormatException solo es producida cuando el JWT no puede ser 
       // interpretado o sus claims no tienen la forma correcta.
-      throw ApiException(ApiErrorType.responseFormatError, ex.message);
+      throw ApiException.connectionError(ApiErrorType.responseFormatError, ex.message);
     }
   }
 
@@ -99,7 +107,11 @@ class AuthApi {
         final String authToken = _decodeAuthToken(response);
 
         if (authToken.isEmpty) {
-          throw const ApiException(ApiErrorType.serviceUnavailable);
+          throw ApiException(
+            ApiErrorType.serviceUnavailable,
+            httpStatusCode: response.statusCode,
+            message: "No auth token in response"
+          );
         }
 
         // Asegurar que authToken puede ser descompuesto en claims. Si esta
@@ -116,36 +128,113 @@ class AuthApi {
       // Probablmente, la conexión a internet fue interrumpida, haciendo 
       // que la petición no pudiera ser completada.
       return Future.error(
-        ApiException(ApiErrorType.unreachableHost, ex.message)
+        ApiException.connectionError(ApiErrorType.unreachableHost, ex.message)
       );
 
     } on SocketException catch (ex) {
       // El dispositivo no tiene conexión a internet y no puede descubrir
       // el host de la API web, o la API web no está disponible.
-      throw ApiException(ApiErrorType.unreachableHost, ex.message);
+      throw ApiException.connectionError(ApiErrorType.unreachableHost, ex.message);
     } on FormatException catch (ex) {
       // FormatException solo es producida cuando el JWT no puede ser 
       // interpretado o sus claims no tienen la forma correcta.
-      throw ApiException(ApiErrorType.responseFormatError, ex.message);
+      throw ApiException.connectionError(ApiErrorType.responseFormatError, ex.message);
     }
   }
 
-  Future<UserProfile> fetchProfileForAccount(String userAccountId) async {
-    //TODO: obtener el perfil de la cuenta desde la API, no desde la BD local.
-    final whereQuery = [ WhereClause(UserProfile.userAccountIdFieldName, userAccountId), ];
+  /// Obtiene el perfil del usuario autenticado desde la API.
+  /// 
+  /// Si [authToken] no tiene un formato válido, ocurre un error al enviar
+  /// la petición o la respuesta no es la esperada, este método lanza un 
+  /// [ApiException].
+  Future<UserProfile> fetchProfileForAccount(String authToken) async {
+    try {
+      
+      final int currentProfileId = getProfileIdFromJwt(authToken);
 
-    final queryResults = await SQLiteDB.instance.select<UserProfile>(
-      UserProfile.fromMap,
-      UserProfile.tableName,
-      where: whereQuery,
-      limit: 1,
+      // Obtener el perfil del usuario autenticado por authToken. 
+      final response = await _apiClient.get(
+        _profileEndpoint,
+        pathParameters: <String> [ currentProfileId.toString() ], 
+        authorization: authToken,
+        authType: ApiAuthType.bearerToken,
+      );
+
+      final isResponseOk = response.statusCode == HttpStatus.ok;
+      final responseHasBody = response.body.isNotEmpty;
+
+      if (isResponseOk && responseHasBody) {
+        // De-serializar el perfil de usuario desde el cuerpo de la respuesta.
+        final Map<String, Object?> profileJsonData = json.decode(response.body);
+        
+        final perfil = UserProfile.fromMap(profileJsonData, options: ApiClient.defaultJsonMapOptions);
+
+        return perfil;
+
+      } else {
+        // Usar el manejador por defecto de errores en respuesta.
+        return Future.error(_apiClient.defaultErrorResponseHandler(response));
+      }
+    } on ClientException catch (ex) {
+      // Probablmente, la conexión a internet fue interrumpida, haciendo 
+      // que la petición no pudiera ser completada.
+      return Future.error(
+        ApiException(
+          ApiErrorType.unreachableHost, 
+          httpStatusCode: 0,
+          message: ex.message,
+        ),
+      );
+
+    } on SocketException catch (ex) {
+      // El dispositivo no tiene conexión a internet y no puede descubrir
+      // el host de la API web, o la API web no está disponible.
+      throw ApiException(
+        ApiErrorType.unreachableHost, 
+          httpStatusCode: 0,
+          message: ex.message,
+      );
+    } on FormatException catch (ex) {
+      // FormatException solo es producida cuando el JWT no puede ser 
+      // interpretado o sus claims no tienen la forma correcta.
+      throw ApiException(
+        ApiErrorType.responseFormatError, 
+        httpStatusCode: 0,
+        message: ex.message,
+      );
+    } 
+  }
+
+  Future<void> updateProfileChanges(String authToken, UserProfile profileChanges) async {
+
+    final int profileId = getProfileIdFromJwt(authToken);
+
+    final Map<String, Object?> requestBody = profileChanges.toMap(options: const MapOptions(
+      useCamelCasePropNames: true,
+      includeCompleteSubEntities: false,
+      useIntBooleanValues: false,
+    ));
+    
+    final response = await _apiClient.patch(
+      _profileEndpoint, 
+      requestBody,
+      authorization: authToken,
+      authType: ApiAuthType.bearerToken,
+      pathParameters: <String> [ profileId.toString(), ],
     );
 
-    final profileForAccount = (queryResults.length == 1) 
-        ? queryResults.single 
-        : UserProfile.defaultProfile;
+    if (response.statusCode != HttpStatus.noContent) {
 
-    return profileForAccount; 
+      if (response.statusCode == HttpStatus.internalServerError) 
+      {
+        throw ApiException(
+          ApiErrorType.serviceUnavailable,
+          httpStatusCode: response.statusCode
+        );
+      }
+
+      return Future.error(_apiClient.defaultErrorResponseHandler(response));
+    }
   }
 
   /// Decodifica un JWT de autenticación desde el cuerpo JSON de [response].
@@ -162,5 +251,6 @@ class AuthApi {
   /// Cierra el cliente HTTP usado por esta instancia.
   void dispose() {
     _apiClient.close();
+    _isClientClosed = true;
   }
 }

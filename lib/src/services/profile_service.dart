@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
+import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
@@ -7,6 +11,7 @@ import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
+import 'package:sqflite/sqflite.dart';
 
 class ProfileService extends ChangeNotifier {
 
@@ -20,8 +25,7 @@ class ProfileService extends ChangeNotifier {
   /// año.
   static const int maxYearlyProfileModifications = 3;
 
-  static const String authTokenKey = "jwt";
-  static const String lastUsedProfileIdKey = "perfil_actual";
+  static const String authTokenKey = "token_auth";
   
   /// Crea una instancia de [ProfileService] que es inicializada con el 
   /// [UserProfile] por defecto.
@@ -44,36 +48,24 @@ class ProfileService extends ChangeNotifier {
   /// y un [String] vacío, respectivamente).
   factory ProfileService.fromSharedPrefs({ bool createDefaultProfile = false }) {
 
-    int prefsProfileId = _sharedPreferences?.getInt(lastUsedProfileIdKey) ?? -1;
-
     String prefsAuthToken = _sharedPreferences?.getString(authTokenKey) ?? "";
 
-    if (prefsAuthToken.isNotEmpty && isTokenExpired(prefsAuthToken)) {
+    if (isTokenExpired(prefsAuthToken)) {
       _sharedPreferences?.setString(authTokenKey, "");
       prefsAuthToken = "";
-    }
+    } 
+    
+    final int currentProfileId;
 
-    if (createDefaultProfile && prefsProfileId < UserProfile.defaultProfileId) {
-      
-      final newProfile = UserProfile.uncommitted();
+    if (prefsAuthToken.isNotEmpty) {
+      currentProfileId = getProfileIdFromJwt(prefsAuthToken);
 
-      prefsProfileId = UserProfile.defaultProfileId;
-
-      // Persistir el nuevo perfil en la base de datos
-      SQLiteDB.instance.insert(newProfile).then((newProfileId) {
-        final wasProfileCreated = newProfileId >= UserProfile.defaultProfileId;
-
-        if (wasProfileCreated) {
-          _sharedPreferences?.setInt(lastUsedProfileIdKey, newProfileId);
-          prefsProfileId = newProfileId;
-        } else {
-          print("Warning: default profile could not be created");
-        }
-      });
+    } else {
+      currentProfileId = UserProfile.defaultProfileId;
     }
 
     return ProfileService.withProfile(
-      profileId: prefsProfileId,
+      profileId: currentProfileId,
       authToken: prefsAuthToken
     );
   }
@@ -123,8 +115,15 @@ class ProfileService extends ChangeNotifier {
   bool get hasProfileData => _profileCache.hasData;
 
   int get profileId => _profileId;
-  String get linkedAccountId => getAccountIdFromJwt(_authToken);
   String get authToken => _authToken;
+
+  Future<bool> get canLinkAccountToCurrentProfile async {
+    final currentProfile = await _profileCache.data;
+
+    final bool canLinkAccount = !(currentProfile?.isLinkedToAccount ?? true);
+
+    return canLinkAccount;
+  }
 
   /// Retorna una instancia de solo lectura del [UserProfile] del usuario actual.
   Future<UserProfile?> get profile => _profileCache.data;
@@ -157,15 +156,15 @@ class ProfileService extends ChangeNotifier {
 
     final bool isNewProfileIdValid = newProfileId >= UserProfile.defaultProfileId;
     final bool isNewAuthTokenValid = authToken.isEmpty || !isTokenExpired(authToken);
+    final bool didCredentialsChange = (newProfileId != _profileId || authToken != _authToken);
 
-    final shouldChangeProfile = newProfileId != _profileId && isNewProfileIdValid && isNewAuthTokenValid;
+    final shouldChangeProfile = didCredentialsChange && isNewProfileIdValid && isNewAuthTokenValid;
 
     if (shouldChangeProfile) {
 
       _profileId = newProfileId;
       _authToken = authToken;
 
-      _sharedPreferences?.setInt(lastUsedProfileIdKey, profileId);
       _sharedPreferences?.setString(authTokenKey, authToken);
 
       await _profileCache.refresh();
@@ -196,21 +195,31 @@ class ProfileService extends ChangeNotifier {
       unions.add("AND");
     }
 
-    final queryResults = await SQLiteDB.instance.select<UserProfile>(
-      UserProfile.fromMap,
-      UserProfile.tableName,
-      where: whereQuery,
-      whereUnions: unions,
-      includeOneToMany: true,
-      queryManyToMany: true,
-      limit: 1
-    );
+    final isDefaultProfile = _profileId == UserProfile.defaultProfileId;
 
     UserProfile? profile;
 
-    if (queryResults.isNotEmpty)
-    {
-      profile = queryResults.first;
+    if (isDefaultProfile) {
+      profile = await getDefaultLocalProfile();
+
+    } else {
+      final queryResults = await SQLiteDB.instance.select<UserProfile>(
+        UserProfile.fromMap,
+        UserProfile.tableName,
+        where: whereQuery,
+        whereUnions: unions,
+        includeOneToMany: true,
+        queryManyToMany: true,
+        limit: 1
+      );
+
+      if (queryResults.isNotEmpty)
+      {
+        profile = queryResults.first;
+      }
+    }
+
+    if (profile != null) {
       assert(profile.id == _profileId);
     }
 
@@ -237,86 +246,112 @@ class ProfileService extends ChangeNotifier {
     return Future.value(queryResults.toList());
   }
 
-  /// Crea o actualiza un registro local de [UserProfile] con el perfil de 
-  /// usuario obtenido desde la API web para la cuenta con [userAccountId].
+  /// Configura un perfil local asociado a una cuenta de usuario identificada
+  /// por [authToken].
   /// 
-  /// Si el perfil asociado con la cuenta apenas ha sido creado, este método
-  /// retorna [AccountLinkResult.requiresInitialData].
+  /// Si ya existe un perfil local asociado con la cuenta, actualiza sus datos
+  /// con los obtenidos desde la API de perfiles.
   /// 
-  /// Si el perfil ya tiene datos y el perfil local pudo ser completado con su 
-  /// información, retorna [AccountLinkResult.localProfileInSync].
+  /// En caso de que no existe un perfil local asociado y el perfil por defecto
+  /// ya está asociado a una cuenta, este método persiste un nuevo registro con
+  /// los datos del perfil.
   /// 
-  /// Si ocurre un error al obtener el perfil de usuario desde la API, lanza 
-  /// una [ApiException] con la causa del problema.
+  /// Si no existe un perfil local asociado y el perfil por defecto todavía no
+  /// ha sido asociado con una cuenta, el usuario puede especificar si desea 
+  /// asociarlo.
   /// 
-  /// Si hay un error de persistencia local, retorna [AccountLinkResult.error].
-  Future<AccountLinkResult> handleAccountLink(
-    String authToken, 
-    { bool wasAccountJustCreated = false }) 
-    async {
-
+  /// Retorna __true__ si el perfil local por defecto puede ser asociado con 
+  /// la cuenta.
+  Future<bool> setLocalProfileForAccount(String authToken) async {
     // Obtener el ID de la cuenta de usuario desde los claims del token.
     final String userAccountId = getAccountIdFromJwt(authToken);
 
-    int existingLinkedProfileId = await findProfileLinkedToAccount(userAccountId); 
-    final localProfileExists = existingLinkedProfileId >= 0;
+    final int existingLinkedProfileId = await findProfileLinkedToAccount(userAccountId); 
+    final localProfileExists = existingLinkedProfileId >= UserProfile.defaultProfileId;
 
     // Obtener el perfil para userAccountId desde el servicio web.
     final _authApi = AuthApi();
 
-    final profile = await _authApi.fetchProfileForAccount(userAccountId);
+    final profileFromAuthService = await _authApi.fetchProfileForAccount(authToken);
 
-    _profileChanges = UserProfile.modifiableCopyOf(profile);
+    _authApi.dispose();
+
+    _profileChanges = UserProfile.modifiableCopyOf(profileFromAuthService);
     _profileChanges.userAccountID = userAccountId;
 
-    AccountLinkResult linkResult = AccountLinkResult.error;
+    final bool canLinkDefaultProfileToAccount;
 
-    if (localProfileExists && !(wasAccountJustCreated || profile.isDefaultProfile)) {
-      // Si el perfil local ya existe, actualizarlo con los datos de profile:
-      final syncResult = await saveProfileChanges();
+    if (localProfileExists) {
+      final syncResult = await syncLocalProfile( fetchedProfile: profileFromAuthService );
 
-      final wasLocalProfileSynchronized = syncResult == SaveProfileResult.noChanges || 
+      final isLocalProfileInSync = syncResult == SaveProfileResult.noChanges || 
         syncResult == SaveProfileResult.changesSaved;
 
-      if (wasLocalProfileSynchronized) {
-        linkResult = AccountLinkResult.localProfileInSync;
+      if (isLocalProfileInSync) {
+        await _changeProfile(existingLinkedProfileId, authToken: authToken);
       }
 
+      canLinkDefaultProfileToAccount = false;
+      
     } else {
-      // Cuando no hay un perfil local para la cuenta, crear uno nuevo:
-      final newLocalProfile = _profileChanges;
+      final defaultLocalProfile = await getDefaultLocalProfile();
 
-      // Persistir el nuevo perfil en la base de datos
-      final newLocalProfileId = await SQLiteDB.instance.insert(newLocalProfile);
+      assert(defaultLocalProfile != null, "Se esperaba que el perfil local por defecto fuera no-nulo, pero no lo es.");
 
-      final wasProfileCreated = newLocalProfileId >= UserProfile.defaultProfileId;
+      final bool isDefaultProfileAlreadyLinked = defaultLocalProfile!.isLinkedToAccount;
 
-      if (wasProfileCreated) {
-        existingLinkedProfileId = newLocalProfileId;
-        
-        // Determinar si la app debería completar el perfil de usuario obtenido.
-        if (wasAccountJustCreated || newLocalProfile.isDefaultProfile) {
-          // Si el perfil de usuario local recién creado tiene datos por defecto, 
-          // retornar AccountLinkResult.newProfileCreated para indicar que 
-          // el perfil debería ser completado con el formulario inicial.
-          linkResult = AccountLinkResult.requiresInitialData;
-        } else {
-          linkResult = AccountLinkResult.localProfileInSync;
+      if (isDefaultProfileAlreadyLinked) {
+        // Crear un nuevo perfil local, asociado con la cuenta de usuario.
+        _profileChanges.id = -1;
+        final newLocalProfile = _profileChanges;
+
+        final newLocalProfileId = await SQLiteDB.instance.insert(newLocalProfile);
+
+        final wasProfileCreated = newLocalProfileId > UserProfile.defaultProfileId;
+
+        if (wasProfileCreated) {
+          await _changeProfile(newLocalProfileId, authToken: authToken);
         }
+
+        canLinkDefaultProfileToAccount = false;
       } else {
-        // El nuevo perfil local no pudo ser creado. Puede ser por un error de 
-        // persistencia.
-        linkResult = AccountLinkResult.error;
+        // Si el perfil actual no está asociado a una cuenta de usuario, debería 
+        // preguntársele al usuario si desea asociar el perfil actual con la 
+        // cuenta autenticada. Esto debe ser realizado por el invocador de este
+        // método (véase [canLinkAccountToCurrentProfile]).
+        _authToken = authToken;
+        canLinkDefaultProfileToAccount = true;
       }
     }
 
-    if (linkResult != AccountLinkResult.error) {
-      // Si la cuenta fue asociada con éxito a un perfil local, cambiar al
-      // perfil de esa cuenta.
-      await _changeProfile(existingLinkedProfileId, authToken: authToken);
-    }
+    return canLinkDefaultProfileToAccount;
+  }
 
-    return linkResult;
+  /// Asocia un perfil de usuario local (offline) con la cuenta de usuario 
+  /// identificada por [authToken].
+  /// 
+  /// Si [authToken] es null, usa el token de autenticación de la cuenta de
+  /// usuario actual de esta instancia.
+  /// 
+  /// Lanza una excepción si ocurre un error al intentar asociar el perfil con 
+  /// la cuenta de usuario 
+  Future<void> handleAccountLink({ String? authToken, }) async {
+
+    authToken ??= _authToken;
+
+    final defaultLocalProfile = await getDefaultLocalProfile(); 
+
+    assert(defaultLocalProfile != null, "Se esperaba que el perfil local por defecto fuera no-nulo, pero no lo es.");
+
+    final String userAccountId = getAccountIdFromJwt(authToken);
+    defaultLocalProfile!.userAccountID = userAccountId;
+
+    const int expectedAlteredRows = 1;
+    final int alteredRows = await SQLiteDB.instance.update(defaultLocalProfile);
+
+    if (alteredRows <= 0 || alteredRows > 1) {
+      throw Exception("Esperaba modificar $expectedAlteredRows fila(s), pero $alteredRows fueron alteradas.");
+    }
   }
 
   /// Cambia el [Environment] seleccionado para el [UserProfile] actual por
@@ -408,8 +443,8 @@ class ProfileService extends ChangeNotifier {
   /// Persiste los cambios realizados en [profileChanges] a la base de datos y
   /// le indica al caché de perfiles que debería refrescarse.
   /// 
-  /// Si  [restrictModifications] es **true**, los cambios serán guardados solo 
-  /// cuando profileChanges.modificationCount < maxYearlyProfileModifications.
+  /// Si  [isSyncOperation] es **true**, los al perfil descritos en _profileChanges
+  /// serán aplicados como una sincronización del perfil, no como  profileChanges.modificationCount < maxYearlyProfileModifications.
   /// 
   /// Retorna uno de los siguientes valores de [SaveProfileResult], según el caso:
   ///  - [changesSaved]: si el perfil fue actualizado correctamente.
@@ -419,9 +454,7 @@ class ProfileService extends ChangeNotifier {
   ///      ya no puede ser modificado.
   ///  - [persistenceError]: si hubo un error de persistencia al intentar guardar
   ///     los cambios.
-  //TODO: Solo restringir modificaciones cuando profileChanges modifica campos 
-  // sensibles, como la fecha de nacimiento o el pais
-  Future<SaveProfileResult> saveProfileChanges() async {
+  Future<SaveProfileResult> saveProfileChanges({ bool isSyncOperation = false }) async {
 
     final currentProfile = await _profileCache.data;
     
@@ -446,11 +479,7 @@ class ProfileService extends ChangeNotifier {
         }
 
         _profileChanges.recordModification();
-
-        _profileChanges.addCoins(500);
       }
-
-      // await confirmEnvironment();
 
       // Intentar guardar los cambios al perfil existente
       final int alteredRows = await SQLiteDB.instance.update(_profileChanges);
@@ -458,6 +487,7 @@ class ProfileService extends ChangeNotifier {
       // Si ninguna fila fue modificada, el perfil no pudo ser actualizado a 
       // causa de un error con la base de datos.
       if (alteredRows > 0) {
+        _updateProfileWithLocalChanges(_profileChanges);
         _profileCache.shouldRefresh();
         return SaveProfileResult.changesSaved;
       } else {
@@ -467,6 +497,62 @@ class ProfileService extends ChangeNotifier {
     } else {
       return SaveProfileResult.noChanges;
     }
+  }
+
+  /// Actualiza el perfil local, usando los datos obtenidos desde la API REST 
+  /// de perfiles de usuario. 
+  /// 
+  /// Este método **NO** restringe el número de modificaciones. No debería ser usado 
+  /// para actualizar el perfil cuando los cambios son producidos por el usuario.
+  /// Para hacer esto último, debe usarse en vez [saveProfileChanges].
+  /// 
+  /// Si [fetchedProfile] es nulo, este método hace una petición a la API REST 
+  /// de perfiles para actualizar el perfil local con los datos del perfil 
+  /// obtenido. En caso contrario, usa los datos encontrados en [fetchedProfile]. 
+  Future<SaveProfileResult> syncLocalProfile({ UserProfile? fetchedProfile }) async {
+
+    final _authApi = AuthApi();
+    
+    final updatedProfile = fetchedProfile ?? await _authApi.fetchProfileForAccount(authToken);
+
+    _authApi.dispose();
+
+    final currentLocalProfile = await _profileCache.data;
+
+    final bool requiresLocalUpdate = currentLocalProfile != updatedProfile;
+
+    final SaveProfileResult saveStatus;
+
+    if (requiresLocalUpdate) {
+      // Intentar actualizar el perfil existente con los cambios.
+      final int alteredRows = await SQLiteDB.instance.update(updatedProfile);
+
+      final bool wasLocalProfileUpdated = alteredRows > 0;
+
+      if (wasLocalProfileUpdated) {
+        _profileCache.shouldRefresh();
+        saveStatus = SaveProfileResult.changesSaved;
+      } else {
+        saveStatus = SaveProfileResult.persistenceError;
+      }
+    } else {
+      saveStatus = SaveProfileResult.noChanges;
+    }
+
+    return saveStatus;
+  }
+
+  Future<void> _updateProfileWithLocalChanges(UserProfile localProfileChanges) async {
+    final _authApi = AuthApi();
+
+    try {
+
+      await _authApi.updateProfileChanges(authToken, localProfileChanges);
+
+    } on ApiException catch (ex) {
+      //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
+      debugPrint("Error al sincronizar cambios a perfil ($ex)");
+    } 
   }
 
   /// Busca un [UserProfile] local que tenga un userAccountID igual a 
@@ -489,6 +575,29 @@ class ProfileService extends ChangeNotifier {
 
     return (localProfile != null) ? localProfile.id : -1; 
   }
+}
+
+Future<UserProfile?> getDefaultLocalProfile() async {
+
+  final whereQuery = [ WhereClause(UserProfile.idFieldName, UserProfile.defaultProfileId.toString()), ];
+
+  final queryResults = await SQLiteDB.instance.select<UserProfile>(
+    UserProfile.fromMap,
+    UserProfile.tableName,
+    where: whereQuery,
+    includeOneToMany: true,
+    queryManyToMany: true,
+    limit: 1,
+  );
+
+  UserProfile? localProfile = queryResults.isNotEmpty ? queryResults.first : null;
+
+  if (localProfile == null) {
+    await SQLiteDB.instance.insert(UserProfile.defaultProfile);
+    localProfile = UserProfile.defaultProfile;
+  }
+
+  return localProfile;
 }
 
 enum AccountLinkResult {

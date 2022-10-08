@@ -4,6 +4,8 @@ import 'dart:convert';
 /// [DateTime.now()]. Retorna false si el [token] ya caducó.
 bool isTokenExpired(String token) {
 
+  if (token.isEmpty) return true;
+
   final claims = parseJWT(token);
 
   final int expDateMillis = claims['exp'] * 1000;
@@ -27,6 +29,27 @@ String getAccountIdFromJwt(String authJwt) {
 
   } on FormatException {
     return "";
+  }
+}
+
+/// Obtiene el UUID de la cuenta asociada al token [authJwt], o un String 
+/// vacío si [authJwt] no es válido o no contiene un claim con el UUID de la 
+/// cuenta.
+int getProfileIdFromJwt(String authJwt) {
+  try {
+    // Obtener el ID de la cuenta de usuario desde los claims del token.
+    final tokenClaims = parseJWT(authJwt);
+
+    // Si parseJWT no lanzó una FormatException, se asume que el token contiene 
+    // claims válidos, incluyendo un String para el "id".
+    final String profileIdStr = tokenClaims["idPerfil"] as String;
+
+    final int profileId = int.tryParse(profileIdStr) ?? -1;
+
+    return profileId;
+
+  } on FormatException {
+    return -1;
   }
 }
 

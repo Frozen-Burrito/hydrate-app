@@ -156,13 +156,13 @@ class ArticleService with ChangeNotifier {
 
       } on IOException catch (ex) {
 
-        return Future.error(ApiException(
+        return Future.error(ApiException.connectionError(
           ApiErrorType.unreachableHost,
           ex.toString(),
         ));
       } on ClientException catch (ex) {
 
-        return Future.error(ApiException(
+        return Future.error(ApiException.connectionError(
           ApiErrorType.unreachableHost,
           ex.message,
         ));

@@ -33,14 +33,15 @@ class MapOptions {
   /// usar camelCase o usar enteros para representar [bool].
   static Map<String, String> mapAttributeNames(
     Iterable<String> baseAttributes,
-    MapOptions options
-  ) {
+    MapOptions options, {
+      Map<String, String> specificAttributeMappings = const {},
+  }) {
     // Aplicar las opciones de formato de [options] a los atributos de la entidad.
     final mappedNames = Map<String, String>.unmodifiable(
       baseAttributes
       .toList()
       .asMap()
-      .map((i, value) => _applyMapOptions(value, options))
+      .map((i, value) => _applyMapOptions(value, options, specificAttributeMappings))
     );
 
     return mappedNames;
@@ -49,17 +50,24 @@ class MapOptions {
   /// Aplica todas las [options] especificadas al [attribute].
   static MapEntry<String, String> _applyMapOptions(
     String attribute, 
-    MapOptions options
+    MapOptions options,
+    Map<String, String> specificAttributeMappings,
   ) {
 
     String transformedAttribute = attribute;
+    final bool shouldApplyAutoMapping = !(specificAttributeMappings.containsKey(attribute));
 
-    if (options.includeCompleteSubEntities && transformedAttribute != "id_perfil") {
-      transformedAttribute = transformedAttribute.replaceFirst("id_", "");
-    }
+    if (shouldApplyAutoMapping) {
+      if (options.includeCompleteSubEntities && transformedAttribute != "id_perfil") {
+        transformedAttribute = transformedAttribute.replaceFirst("id_", "");
+      }
 
-    if (options.useCamelCasePropNames) {
-      transformedAttribute = transformedAttribute.toCamelCase();
+      if (options.useCamelCasePropNames) {
+        transformedAttribute = transformedAttribute.toCamelCase();
+      }
+
+    } else {
+      transformedAttribute = specificAttributeMappings[attribute]!;
     }
 
     return MapEntry(attribute, transformedAttribute);
