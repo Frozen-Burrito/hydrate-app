@@ -32,8 +32,44 @@ class ApiException implements Exception {
   /// La clasificación de esta excepción.
   final ApiErrorType type;
 
-  const ApiException(this.type, [this.message = ""]);
+  final int httpStatusCode;
+
+  final String problemDetails;
+
+  const ApiException(
+    this.type, { 
+      required this.httpStatusCode, 
+      this.message = "",
+      this.problemDetails = "",
+    }
+  );
+
+  const ApiException.connectionError(ApiErrorType errorType, String message) : this(
+    errorType,
+    httpStatusCode: 0,
+    message: message
+  );
 
   @override
-  String toString() => "ApiException: (${type.name}) $message";
+  String toString() {
+
+    final strBuf = StringBuffer("ApiException:");
+
+    strBuf.writeAll(["(", type.name, ", " ]);
+    strBuf.writeAll(["status = ", httpStatusCode, ") " ]);
+
+    if (message.isNotEmpty) {
+      strBuf.write(message);
+
+      if (problemDetails.isNotEmpty) {
+        strBuf.write(", ");
+      }
+    }
+
+    if (problemDetails.isNotEmpty) {
+      strBuf.writeAll(["details: ", problemDetails]);
+    }
+
+    return strBuf.toString();
+  }
 }
