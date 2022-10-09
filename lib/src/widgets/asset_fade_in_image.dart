@@ -34,10 +34,6 @@ class _AssetFadeInImageState extends State<AssetFadeInImage>
     super.initState();
 
     _controller.forward();
-
-    _opacityAnimation.addListener(() {
-      print(_opacityAnimation.value);
-    });
   }
 
   @override

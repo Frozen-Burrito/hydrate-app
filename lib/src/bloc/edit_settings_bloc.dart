@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
@@ -67,17 +68,25 @@ class EditSettingsBloc {
 
   void saveChanges(BuildContext context) async {
 
-    final settingsProvider = Provider.of<SettingsService>(context, listen: false);
-    final profileProvider = Provider.of<ProfileService>(context, listen: false);
-
-    settingsProvider.setCurrentSettings(
-      _settingsChanges, 
-      profileProvider.profileId,
-      userAccountId: profileProvider.linkedAccountId
-    );
+    final settingsService = Provider.of<SettingsService>(context, listen: false);
+    final profileService = Provider.of<ProfileService>(context, listen: false);
+    final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
     
     _isSavePromptActive = false;
     _isSavePromptActiveController.add(_isSavePromptActive);
+
+    await settingsService.updateLocalSettings(_settingsChanges);
+
+    if (profileService.isAuthenticated) {
+      await settingsService.syncSettingsWithLocalChanges(profileService.authToken);
+    }
+
+    settingsService.applyCurrentSettings(
+      userAuthToken: profileService.authToken,
+      notify: true,
+      addOnNewHydrationRecordListener: devicePairingService.addOnNewHydrationRecordListener,
+      removeOnNewHydrationRecordListener: devicePairingService.removeHydrationRecordListener,
+    );
   } 
   
   void _setAppTheme(ThemeMode themeMode) {
@@ -95,7 +104,7 @@ class EditSettingsBloc {
       throw StateError("No es posible tener NotificationSource.disabled y otras fuentes de notificaciones activadas al mismo tiempo");
     }
 
-    _settingsChanges.allowedNotifications = notificationSources;
+    _settingsChanges.notificationPreferences = notificationSources;
 
     final hasChanges = _settingsChanges != _settings;
 

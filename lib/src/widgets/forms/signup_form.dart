@@ -3,10 +3,12 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
+import 'package:provider/provider.dart';
 
 class SignupForm extends StatelessWidget {
 
@@ -14,31 +16,25 @@ class SignupForm extends StatelessWidget {
 
   final AuthFormBloc bloc = AuthFormBloc.emailSignUp();
 
-  Future<void> _handleFormSubmit(BuildContext context) async {
+  void _handleFormSubmit(BuildContext context) {
+    FocusScope.of(context).unfocus();
+    bloc.submitForm(context);
+  }
 
-    await bloc.submitForm(context);
+  void _handleAuthResult(BuildContext context, AuthResult? authResult) {
 
-    // Wait for the result of the submit event.
-    await for(final result in bloc.formState) {
-      switch (result) {
-        case AuthResult.authenticated:
-          // El usuario ya tiene un perfil. Redirigir a vista de inicio.
-          Navigator.of(context).popAndPushNamed(RouteNames.home);
-          break;
-        case AuthResult.newProfileCreated:
-          Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
-          break;
-        case AuthResult.canLinkProfileToAccount:
-          await askUserForAccountLinkConfirm(context);
-          Navigator.of(context).popAndPushNamed(RouteNames.home);
-          break; 
-        case AuthResult.none: return;
-        case AuthResult.canSendAuthRequest:
-        case AuthResult.credentialsError:
-        case AuthResult.serviceUnavailable:
-          // Intencionalmente no hacer nada.
-          break;
-      }
+    if (authResult == AuthResult.canFetchProfileSettings) {
+      final authToken = Provider.of<ProfileService>(context, listen: false).authToken;
+      bloc.fetchProfileSettings(context, authToken);
+
+    } else if (authResult == AuthResult.authenticated) {
+      Navigator.of(context).popAndPushNamed(RouteNames.home);
+
+    } else if (authResult == AuthResult.newProfileCreated) {
+      Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
+
+    } else if (authResult == AuthResult.canLinkProfileToAccount) {
+      askUserForAccountLinkConfirm(context);
     }
   }
 
@@ -50,30 +46,24 @@ class SignupForm extends StatelessWidget {
     )) ?? false;
 
     if (shouldLinkProfile) {
-      
-      await bloc.linkAccountToProfile(context);
-
+      bloc.linkAccountToProfile(context);
     }
   }
 
-  String _messageForAuthResult(AppLocalizations localizations, AuthResult authResult) {
+  String _buildMessageForAuthResult(AppLocalizations localizations, AuthResult authResult) {
 
     final String message;
 
     switch (authResult) {
-      case AuthResult.none:
-      case AuthResult.authenticated:
-      case AuthResult.newProfileCreated:
-      case AuthResult.canSendAuthRequest:
-      case AuthResult.canLinkProfileToAccount:
-        message = "";
-        break;
       case AuthResult.credentialsError:
         //TODO: Add i18n
-        message = "El nombre de usuario o email no está disponible";
+        message = "El login o la contraseña no coinciden";
         break;
       case AuthResult.serviceUnavailable:
         message = localizations.errCheckInternetConn;
+        break;
+      default: 
+        message = "";
         break;
     }
 
@@ -131,7 +121,7 @@ class SignupForm extends StatelessWidget {
                               
                               Expanded(
                                 child: Text(
-                                  _messageForAuthResult(localizations, snapshot.data!), 
+                                  _buildMessageForAuthResult(localizations, snapshot.data!), 
                                   textAlign: TextAlign.start,
                                   maxLines: 2,
                                   softWrap: true,
@@ -146,56 +136,47 @@ class SignupForm extends StatelessWidget {
                     }
                   ),
 
-                  StreamBuilder<AuthResult>(
-                    initialData: AuthResult.none,
-                    stream: bloc.formState,
-                    builder: (context, snapshot) {
-
-                      final canFormBeSubmitted = snapshot.data == AuthResult.canSendAuthRequest;
-
-                      return SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.5,
-                        child: StreamBuilder<bool>(
-                          initialData: false,
-                          stream: bloc.isLoading,
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.5,
+                    child: StreamBuilder<bool>(
+                      initialData: false,
+                      stream: bloc.isLoading,
+                      builder: (context, snapshot) {
+              
+                        final isFormLoading = snapshot.data ?? false;
+            
+                        return StreamBuilder<AuthResult>(
+                          stream: bloc.formState,
                           builder: (context, snapshot) {
-                  
-                            final isFormLoading = snapshot.data ?? false;
-                  
-                            if (isFormLoading) {
-                              return ElevatedButton(
-                                onPressed: null,
-                                style: ElevatedButton.styleFrom(
-                                  primary: Theme.of(context).colorScheme.primary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
-                                  textStyle: Theme.of(context).textTheme.bodyText1,
-                                ),
-                                child: const SizedBox(
+
+                            final canFormBeSubmitted = snapshot.data == AuthResult.canSendAuthRequest;
+
+                            Future.microtask(() => _handleAuthResult(context, snapshot.data));
+
+                            return ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                primary: Theme.of(context).colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                                textStyle: Theme.of(context).textTheme.bodyText1,
+                              ),
+                              onPressed: (canFormBeSubmitted && !isFormLoading) 
+                                ? () => _handleFormSubmit(context)
+                                : null,
+                              child: (isFormLoading)
+                                ? const SizedBox(
                                   height: 24.0,
                                   width: 24.0,
                                   child: CircularProgressIndicator()
-                                ),
-                              );
-                            } else {
-                              return ElevatedButton(
-                                child: Text(
+                                )
+                                : Text(
                                   localizations.continueAction,
                                   textAlign: TextAlign.center,
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                  primary: Theme.of(context).colorScheme.primary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
-                                  textStyle: Theme.of(context).textTheme.bodyText1,
-                                ),
-                                onPressed: (canFormBeSubmitted && !isFormLoading) 
-                                  ? () => _handleFormSubmit(context)
-                                  : null,
-                              );
-                            }
+                            );
                           }
-                        ),
-                      );
-                    }
+                        );
+                      }
+                    ),
                   ),
                 ],
               )

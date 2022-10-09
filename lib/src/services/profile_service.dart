@@ -1,17 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/exceptions/api_exception.dart';
-import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
-import 'package:sqflite/sqflite.dart';
 
 class ProfileService extends ChangeNotifier {
 
@@ -117,12 +115,17 @@ class ProfileService extends ChangeNotifier {
   int get profileId => _profileId;
   String get authToken => _authToken;
 
-  Future<bool> get canLinkAccountToCurrentProfile async {
-    final currentProfile = await _profileCache.data;
+  bool get isAuthenticated => _isAuthenticated();
 
-    final bool canLinkAccount = !(currentProfile?.isLinkedToAccount ?? true);
+  bool get doesDefaultProfileRequireSignIn {
 
-    return canLinkAccount;
+    final currentProfile = _profileCache.cachedData;
+
+    final bool isDefaultProfile = currentProfile?.id == UserProfile.defaultProfileId;
+    final bool isNotAuthenticated = !_isAuthenticated();
+    final bool isProfileLinkedToAccount = currentProfile?.isLinkedToAccount ?? false;
+
+    return isDefaultProfile && isNotAuthenticated && isProfileLinkedToAccount;
   }
 
   /// Retorna una instancia de solo lectura del [UserProfile] del usuario actual.
@@ -139,7 +142,9 @@ class ProfileService extends ChangeNotifier {
   bool get hasEnvironmentsData => _environmentsCache.hasData;
   Future<List<Environment>?> get environments => _environmentsCache.data;
 
-  Future<void> logOut() => _changeProfile(UserProfile.defaultProfileId, authToken: "");
+  Future<void> signOut() => _changeProfile(UserProfile.defaultProfileId, authToken: "");
+
+  bool _isAuthenticated() => _authToken.isNotEmpty && !isTokenExpired(_authToken);
 
   /// Cambia el perfil actual de esta instancia por el perfil identificado por 
   /// [newProfileId]. 

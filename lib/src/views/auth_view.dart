@@ -10,10 +10,18 @@ import 'package:hydrate_app/src/widgets/shapes.dart';
 class AuthView extends StatelessWidget {
   const AuthView({ Key? key }) : super(key: key);
 
+  AuthActionType _getFormTypeFromArgs(BuildContext context) {
+    if (ModalRoute.of(context)!.settings.arguments is AuthActionType) {
+      return ModalRoute.of(context)!.settings.arguments as AuthActionType;
+    } else {
+      return AuthActionType.signIn;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
 
-    final formType = ModalRoute.of(context)!.settings.arguments as AuthActionType;
+    final formType = _getFormTypeFromArgs(context);
     final isSignIn = formType == AuthActionType.signIn;
 
     final localizations = AppLocalizations.of(context)!;

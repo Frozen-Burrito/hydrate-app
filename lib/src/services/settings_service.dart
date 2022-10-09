@@ -1,13 +1,17 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/services/google_fit_service.dart';
-import 'package:hydrate_app/src/utils/background_tasks.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workmanager/workmanager.dart';
 
+import 'package:hydrate_app/src/api/config_api.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
+import 'package:hydrate_app/src/services/notification_service.dart';
+import 'package:hydrate_app/src/utils/background_tasks.dart';
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
-import 'package:workmanager/workmanager.dart';
 
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
 class SettingsService with ChangeNotifier {
@@ -19,117 +23,249 @@ class SettingsService with ChangeNotifier {
   SettingsService._internal();
 
   /// Inicializa y asigna la instancia de Shared Preferences.
-  static Future<void> init() async {
+  static Future<void> init({ bool recordAppStartup = false }) async {
     _sharedPreferences = await SharedPreferences.getInstance();
+
+    if (recordAppStartup) {
+      int currentStartupCount = _sharedPreferences?.getInt(appStartupCountKey) ?? 0;
+      currentStartupCount++;
+      _sharedPreferences?.setInt(appStartupCountKey, currentStartupCount);
+    }
   }
 
-  static const String versionName = "1.0.0-beta+6";
+  static const String versionName = "1.0.0+1";
 
   static const int appStartupsToShowGuides = 5;
 
-  Settings get currentSettings => Settings(
-    appThemeMode,
-    enabledNotificationSources,
-    isSharingData,
-    areWeeklyFormsEnabled,
-    isGoogleFitIntegrated,
-  );
+  Settings get currentSettings => _getCurrentSettings();
 
-  void setCurrentSettings(Settings changes, int profileId, { String userAccountId = "" }) {
+  Future<Settings> fecthSettingsForAccount(String authToken) async {
 
-    final currentSettings = Settings(
-      appThemeMode,
-      enabledNotificationSources,
-      isSharingData,
-      areWeeklyFormsEnabled,
-      isGoogleFitIntegrated,
-    );
+    Settings settings = _getCurrentSettings(); 
+    
+    if (authToken.isNotEmpty) {
+      try {
+        final settingsForAccount = await ConfigApi.instance.fetchSettings(authToken);
+
+        await updateLocalSettings(settingsForAccount);
+
+        settings = settingsForAccount;
+      } on ApiException catch (ex) {
+        debugPrint("Error while fetching user configuration ($ex)");
+      }
+    }
+
+    return settings;
+  }
+
+  Future<void> syncSettingsWithLocalChanges(String authToken) async {
+
+    try {
+      final localSettings = _getCurrentSettings();
+
+      await ConfigApi.instance.updateSettings(authToken, localSettings);
+      
+    } on ApiException catch (ex) {
+      debugPrint("Error while updating user configuration ($ex)");
+    }
+  }
+
+  /// Actualiza la configuración local de la app con los [changes] 
+  /// especificados.
+  /// 
+  /// Retorna un conjunto con los nombres de todos los ajustes modificados
+  /// (aquellos donde el valor actual y el descrito en changes son diferentes).
+  Future<Set<String>> updateLocalSettings(Settings changes) async {
+
+    final currentSettings = _getCurrentSettings();
+    final modifiedAttributes = <String>{};
+
+    final bool hasSettingsIdChanged = currentSettings.id != changes.id;
+
+    if (hasSettingsIdChanged) {
+      settingsId = changes.id;
+    }
 
     final hasThemeChanged = currentSettings.appThemeMode != changes.appThemeMode;
 
     if (hasThemeChanged) {
       appThemeMode = changes.appThemeMode;
+      modifiedAttributes.add(appThemeModeKey);
     }
 
-    final hasNotificationsChanged = currentSettings.allowedNotifications != changes.allowedNotifications;
+    final hasNotificationsChanged = currentSettings.notificationPreferences != changes.notificationPreferences;
 
     if (hasNotificationsChanged) {
-      final notifsWereDisabled = changes.allowedNotifications.contains(NotificationSource.disabled);
+      final bool wereNotificationsDisabled = changes.notificationPreferences
+        .contains(NotificationSource.disabled);
       
-      Permission.notification.request().isGranted.then((isPermissionGranted) {
-        // Si las notificaciones fueron desactivadas, no hay ningún requisito 
-        // para el cambio. Si fueron activadas, es necesario que la app tenga 
-        // el permiso de recibir notificaciones
-        if (notifsWereDisabled || isPermissionGranted) {
-          // Actualizar las preferencias de notificaciones.
-          enabledNotificationSources = changes.allowedNotifications;
-        }
-      });
+      // Si las notificaciones fueron desactivadas, no hay ningún requisito 
+      // para el cambio. Si fueron activadas, es necesario que la app tenga 
+      // el permiso de recibir notificaciones.
+      final bool canNotificationPrefsBeChanged = wereNotificationsDisabled
+        ? true
+        : await Permission.notification.request().isGranted;
+
+      if (canNotificationPrefsBeChanged) {
+        enabledNotificationSources = changes.notificationPreferences;
+        modifiedAttributes.add(notificationPreferencesKey);
+      }
     }
 
     final hasWeeklyFormsChanged = currentSettings.areWeeklyFormsEnabled != changes.areWeeklyFormsEnabled;
 
     if (hasWeeklyFormsChanged) {
       areWeeklyFormsEnabled = changes.areWeeklyFormsEnabled;
+      modifiedAttributes.add(weeklyFormsEnabledKey);
     }
 
     final hasIntegrationWithGoogleFitChanged = currentSettings.isGoogleFitIntegrated != changes.isGoogleFitIntegrated;
 
     if (hasIntegrationWithGoogleFitChanged) {
       isGoogleFitIntegrated = changes.isGoogleFitIntegrated;
-
-      if (changes.isGoogleFitIntegrated) {
-        GoogleFitService.instance.signInWithGoogle();
-      } else {
-        GoogleFitService.instance.signOut();
-      }
+      modifiedAttributes.add(isIntegratedWithGoogleFitKey);
     }
 
     final hasDataContributionChanged = currentSettings.shouldContributeData != changes.shouldContributeData;
 
     if (hasDataContributionChanged) {
       isSharingData = changes.shouldContributeData;
-
-      // Registrar o eliminar la tarea periodica para aportar datos 
-      // estadísticos a la API web.
-      if (isSharingData) {
-        // Registrar tarea para aportar datos cada semana.
-        Workmanager().registerPeriodicTask(
-          BackgroundTasks.sendStatsData.uniqueName,
-          BackgroundTasks.sendStatsData.taskName,
-          frequency: BackgroundTasks.sendStatsData.frequency,
-          initialDelay: BackgroundTasks.sendStatsData.initialDelay,
-          constraints: BackgroundTasks.sendStatsData.constraints,
-          inputData: <String, dynamic>{
-            BackgroundTasks.taskInputProfileId: profileId,
-            BackgroundTasks.taskInputAccountId: userAccountId,
-          },
-        );
-
-      } else {
-        // Cancelar tarea que aporta datos.
-        Workmanager().cancelByUniqueName(BackgroundTasks.sendStatsDataTaskName);
-      }
+      modifiedAttributes.add(contributeDataKey);
     }
 
-    // Solo notificar a los listeners cuando realmente sucedieron cambios
-    // de configuración.
-    if (hasThemeChanged || hasNotificationsChanged || 
-        hasDataContributionChanged || hasWeeklyFormsChanged || hasIntegrationWithGoogleFitChanged) {
+    return modifiedAttributes;
+  }
+
+  void applyCurrentSettings({ 
+    String userAuthToken = "",
+    bool notify = false,
+    void Function(String, HydrationRecordCallback)? addOnNewHydrationRecordListener,
+    void Function(String)? removeOnNewHydrationRecordListener,
+  }) {
+
+    final settings = _getCurrentSettings();
+    final bool isUserAuthenticated = userAuthToken.isNotEmpty && !isTokenExpired(userAuthToken);
+
+    // Registrar o eliminar la tarea periodica para aportar datos 
+    // estadísticos a la API web.
+    if (settings.shouldContributeData) {
+      // Registrar tarea para aportar datos cada semana.
+      Workmanager().registerPeriodicTask(
+        BackgroundTasks.sendStatsData.uniqueName,
+        BackgroundTasks.sendStatsData.taskName,
+        frequency: BackgroundTasks.sendStatsData.frequency,
+        initialDelay: BackgroundTasks.sendStatsData.initialDelay,
+        constraints: BackgroundTasks.sendStatsData.constraints,
+        inputData: <String, dynamic>{
+          BackgroundTasks.taskInputAuthToken: userAuthToken,
+        },
+      );
+
+    } else {
+      // Cancelar tarea que aporta datos.
+      Workmanager().cancelByUniqueName(BackgroundTasks.sendStatsDataTaskName);
+    }
+
+    if (settings.isGoogleFitIntegrated) {
+      GoogleFitService.instance.signInWithGoogle();
+
+    } else if (GoogleFitService.instance.isSignedInWithGoogle) {
+      GoogleFitService.instance.signOut();
+    }
+
+    if (isUserAuthenticated) {
+      if (settings.areNotificationsEnabled) {
+        NotificationService.instance.init(
+          isInDebugMode: true,
+          authToken: userAuthToken,
+        );
+
+        NotificationService.instance.sendFcmTokenToServer(userAuthToken);
+      } else {
+        NotificationService.instance.clearFcmToken(userAuthToken);
+      }
+    } 
+    
+    if (!settings.areNotificationsEnabled) {
+      NotificationService.instance.disable();
+    }
+
+    // Aplicar configuracion de sincronizacion con Google Fit.
+    if (settings.isGoogleFitIntegrated && userAuthToken.isNotEmpty) {
+      GoogleFitService.instance.hydrateProfileId = getProfileIdFromJwt(userAuthToken);
+
+      final isNotAlreadySignedInWithGoogle = !(GoogleFitService.instance.isSigningIn || 
+        GoogleFitService.instance.isSignedInWithGoogle);
+
+      if (isNotAlreadySignedInWithGoogle) {
+
+        GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
+          if (wasSignInSuccessful && addOnNewHydrationRecordListener != null) {
+            addOnNewHydrationRecordListener(
+              GoogleFitService.onSyncHydrationRecordListenerName, 
+              GoogleFitService.instance.addHydrationRecordToSyncQueue
+            );
+
+            GoogleFitService.instance.syncActivitySessions().then((totalSyncSessions) {
+              debugPrint("$totalSyncSessions sessions were synchronized with Google Fit");
+            });
+          }
+        });
+      }
+    } else if (removeOnNewHydrationRecordListener != null) {
+      removeOnNewHydrationRecordListener(GoogleFitService.onSyncHydrationRecordListenerName);
+    }
+
+    if (notify) {
       notifyListeners();
     }
   }
 
-  // SharedPreferences Get/Set
+  Future<void> resetToDefaults() async {
 
+    if (_sharedPreferences == null) return;
+
+    final defaultSettings = Settings.defaults();
+
+    final SharedPreferences sharedPreferences = _sharedPreferences!;
+
+    await Future.wait<bool>([
+      sharedPreferences.setInt(appThemeModeKey, defaultSettings.appThemeMode.index),
+      sharedPreferences.setBool(contributeDataKey, defaultSettings.shouldContributeData),
+      sharedPreferences.setBool(weeklyFormsEnabledKey, defaultSettings.areWeeklyFormsEnabled),
+      sharedPreferences.setBool(isIntegratedWithGoogleFitKey, defaultSettings.isGoogleFitIntegrated),
+      sharedPreferences.setInt(notificationPreferencesKey, defaultSettings.notificationPreferencesBits),
+      sharedPreferences.setString(localeCodeKey, defaultSettings.localeCode),
+      sharedPreferences.setString(deviceIdKey, defaultSettings.bondedDeviceId),
+    ]);
+  }
+
+  // SharedPreferences Get/Set
+  
+  static const String settingsIdKey = "id_configuracion";
   static const String appThemeModeKey = "tema";
   static const String contributeDataKey = "aportarDatos";
   static const String weeklyFormsEnabledKey = "formRecurrentes";
-  static const String allowedNotificationsKey = "notificaciones";
+  static const String notificationPreferencesKey = "notificaciones";
   static const String isIntegratedWithGoogleFitKey = "google_fit_conectado";
   static const String localeCodeKey = "codigoFormato";
   static const String deviceIdKey = "idDispositivo";
   static const String appStartupCountKey = "inicios_app";
+
+  Settings _getCurrentSettings() => Settings(
+    settingsId,
+    appThemeMode,
+    enabledNotificationSources,
+    isSharingData,
+    areWeeklyFormsEnabled,
+    isGoogleFitIntegrated,
+    deviceId,
+    localeCode,
+  );
+
+  String get settingsId => _sharedPreferences?.getString(settingsIdKey) ?? "";
+
+  set settingsId(String newSettingsId) => _sharedPreferences?.setString(settingsIdKey, newSettingsId);
 
   /// Obtiene el [ThemeMode] de la app desde Shared Preferences.
   /// 
@@ -181,12 +317,14 @@ class SettingsService with ChangeNotifier {
   /// Obtiene de Shared Preferences los tipos de notificaciones que ha activado 
   /// el usuario.
   Set<NotificationSource> get enabledNotificationSources {
-    int notifTypesBitmask = _sharedPreferences?.getInt(allowedNotificationsKey) ?? 0;
+    int notifTypesBitmask = _sharedPreferences?.getInt(notificationPreferencesKey) ?? 0;
 
     final notificationSet = NotificationSourceExtension.notificationSourceFromBits(notifTypesBitmask);
 
     return notificationSet;
   }
+
+  bool get areNotificationsEnabled => !enabledNotificationSources.contains(NotificationSource.disabled);
 
   /// Guarda la configuración de notificaciones del usuario.
   set enabledNotificationSources (Set<NotificationSource> notificationSettings) {
@@ -198,7 +336,7 @@ class SettingsService with ChangeNotifier {
       }
     }
 
-    _sharedPreferences?.setInt(allowedNotificationsKey, notifSettingsBits);
+    _sharedPreferences?.setInt(notificationPreferencesKey, notifSettingsBits);
   }
 
   /// El código de dos letras de la región del usuario para localizar el contenido.

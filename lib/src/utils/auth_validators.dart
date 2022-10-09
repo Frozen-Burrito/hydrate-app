@@ -4,8 +4,9 @@ enum AuthResult {
   none,
   authenticated,
   newProfileCreated,
-  canLinkProfileToAccount,
   canSendAuthRequest,
+  canLinkProfileToAccount,
+  canFetchProfileSettings,
   credentialsError,
   serviceUnavailable,
 }

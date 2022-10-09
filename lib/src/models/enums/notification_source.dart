@@ -29,7 +29,7 @@ extension NotificationSourceExtension on NotificationSource {
     NotificationSource.all: 0xFF,
   };
 
-  int get bits => notificationSourceBits[this]!;
+  int get bits => notificationSourceBits[this] ?? 0x00;
 
   static Set<NotificationSource> notificationSourceFromBits(int bits) {
 

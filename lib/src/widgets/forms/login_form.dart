@@ -4,9 +4,11 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginForm extends StatelessWidget {
 
@@ -21,16 +23,19 @@ class LoginForm extends StatelessWidget {
 
   void _handleAuthResult(BuildContext context, AuthResult? authResult) {
 
-    Future.microtask(() {
-      if (authResult == AuthResult.authenticated) {
-        // El usuario ya tiene un perfil. Redirigir a vista de inicio.
-        Navigator.of(context).popAndPushNamed(RouteNames.home);
-      } else if (authResult == AuthResult.newProfileCreated) {
-        Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
-      } else if (authResult == AuthResult.canLinkProfileToAccount) {
-        askUserForAccountLinkConfirm(context);
-      }
-    });
+    if (authResult == AuthResult.canFetchProfileSettings) {
+      final authToken = Provider.of<ProfileService>(context, listen: false).authToken;
+      bloc.fetchProfileSettings(context, authToken);
+
+    } else if (authResult == AuthResult.authenticated) {
+      Navigator.of(context).popAndPushNamed(RouteNames.home);
+
+    } else if (authResult == AuthResult.newProfileCreated) {
+      Navigator.of(context).popAndPushNamed(RouteNames.initialForm);
+
+    } else if (authResult == AuthResult.canLinkProfileToAccount) {
+      askUserForAccountLinkConfirm(context);
+    }
   }
 
   Future<void> askUserForAccountLinkConfirm(BuildContext context) async {
@@ -50,13 +55,6 @@ class LoginForm extends StatelessWidget {
     final String message;
 
     switch (authResult) {
-      case AuthResult.none:
-      case AuthResult.authenticated:
-      case AuthResult.newProfileCreated:
-      case AuthResult.canSendAuthRequest:
-      case AuthResult.canLinkProfileToAccount:
-        message = "";
-        break;
       case AuthResult.credentialsError:
         //TODO: Add i18n
         message = "El login o la contraseña no coinciden";
@@ -64,11 +62,13 @@ class LoginForm extends StatelessWidget {
       case AuthResult.serviceUnavailable:
         message = localizations.errCheckInternetConn;
         break;
+      default: 
+        message = "";
+        break;
     }
 
     return message;
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -102,36 +102,37 @@ class LoginForm extends StatelessWidget {
                     stream: bloc.formState,
                     initialData: AuthResult.none,
                     builder: (context, snapshot) {
-                      
-                      if (snapshot.data == AuthResult.none || snapshot.data == AuthResult.canSendAuthRequest){
+                    
+                      final isAuthErrorResult = snapshot.data == AuthResult.credentialsError
+                        || snapshot.data == AuthResult.serviceUnavailable;
+
+                      if (snapshot.hasData && isAuthErrorResult) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon((snapshot.data == AuthResult.serviceUnavailable)
+                                ? Icons.cloud_off
+                                : Icons.error
+                              ),
+      
+                              const SizedBox( width: 8.0, ),
+                              
+                              Expanded(
+                                child: Text(
+                                  _buildMessageForAuthResult(localizations, snapshot.data!), 
+                                  textAlign: TextAlign.start,
+                                  maxLines: 2,
+                                  softWrap: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      } else {
                         return const SizedBox( height: 32.0, );
                       }
-    
-                      final isServiceUnavailable = snapshot.data == AuthResult.serviceUnavailable;
-    
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Icon(isServiceUnavailable
-                              ? Icons.cloud_off
-                              : Icons.error
-                            ),
-    
-                            const SizedBox( width: 8.0, ),
-                            
-                            Expanded(
-                              child: Text(
-                                _buildMessageForAuthResult(localizations, snapshot.data!), 
-                                textAlign: TextAlign.start,
-                                maxLines: 2,
-                                softWrap: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
                     }
                   ),
     
@@ -150,7 +151,7 @@ class LoginForm extends StatelessWidget {
 
                             final canFormBeSubmitted = snapshot.data == AuthResult.canSendAuthRequest;
 
-                            _handleAuthResult(context, snapshot.data);
+                            Future.microtask(() => _handleAuthResult(context, snapshot.data));
 
                             return ElevatedButton(
                               onPressed: (canFormBeSubmitted && !isFormLoading)

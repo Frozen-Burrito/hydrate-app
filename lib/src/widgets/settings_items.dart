@@ -175,7 +175,7 @@ class SettingsItems extends StatelessWidget {
             contentPadding: const EdgeInsets.all( 16.0, ),
             trailing: StreamBuilder<Set<NotificationSource>>(
               stream: _editSettings.enabledNotificationSources,
-              initialData: currentSettings.allowedNotifications,
+              initialData: currentSettings.notificationPreferences,
               builder: (context, snapshot) {
 
                 final int enabledCount = snapshot.hasData 

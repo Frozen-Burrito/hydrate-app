@@ -104,6 +104,8 @@ class GoogleFitService {
   static const int _caloriesDataPointsLimitPerResponse = 50;
   static const int _hydrationRecordsPerWrite = 5;
 
+  static const String onSyncHydrationRecordListenerName = "sync_hydration_to_fit";
+
   static final Application hydrateAppDetails = Application(
     name: "Hydrate",
     packageName: "com.ceti.fernando.hydrate",

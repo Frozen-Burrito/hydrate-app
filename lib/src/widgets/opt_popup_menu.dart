@@ -67,8 +67,27 @@ class AuthOptionsMenu extends StatelessWidget {
     final localizations = AppLocalizations.of(context)!;
     
     return OptionsPopupMenu(
-      options: profileProvider.authToken.isEmpty 
+      options: profileProvider.isAuthenticated 
         ? <MenuItem> [
+
+          MenuItem(
+            icon: Icons.settings, 
+            label: localizations.settings,
+            onSelected: () => Navigator.pushNamed(context, RouteNames.config),
+          ),
+
+          MenuItem(isDivider: true, label: '', icon: Icons.settings),
+
+          MenuItem(
+            icon: Icons.logout,
+            label: localizations.signOut,
+            onSelected: () {
+              profileProvider.signOut();
+              Navigator.of(context).pushNamed(RouteNames.home);
+            },
+          ),
+        ]
+        : <MenuItem> [
           MenuItem(
             icon: Icons.settings, 
             label: localizations.settings,
@@ -95,25 +114,6 @@ class AuthOptionsMenu extends StatelessWidget {
               RouteNames.authentication, 
               arguments: AuthActionType.signUp
             ),
-          ),
-        ]
-        : <MenuItem> [
-
-          MenuItem(
-            icon: Icons.settings, 
-            label: localizations.settings,
-            onSelected: () => Navigator.pushNamed(context, RouteNames.config),
-          ),
-
-          MenuItem(isDivider: true, label: '', icon: Icons.settings),
-
-          MenuItem(
-            icon: Icons.logout,
-            label: localizations.signOut,
-            onSelected: () {
-              profileProvider.logOut();
-              Navigator.pushNamed(context, RouteNames.home);
-            },
           ),
         ],
     );

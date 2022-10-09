@@ -1,15 +1,20 @@
+import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+
 import 'package:hydrate_app/firebase_options.dart';
+import 'package:hydrate_app/src/api/config_api.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Mantiene toda la información y funciones para usar el plugin de Firebase Cloud 
 /// Messaging (FCM) en la app.
-class NotificationsService {
+class NotificationService {
 
-  NotificationsService._();
+  NotificationService._();
 
-  static final NotificationsService instance = NotificationsService._(); 
+  static final NotificationService instance = NotificationService._(); 
 
   /// El número máximo de handlers de segundo plano que puede haber registrados.
   static const maxBackgroundHandlers = 3;
@@ -17,6 +22,10 @@ class NotificationsService {
   /// Una colección de funciones que son ejecutadas cuando la app recibe
   /// un mensaje mientras está en segundo plano.
   static final List<Future<void> Function(RemoteMessage)> _backgroundActions = [];
+
+  static StreamSubscription<String>? _onTokenRefreshSubscription;
+
+  static FirebaseApp? _firebaseApp;
 
   /// Inicializa la aplicación de [Firebase] invocando [Firebase.initializeApp()].
   /// 
@@ -27,17 +36,20 @@ class NotificationsService {
   /// Si [firebaseOptions] es nulo, usa [DefaultFirebaseOptions.currentPlatform]
   /// por defecto.
   Future<void> init({
-    required void Function(String?) onTokenRefresh,
-    FirebaseOptions? firebaseOptions,
+    void Function(String?)? onTokenRefresh,
+    String authToken = "",
     bool isInDebugMode = false,
   }) async {
     // Inicializar app de Firebase para tener acceso a FCM.
-    await Firebase.initializeApp(options: firebaseOptions);
+    _firebaseApp ??= await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
     // Registrar handlers para responder a cambios en el token de FCM.
-    FirebaseMessaging.instance.onTokenRefresh
-      .listen(onTokenRefresh)
-      .onError(_onTokenRefreshError);
+    _onTokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh
+      .listen((String? newFcmToken) {
+        _sendTokenToServer(newFcmToken, authToken);
+      });
+    
+    _onTokenRefreshSubscription?.onError(_onTokenRefreshError);
 
     if (isInDebugMode) {
       addForegroundHandler((RemoteMessage message) {
@@ -57,6 +69,30 @@ class NotificationsService {
     }
   }
 
+  void disable() {
+    _onTokenRefreshSubscription?.cancel();
+    _onTokenRefreshSubscription = null;
+  }
+
+  Future<void> sendFcmTokenToServer(String userAuthToken) async {
+    final bool isUserAuthenticated = userAuthToken.isNotEmpty && !isTokenExpired(userAuthToken);
+
+    if (isUserAuthenticated) {
+
+      final String? currentFcmToken = await FirebaseMessaging.instance.getToken();
+
+      await _sendTokenToServer(currentFcmToken, userAuthToken);
+    }
+  }
+
+  Future<void> clearFcmToken(String userAuthToken) async {
+    final bool isUserAuthenticated = userAuthToken.isNotEmpty && !isTokenExpired(userAuthToken);
+
+    if (isUserAuthenticated) {
+      await _sendTokenToServer(null, userAuthToken);
+    }
+  }
+
   /// Obtiene el token de registro en FCM de esta instancia de la app. Este token
   /// debe ser actualizado con regularidad en el backend, incluyendo un timestamp.
   Future<String?> get registrationToken async {
@@ -68,9 +104,21 @@ class NotificationsService {
     return fcmToken;
   }
 
+  Future<void> _sendTokenToServer(String? newFcmToken, String authToken) async {
+    debugPrint("FCM registration token ($newFcmToken)");
+    if (newFcmToken != null && authToken.isNotEmpty) {
+      try {
+        await ConfigApi.instance.refreshFcmToken(authToken, newFcmToken);
+
+      } on ApiException catch (ex) {
+        debugPrint("Error while sending FCM token for storage ($ex)");
+      }
+    }
+  }
+
   static void _onTokenRefreshError(error) {
     // Error obteniendo el token.
-    throw UnimplementedError();
+    debugPrint(error);
   }
 
   /// Registra un handler que responde a eventos de FCM, que incluyen un [RemoteMessage].

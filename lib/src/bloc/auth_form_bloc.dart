@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/api/config_api.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
@@ -173,18 +176,21 @@ class AuthFormBloc {
     if (isFormInInvalidSate) return;
 
     try {
-      final profileProvider = Provider.of<ProfileService>(context, listen: false);
-
       // Intentar autenticar al usuario.
       final authToken = await _sendAuthRequest();
 
-      final bool canCurrentProfileBeLinked = await profileProvider.setLocalProfileForAccount(authToken);
+      final profileService = Provider.of<ProfileService>(context, listen: false);
+      final bool canCurrentProfileBeLinked = await profileService.setLocalProfileForAccount(authToken);
 
-      if (canCurrentProfileBeLinked) {
-        _authResultController.add(AuthResult.canLinkProfileToAccount);
-      } else {
-        _authResultController.add(AuthResult.authenticated);
-      }     
+      if (authToken.isNotEmpty && !isTokenExpired(authToken)) {
+
+        final successAuthResult = canCurrentProfileBeLinked 
+          ? AuthResult.canLinkProfileToAccount
+          : AuthResult.canFetchProfileSettings;
+
+        _authResultController.add(successAuthResult);
+      }
+
     } on ApiException catch (ex) {
       
       switch (ex.type) {
@@ -209,18 +215,35 @@ class AuthFormBloc {
   }
 
   Future<void> linkAccountToProfile(BuildContext context) async {
-
-    final profileProvider = Provider.of<ProfileService>(context, listen: false);
-
     try {
+      final profileProvider = Provider.of<ProfileService>(context, listen: false);
+
       await profileProvider.handleAccountLink();
 
-      _authResultController.add(AuthResult.authenticated);
+      _authResultController.add(AuthResult.canFetchProfileSettings);
 
     } on Exception catch (ex) {
       debugPrint("Excepcion al asociar perfil con cuenta ($ex)");
       _authResultController.add(AuthResult.serviceUnavailable);
     }
+  }
+
+  Future<void> fetchProfileSettings(BuildContext context, String authToken) async {
+
+    final settingsService = Provider.of<SettingsService>(context, listen: false);
+
+    final settingsForProfile = await settingsService.fecthSettingsForAccount(authToken);
+
+    final updatedSettings = await settingsService.updateLocalSettings(settingsForProfile);
+
+    if (updatedSettings.isNotEmpty) {
+      settingsService.applyCurrentSettings(
+        userAuthToken: authToken,
+        notify: false,
+      );
+    }
+
+    _authResultController.add(AuthResult.authenticated);   
   }
 
   /// Envía una solicitud de autenticación al servicio web, usando el 

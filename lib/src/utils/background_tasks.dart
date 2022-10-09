@@ -1,4 +1,5 @@
 import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import "package:workmanager/workmanager.dart";
 
@@ -18,8 +19,7 @@ class BackgroundTasks {
   /// El nombre único para la task de aportación a datos abiertos.
   static const String sendStatsDataTaskName = "com.hydrate.hydrateApp.taskAportarDatos";
 
-  static const String taskInputProfileId = "profileId";
-  static const String taskInputAccountId = "userAccountId";
+  static const String taskInputAuthToken = "authToken";
 
   /// Define los parámetros para la tarea de envío de aportaciones 
   /// a datos abiertos.
@@ -57,10 +57,8 @@ class BackgroundTasks {
 
           // Obtener las credenciales del usuario desde los inputs para 
           // esta task.
-          final profileId = inputData[taskInputProfileId];
-
-          final prefs = await SharedPreferences.getInstance();
-          final jwt = prefs.getString("jwt") ?? "";
+          final authToken = inputData[taskInputAuthToken];
+          final profileId = getProfileIdFromJwt(authToken);
 
           // Obtener los registros con los datos estadísticos.
           final hydrationData = await _fetchHydrationFromPastWeek(profileId);
@@ -68,8 +66,7 @@ class BackgroundTasks {
 
           // Enviar datos aportados por el usuario.
           bool result = await _sendStatisticalData(
-            profileId, 
-            jwt, 
+            authToken, 
             hydrationData, 
             activityData
           );
@@ -139,7 +136,6 @@ class BackgroundTasks {
   /// 
   /// Retorna [true] si los datos fueron enviados con éxito.
   static Future<bool> _sendStatisticalData (
-    int profileId,
     String jwt, 
     Iterable<HydrationRecord> hydrationData,
     Iterable<ActivityRecord> activityData
