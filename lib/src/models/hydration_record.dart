@@ -16,7 +16,7 @@ class HydrationRecord extends SQLiteModel {
     this.profileId = -1
   }) : batteryRecord = BatteryRecord( date, batteryPercentage );
 
-  final int id;
+  int id;
   final int amount;
   final double temperature;
   int profileId;
@@ -73,7 +73,7 @@ class HydrationRecord extends SQLiteModel {
     )
   ''';
 
-  static HydrationRecord fromMap(Map<String, Object?> map) {
+  static HydrationRecord fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(), }) {
     return HydrationRecord(
       id: int.tryParse(map['id'].toString()) ?? -1,
       amount: int.tryParse(map['cantidad'].toString()) ?? 0,

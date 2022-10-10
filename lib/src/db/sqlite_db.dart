@@ -46,8 +46,14 @@ class SQLiteDB {
     ActivityType.tableName
   ];
 
-  static const entityMapOptions = MapOptions(
-    includeCompleteSubEntities: true,
+  static const entityFromRecordMappingOptions = MapOptions(
+    subEntityMappingType: EntityMappingType.asMap,
+    useCamelCasePropNames: false,
+    useIntBooleanValues: true,
+  );
+
+  static const MapOptions entityToMapOptions = MapOptions(
+    subEntityMappingType: EntityMappingType.noMapping,
     useCamelCasePropNames: false,
     useIntBooleanValues: true,
   );
@@ -102,7 +108,7 @@ class SQLiteDB {
   /// Inserta un [SQLiteModel] en la base de datos.
   /// 
   /// [entity] es convertida a un mapa usando su método [SQLiteModel.toMap()], 
-  /// con las opciones especificadas en [entityMapOptions]. Estas opciones 
+  /// con las opciones especificadas en [entityFromRecordMappingOptions]. Estas opciones 
   /// determinan la forma en que serán manejadas las relaciones y transformación
   /// a columnas de SQLite.
   /// 
@@ -149,7 +155,7 @@ class SQLiteDB {
 
   /// Retorna una lista con todos los registros de una tabla.
   Future<Iterable<T>> select<T extends SQLiteModel>(
-    T Function(Map<String, Object?>) mapper,
+    T Function(Map<String, Object?>, {MapOptions options}) mapper,
     final String table,
     { 
       final List<WhereClause> where = const <WhereClause>[],
@@ -213,8 +219,16 @@ class SQLiteDB {
 
           if (relId < 0) continue;
 
-          row[otherTable] = foreignEntities[otherTable]
-            ?.firstWhere((entity) => entity['id'] as int == relId);
+          final otherEntities = foreignEntities[otherTable]
+            ?.where((entity) => entity['id'] as int == relId) ?? <Map<String, Object?>>[];
+
+          final otherEntityMapEntries = otherEntities.isNotEmpty
+            ? otherEntities.first.entries
+            : <MapEntry<String, Object?>>[];
+
+          if (otherEntityMapEntries.isNotEmpty) {
+            row[otherTable] = Map<String, Object?>.fromEntries(otherEntityMapEntries);
+          }
         }
       }
     }
@@ -268,7 +282,7 @@ class SQLiteDB {
       }
     }
 
-    Iterable<T> data = fullRecords.map((e) => mapper(e));
+    Iterable<T> data = fullRecords.map((e) => mapper(e, options: entityFromRecordMappingOptions));
 
     return data;
   }
@@ -315,7 +329,7 @@ class SQLiteDB {
     final db = await database;
     
     /// Mapa de la entidad con los valores sin convertir. 
-    final Map<String, Object?> mappedEntity = entity.toMap(options: entityMapOptions);
+    final Map<String, Object?> mappedEntity = entity.toMap(options: entityToMapOptions);
 
     /// Mapa con los valores finales de las columnas de la entidad.
     final Map<String, Object?> entityColumnValues = {};
@@ -330,7 +344,7 @@ class SQLiteDB {
 
       if (columnValue is SQLiteModel) {
         // Definir la llave foránea para la relación con la otra entidad.
-        final otherEntity = columnValue.toMap(options: entityMapOptions);
+        final otherEntity = columnValue.toMap(options: entityToMapOptions);
         final otherEntityId = (otherEntity['id'] is int ? otherEntity['id'] as int : -1); 
 
         if (otherEntityId < 0) {
@@ -385,7 +399,7 @@ class SQLiteDB {
     final db = await database;
 
     /// Mapa de la entidad con los valores sin convertir. 
-    final Map<String, Object?> mappedEntity = entity.toMap(options: entityMapOptions);
+    final Map<String, Object?> mappedEntity = entity.toMap(options: entityToMapOptions);
 
     // Determinar si se están describiendo las relaciones de una inserción o de 
     // una actualización.
@@ -413,7 +427,7 @@ class SQLiteDB {
 
       if (columnValue is Iterable<SQLiteModel> && columnValue.isNotEmpty) {
 
-        final rows = columnValue.map((e) => e.toMap(options: entityMapOptions)).toList();
+        final rows = columnValue.map((e) => e.toMap(options: entityToMapOptions)).toList();
 
         final relatedIds = reduceIds(rows, 'id').toList();
 
@@ -432,7 +446,7 @@ class SQLiteDB {
         // Determinar inserciones a tabla muchos-a-muchos. 
         for (var principalEntity in columnValue) {
 
-          final principalEntityMap = principalEntity.toMap(options: entityMapOptions);
+          final principalEntityMap = principalEntity.toMap(options: entityToMapOptions);
           
           final principalId = (principalEntityMap['id'] is int ? principalEntityMap['id'] as int : -1);
 

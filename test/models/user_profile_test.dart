@@ -434,7 +434,7 @@ void main() {
       // Arrange
       const mapOptions = MapOptions(
         useCamelCasePropNames: false,
-        includeCompleteSubEntities: true,
+        subEntityMappingType: EntityMappingType.asMap,
         useIntBooleanValues: false,
       );
 

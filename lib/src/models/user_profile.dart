@@ -210,9 +210,8 @@ class UserProfile extends SQLiteModel {
     final bool obtainedFromJson = options.useCamelCasePropNames;
     // Modificar los nombres de los atributos que serán usados para acceder
     // a los elementos del mapa, según la configuración de [options].
-    final attributeNames = MapOptions.mapAttributeNames(
+    final attributeNames = options.mapAttributeNames(
       baseAttributeNames, 
-      options,
       specificAttributeMappings: obtainedFromJson 
         ? jsonApiAttributeNames 
         : {
@@ -223,7 +222,7 @@ class UserProfile extends SQLiteModel {
     
     final Country country = map.getCountryOrDefault(
       attributeName: attributeNames[countryFieldName]!,
-      includesFullSubEntities: options.includeCompleteSubEntities,
+      mappingType: options.subEntityMappingType,
     );
 
     final userSexIndex = map.getEnumIndex(
@@ -285,9 +284,8 @@ class UserProfile extends SQLiteModel {
 
     // Modificar los nombres de los atributos para el Map resultante, segun 
     // [options].
-    final attributeNames = MapOptions.mapAttributeNames(
+    final attributeNames = options.mapAttributeNames(
       baseAttributeNames, 
-      options,
       specificAttributeMappings: options.useCamelCasePropNames ? jsonApiAttributeNames : {
         userAccountIdFieldName: userAccountIdFieldName,
         linkedProfileIdFieldName: linkedProfileIdFieldName,
@@ -325,16 +323,25 @@ class UserProfile extends SQLiteModel {
       attributeNames[latestSyncWithGoogleFitFieldName]!: _latestSyncWithGoogleFit?.toIso8601String(),
     });
 
-    if (options.includeCompleteSubEntities) {
-      // Incluir mapas (no objetos en sí) de entidades anidadas.
-      map[attributeNames[countryFieldName]!] = _country;
-      map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments;
-    } else {
-      // Incluir mapas (no objetos en sí) de entidades anidadas.
-      map[attributeNames[countryFieldName]!] = _country.id;
-      map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments
-          .map((env) => env.id)
+    switch (options.subEntityMappingType) {
+      case EntityMappingType.noMapping:
+        map[attributeNames[countryFieldName]!] = _country;
+        map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments;
+        break;
+      case EntityMappingType.asMap:
+        map[attributeNames[countryFieldName]!] = _country.toMap(options: options);
+        map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments
+          .map((environment) => environment.toMap(options: options))
           .toList();
+        break;
+      case EntityMappingType.idOnly:
+        map[attributeNames[countryFieldName]!] = _country.id;
+        map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments
+            .map((env) => env.id)
+            .toList();
+        break;
+      case EntityMappingType.notIncluded:
+        break;
     }
 
     return Map.unmodifiable(map);
@@ -613,14 +620,28 @@ extension _UserProfileMapExtension on Map<String, Object?> {
 
   Country getCountryOrDefault({
     required String attributeName,
-    required bool includesFullSubEntities,
+    EntityMappingType mappingType = EntityMappingType.noMapping,
+    List<Country> existingCountries = const <Country>[],
   }) {
+    final Country country;
 
-    Country country = Country.countryNotSpecified;
-
-    if (this[attributeName] is Map<String, Object?>) {
-      country = Country.fromMap(this[attributeName] as Map<String, Object?>);
-    } 
+    switch (mappingType) {
+      
+      case EntityMappingType.noMapping:
+        country = (this[attributeName] as Country?) ?? Country.countryNotSpecified;
+        break;
+      case EntityMappingType.asMap:
+        country = Country.fromMap(this[attributeName] as Map<String, Object?>);
+        break;
+      case EntityMappingType.idOnly:
+        final int countryId = int.tryParse(this[attributeName].toString()) ?? -1;
+        final countryWithId = existingCountries.where((country) => country.id == countryId);
+        country = countryWithId.isNotEmpty ? countryWithId.first : Country.countryNotSpecified;
+        break;
+      case EntityMappingType.notIncluded:
+        country = Country.countryNotSpecified;
+        break;
+    }
 
     return country;
   }

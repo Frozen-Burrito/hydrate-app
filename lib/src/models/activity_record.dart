@@ -116,7 +116,7 @@ class ActivityRecord extends SQLiteModel {
 
     // Asignar nombres para entradas de entidades anidadas, revisando si [map]
     // contiene la entidad completa o solo su ID.
-    final actTypePropName = options.includeCompleteSubEntities 
+    final actTypePropName = options.subEntityMappingType != EntityMappingType.idOnly 
       ? actTypeIdPropName.replaceFirst("id_", "")
       : actTypeIdPropName;
 
@@ -161,7 +161,7 @@ class ActivityRecord extends SQLiteModel {
 
     // Modificar los nombres de los atributos para el Map resultante, segun 
     // [options].
-    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
+    final attributeNames = options.mapAttributeNames(baseAttributeNames);
 
     // Comprobar que hay una entrada por cada atributo de ActivityRecord.
     assert(attributeNames.length == baseAttributeNames.length);
@@ -191,10 +191,18 @@ class ActivityRecord extends SQLiteModel {
       map[attributeNames[isRoutinePropName]!] = isRoutine;
     }
 
-    if (options.includeCompleteSubEntities) {
-      map[attributeNames[actTypeIdPropName]!] = activityType;
-    } else {
-      map[attributeNames[actTypeIdPropName]!] = activityType.id;
+    switch (options.subEntityMappingType) {
+      case EntityMappingType.noMapping:
+        map[attributeNames[actTypeIdPropName]!] = activityType;
+        break;
+      case EntityMappingType.asMap:
+        map[attributeNames[actTypeIdPropName]!] = activityType.toMap(options: options);
+        break;
+      case EntityMappingType.idOnly:
+        map[attributeNames[actTypeIdPropName]!] = activityType.id;
+        break;
+      case EntityMappingType.notIncluded:
+        break;
     }
 
     map.addAll({attributeNames[profileIdPropName]!: profileId, });

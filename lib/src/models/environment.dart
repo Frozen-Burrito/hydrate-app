@@ -46,7 +46,7 @@ class Environment extends SQLiteModel {
     )
   ''';
 
-  static Environment fromMap(Map<String, Object?> map) {
+  static Environment fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) {
     
     return Environment(
       id: (map['id'] is int ? map['id'] as int : -1),

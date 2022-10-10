@@ -99,14 +99,16 @@ class Article extends SQLiteModel {
 
     // Modificar los nombres de los atributos para el Map resultante, según 
     // [options].
-    final attributeNames = MapOptions.mapAttributeNames(baseAttributeNames, options);
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames,
+      specificAttributeMappings: options.useCamelCasePropNames ? {
+        publishDateFieldName: "fechaPublicacion",
+      }
+      : const {},
+    );
 
     // Comprobar que hay una entrada por cada atributo de ActivityRecord.
     assert(attributeNames.length == baseAttributeNames.length);
-
-    final String campoFechaPub = options.useCamelCasePropNames 
-      ? 'fechaPublicacion' 
-      : publishDateFieldName;
 
     // Se asume que el mapa de attributeNames contiene entradas para todos los 
     // atributos de baseAttributeNames, y que acceder con los atributos de 
@@ -120,7 +122,7 @@ class Article extends SQLiteModel {
       attributeNames[titleFieldName]!: title, 
       attributeNames[urlFieldName]!: url.toString(),
       attributeNames[descriptionFieldName]!: description,
-      attributeNames[campoFechaPub]!: publishDate?.toIso8601String() ?? '',
+      attributeNames[publishDateFieldName]!: publishDate?.toIso8601String() ?? '',
     });
 
     return Map.unmodifiable(map);

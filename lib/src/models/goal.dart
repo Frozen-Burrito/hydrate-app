@@ -4,6 +4,7 @@ import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/utils/numbers_common.dart';
 
 class Goal extends SQLiteModel {
 
@@ -46,7 +47,7 @@ class Goal extends SQLiteModel {
 
   static const int maxSimultaneousGoals = 3;
 
-  static const String tableName = 'meta';
+  static const String tableName = "meta";
 
   static const String idFieldName = "id";
   static const String profileIdFieldName = "id_perfil";
@@ -93,31 +94,61 @@ class Goal extends SQLiteModel {
     )
   ''';
 
-  static Goal fromMap(Map<String, Object?> map) {
+  static Goal fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(), }) {
 
-    var tags = map['etiquetas'];
-    List<Tag> tagList = <Tag>[];
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames,
+      specificAttributeMappings: options.useCamelCasePropNames ? { 
+        endDateFieldName: "fechaTermino",
+        rewardFieldName: "recompensaDeMonedas",
+        quantityFieldName: "cantidadEnMl",
+      } : const {}
+    );
 
-    if (tags is List<Map<String, Object?>> && tags.isNotEmpty) {
-      tagList = tags.map((tagMap) => Tag.fromMap(tagMap)).toList();
-    }
+    final int hydrationGoalId = map.getIntegerOrDefault(
+      attributeName: attributeNames[idFieldName]!,
+      defaultValue: -1
+    );
 
-    int indexPlazo = (map['plazo'] is int ? map['plazo'] as int : 0);
+    final startDate = map.getDateTimeOrDefault(attributeName: attributeNames[startDateFieldName]!);
+    final endDate = map.getDateTimeOrDefault(attributeName: attributeNames[endDateFieldName]!);
 
-    const profileKey = 'id_${UserProfile.tableName}';
-    final valProfileId = (map[profileKey] is int ? map[profileKey] as int : -1);
+    final int termIndex = map.getEnumIndex(
+      attributeName: attributeNames[termFieldName]!, 
+      enumValuesLength: TimeTerm.values.length
+    );
+    final TimeTerm goalTimeTerm = TimeTerm.values[termIndex];
+
+    final int coinReward = map.getIntegerOrDefault(attributeName: attributeNames[rewardFieldName]!);
+    final int quantity = map.getIntegerOrDefault(attributeName: attributeNames[quantityFieldName]!);
+
+    final bool isMainGoal = map.getBoolean(attributeNames[isMainGoalFieldName]!);
+
+    final String notes = map[attributeNames[notesFieldName]!] != null 
+      ? map[attributeNames[notesFieldName]!].toString()
+      : "";
+
+    final List<Tag> tagsForHydrationGoal = map.getGoalTags(
+      attributeName: attributeNames[tagsFieldName]!, 
+      mapOptions: options
+    );
+
+    final int profileId = map.getIntegerOrDefault(
+      attributeName: attributeNames[profileIdFieldName]!, 
+      defaultValue: UserProfile.defaultProfileId
+    );
 
     final goal = Goal(
-      id: (map['id'] is int ? map['id'] as int : -1),
-      term: TimeTerm.values[indexPlazo],
-      startDate: DateTime.parse(map['fecha_inicio'].toString()),
-      endDate: DateTime.parse(map['fecha_final'].toString()),
-      reward: (map['recompensa'] is int ? map['recompensa'] as int : -1),
-      quantity: (map['cantidad'] is int ? map['cantidad'] as int : -1),
-      isMainGoal: (int.tryParse(map['es_principal'].toString()) ?? 0) != 0,
-      notes: map['notas'].toString(),
-      tags: tagList,
-      profileId: valProfileId
+      id: hydrationGoalId,
+      term: goalTimeTerm,
+      startDate: startDate,
+      endDate: endDate,
+      reward: coinReward,
+      quantity: quantity,
+      isMainGoal: isMainGoal,
+      notes: notes,
+      tags: tagsForHydrationGoal,
+      profileId: profileId
     );
 
     return goal;
@@ -125,19 +156,65 @@ class Goal extends SQLiteModel {
 
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
-    final Map<String, Object?> map = {
-      'plazo': term.index,
-      'fecha_inicio': startDate?.toIso8601String(), 
-      'fecha_final': endDate?.toIso8601String(),
-      'recompensa': reward,
-      'cantidad': quantity,
-      'es_principal': isMainGoal ? 1 : 0, 
-      'notas': notes,
-      'etiquetas': tags,
-      'id_${UserProfile.tableName}': profileId,
-    };
 
-    if (id >= 0) map['id'] = id;
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames, 
+      specificAttributeMappings: options.useCamelCasePropNames ? const { 
+        endDateFieldName: "fechaTermino",
+        rewardFieldName: "recompensaDeMonedas",
+        quantityFieldName: "cantidadEnMl",
+      } : const {
+        profileIdFieldName: profileIdFieldName,
+      }
+    );
+
+    final Map<String, Object?> map = {};
+
+    if (id >= 0) map[attributeNames[idFieldName]!] = id;
+
+    final List<Object?> mappedTags;
+    final bool shouldIncludeTags;
+
+    switch(options.subEntityMappingType) {
+      case EntityMappingType.noMapping:
+        mappedTags = tags;
+        shouldIncludeTags = true;
+        break;
+      case EntityMappingType.asMap:
+        mappedTags = tags
+          .map((tag) => tag.toMap( options: options ))
+          .toList();
+        shouldIncludeTags = true;
+        break;
+      case EntityMappingType.idOnly:
+        mappedTags = tags
+          .map((tag) => tag.id)
+          .toList();
+        shouldIncludeTags = true;
+        break;
+      case EntityMappingType.notIncluded:
+        mappedTags = <Object?>[];
+        shouldIncludeTags = false;
+        break;
+    }
+
+    map.addAll({
+      attributeNames[termFieldName]!: term.index,
+      attributeNames[startDateFieldName]!: startDate?.toIso8601String(), 
+      attributeNames[endDateFieldName]!: endDate?.toIso8601String(),
+      attributeNames[rewardFieldName]!: reward,
+      attributeNames[quantityFieldName]!: quantity,
+      attributeNames[notesFieldName]!: notes,
+      attributeNames[profileIdFieldName]!: profileId,
+    });
+
+    if (shouldIncludeTags) {
+      map[attributeNames[tagsFieldName]!] = mappedTags;
+    }
+
+    if (!options.useCamelCasePropNames) {
+      map[attributeNames[isMainGoalFieldName]!] = isMainGoal ? 1 : 0; 
+    }
 
     return map;
   }
@@ -282,5 +359,74 @@ class Goal extends SQLiteModel {
     return (inputValue != null && inputValue.length > 100)
         ? 'Las notas deben tener menos de 100 caracteres'
         : null;
+  }
+}
+
+extension _GoalMapExtension on Map<String, Object?> {
+
+  List<Tag> getGoalTags({
+    required String attributeName,
+    required MapOptions mapOptions,
+    List<Tag> availableTags = const <Tag>[],
+  }) {
+    final List<Tag> tagList = <Tag>[];
+    final Object? tagsFromMap = this[attributeName];
+
+    if (tagsFromMap is List<Map<String, Object?>>) {
+      tagList.addAll(tagsFromMap.map((tagAsMap) => Tag.fromMap(tagAsMap, options: mapOptions)));
+
+    } else if (tagsFromMap is List<int>) {
+      final tagsForGoal = availableTags.where((tag) => tagsFromMap.contains(tag.id));
+      tagList.addAll(tagsForGoal);
+    }
+
+    return tagList;
+  }
+
+  int getEnumIndex({
+    required String attributeName,
+    required int enumValuesLength,
+  }) 
+  {
+    final int parsedIndex = int.tryParse(this[attributeName].toString()) ?? 0;
+    final int constrainedIndex = constrain(
+      parsedIndex, 
+      min: 0,
+      max: enumValuesLength - 1,
+    );
+
+    return constrainedIndex;
+  }
+
+  int getIntegerOrDefault({ required String attributeName, int defaultValue = 0 }) {
+    return int.tryParse(this[attributeName].toString()) ?? defaultValue;
+  }
+
+  bool getBoolean(String attributeName) {
+
+    final attributeValue = this[attributeName];
+    final bool parsedValue;
+
+    if (attributeValue is bool) {
+      parsedValue =  attributeValue;
+    } else if (attributeValue is int) {
+      parsedValue = attributeValue != 0;
+    } else if (attributeValue is String) {
+      parsedValue = (attributeValue == "true");
+    } else {
+      parsedValue = false;
+    }
+
+    return parsedValue;
+  }
+
+  DateTime? getDateTimeOrDefault({
+    required String attributeName, 
+    DateTime? defaultValue,
+  }) {
+    final parsedDateTime = DateTime.tryParse(this[attributeName].toString()) 
+        ?? defaultValue;
+
+    return parsedDateTime;
   }
 }

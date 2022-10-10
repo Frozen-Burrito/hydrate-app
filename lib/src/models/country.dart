@@ -30,7 +30,7 @@ class Country extends SQLiteModel {
     )
   ''';
 
-  static Country fromMap(Map<String, Object?> map) => Country(
+  static Country fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) => Country(
     id: (map['id'] is int ? map['id'] as int : -1),
     code: map['codigo'].toString().substring(0, 2),
   );

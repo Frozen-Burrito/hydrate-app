@@ -132,13 +132,13 @@ void main() {
       expect(actualMap.keys, expectedMap.keys);
     });
 
-    test("ActivityRecord.toMap(), con includeCompleteSubEntities = false, solo incluye el ID ActivityType", () {
+    test("ActivityRecord.toMap(), subEntityMappingType = EntityMappingType.idOnly, solo incluye el ID ActivityType", () {
       // Arrange
       final activityRecord = ActivityRecord.uncommited();
 
       // Act
       final actualMap = activityRecord.toMap(options: const MapOptions(
-        includeCompleteSubEntities: false
+        subEntityMappingType: EntityMappingType.idOnly
       ));
 
       // Assert

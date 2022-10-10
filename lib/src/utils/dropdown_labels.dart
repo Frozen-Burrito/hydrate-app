@@ -50,15 +50,15 @@ class DropdownLabels {
     final localizations = AppLocalizations.of(context)!;
 
     return <IconLabel> [
-      IconLabel(localizations.actTypeWalk, Icons.directions_walk),
-      IconLabel(localizations.actTypeRun, Icons.directions_run),
-      IconLabel(localizations.actTypeCycle, Icons.directions_bike),
-      IconLabel(localizations.actTypeSwim, Icons.pool),
-      IconLabel(localizations.actTypeSoccer, Icons.sports_soccer),
-      IconLabel(localizations.actTypeBasketball, Icons.sports_basketball),
-      IconLabel(localizations.actTypeVolleyball, Icons.sports_volleyball),
-      IconLabel(localizations.actTypeDance, Icons.emoji_people),
-      IconLabel(localizations.actTypeYoga, Icons.self_improvement),
+      IconLabel(1, localizations.actTypeWalk, Icons.directions_walk),
+      IconLabel(2, localizations.actTypeRun, Icons.directions_run),
+      IconLabel(3, localizations.actTypeCycle, Icons.directions_bike),
+      IconLabel(4, localizations.actTypeSwim, Icons.pool),
+      IconLabel(5, localizations.actTypeSoccer, Icons.sports_soccer),
+      IconLabel(6, localizations.actTypeBasketball, Icons.sports_basketball),
+      IconLabel(7, localizations.actTypeVolleyball, Icons.sports_volleyball),
+      IconLabel(8, localizations.actTypeDance, Icons.emoji_people),
+      IconLabel(9, localizations.actTypeYoga, Icons.self_improvement),
     ];
   }
 
@@ -67,17 +67,25 @@ class DropdownLabels {
     final activityLabels = DropdownLabels.activityLabels(context);
 
     return activityTypes.map((activityType) {
+      
+      final int activityTypeIndex = activityLabels.indexWhere(
+        (activityLabel) => activityLabel.activityTypeId == activityType.id);
+
+      final IconLabel labelForActivityType = activityTypeIndex >= 0 
+        ? activityLabels[activityTypeIndex] 
+        : const IconLabel.unknownItem();
+
       return DropdownMenuItem(
         value: activityType.id,
         child: Row(
           children: [
             
-            Icon(activityLabels[activityType.id].icon),
+            Icon(labelForActivityType.icon),
 
             const SizedBox( width: 4.0,),
 
             Text(
-              activityLabels[activityType.id].label, 
+              labelForActivityType.label, 
               overflow: TextOverflow.ellipsis,
             ),
           ],
@@ -136,8 +144,11 @@ class DropdownLabels {
 
 class IconLabel {
 
+  final int activityTypeId;
   final String label;
   final IconData icon;
 
-  IconLabel(this.label, this.icon);
+  const IconLabel(this.activityTypeId, this.label, this.icon);
+
+  const IconLabel.unknownItem() : this(-1, "Unknown item", Icons.question_answer);
 }

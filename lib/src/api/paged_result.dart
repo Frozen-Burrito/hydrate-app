@@ -1,9 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:hydrate_app/src/db/sqlite_model.dart';
 
-class PagedResult<T extends SQLiteModel> {
+import 'package:hydrate_app/src/models/map_options.dart';
+
+class PagedResult<T> {
 
   const PagedResult(
     this.resultsPerPage, 
@@ -24,7 +24,8 @@ class PagedResult<T extends SQLiteModel> {
   );
 
   factory PagedResult.fromJson(String jsonString, {
-    required T Function(Map<String, Object?>) mapper
+    required T Function(Map<String, Object?>) mapper,
+    MapOptions mapOptions = const MapOptions(), 
   }) {
     
     final map = json.decode(jsonString);

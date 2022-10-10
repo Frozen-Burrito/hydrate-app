@@ -38,7 +38,7 @@ class ActivityType extends SQLiteModel {
     )
   ''';
 
-  static ActivityType fromMap(Map<String, Object?> map) {
+  static ActivityType fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) {
 
     final int parsedGoogleFitActType = int.tryParse(map["tipo_act_google_fit"].toString()) ?? GoogleFitActivityType.unknown;
     final int googleFitActType = GoogleFitActivityType.values.singleWhere(
@@ -86,10 +86,13 @@ class ActivityType extends SQLiteModel {
   @override
   int get hashCode => Object.hashAll([ id, averageSpeedKmH, mets, googleFitActivityType ]);
 
-  static String? validateType(int? value) {
+  static String? validateType(int? value, List<ActivityType> availableActivityTypes) {
     if (value == null) return 'Selecciona un tipo de actividad.';
 
-    return (value >= 0 && value < ActivityTypeValue.values.length) 
+    final int selectedItemIndex = availableActivityTypes
+      .indexWhere((activityType) => activityType.id == value);
+
+    return (selectedItemIndex != -1) 
         ? null
         : 'El tipo de actividad no es válido.';
   }  

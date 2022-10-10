@@ -20,7 +20,7 @@ class Routine extends SQLiteModel {
     this.id = -1,
     required this.activityId,
     required this.timeOfDay,
-    required this.profileId,
+    this.profileId = -1,
   }) : daysOfWeekList = _daysOfWeek.toList();
 
   Routine.uncommited() : this(
@@ -75,7 +75,7 @@ class Routine extends SQLiteModel {
     return map;
   }
 
-  static Routine fromMap(Map<String, Object?> map) {
+  static Routine fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(), }) {
 
     final dayBits = int.tryParse(map['dias'].toString()) ?? 0;
 

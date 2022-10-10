@@ -75,7 +75,7 @@ class Habits extends SQLiteModel {
   /// Transforma un mapa con los valores en una nueva instancia de [Habits].
   /// 
   /// Si [map['fecha']] es nulo, este método lanza un [FormatException].
-  static Habits fromMap(Map<String, Object?> map) {
+  static Habits fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) {
 
     return Habits(
       id: (map['id'] is int ? map['id'] as int : -1),

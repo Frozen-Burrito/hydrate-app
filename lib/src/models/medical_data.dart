@@ -103,7 +103,7 @@ class MedicalData extends SQLiteModel {
   /// Transforma un mapa con los valores en una nueva instancia de [MedicalData].
   /// 
   /// Si [map['fecha_prox_cita']] es nulo, este método lanza un [FormatException].
-  static MedicalData fromMap(Map<String, Object?> map) => MedicalData(
+  static MedicalData fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) => MedicalData(
     id: int.tryParse(map[idFieldName].toString()) ?? -1,
     profileId: int.tryParse(map[profileIdFieldName].toString()) ?? -1,
     hypervolemia: double.tryParse(map[hypervolemiaFieldName].toString()) ?? 0.0,
