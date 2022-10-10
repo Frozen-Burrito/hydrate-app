@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/goal.dart';

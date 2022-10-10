@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/services/activity_service.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/water_intake_calculator.dart';
 import 'package:hydrate_app/src/widgets/count_text.dart';

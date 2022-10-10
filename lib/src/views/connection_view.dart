@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
+import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/device_list.dart';
-import 'package:provider/provider.dart';
 
 class ConnectionView extends StatelessWidget {
   
@@ -34,7 +34,10 @@ class ConnectionView extends StatelessWidget {
             actions: <Widget> [
               IconButton(
                 icon: const Icon(Icons.help),
-                onPressed: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias-conexion')), 
+                onPressed: () {
+                  final url = ApiClient.urlForPage("guias-conexion");
+                  UrlLauncher.launchUrlInBrowser(url);
+                }, 
               )
             ],
           ),

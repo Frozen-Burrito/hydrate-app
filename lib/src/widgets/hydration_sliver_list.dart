@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';

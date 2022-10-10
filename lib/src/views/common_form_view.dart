@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/api.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/forms/card_form_container.dart';
@@ -48,7 +48,10 @@ class CommonFormView extends StatelessWidget {
             actions: <Widget>[
               IconButton(
                 icon: const Icon(Icons.help),
-                onPressed: () => UrlLauncher.launchUrlInBrowser(API.uriFor('guias-formularios')), 
+                onPressed: () {
+                  final url = ApiClient.urlForPage("guias-formularios");
+                  UrlLauncher.launchUrlInBrowser(url);
+                }, 
               ),
             ],
           ),

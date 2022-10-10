@@ -1,13 +1,15 @@
-import 'package:hydrate_app/src/models/map_options.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hydrate_app/src/api/data_api.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import "package:workmanager/workmanager.dart";
 
-import 'package:hydrate_app/src/models/activity_record.dart';
-import 'package:hydrate_app/src/models/api.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 import "package:hydrate_app/src/db/sqlite_db.dart";
 import "package:hydrate_app/src/db/where_clause.dart";
+import 'package:hydrate_app/src/models/activity_record.dart';
 import "package:hydrate_app/src/models/hydration_record.dart";
+import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Contiene los datos de las tareas ejecutadas en segundo plano por la app, 
 /// además del callback que las invoca por su nombre.
@@ -20,6 +22,8 @@ class BackgroundTasks {
   static const String sendStatsDataTaskName = "com.hydrate.hydrateApp.taskAportarDatos";
 
   static const String taskInputAuthToken = "authToken";
+
+  static const int maxRecordsToSend = 50;
 
   /// Define los parámetros para la tarea de envío de aportaciones 
   /// a datos abiertos.
@@ -49,9 +53,6 @@ class BackgroundTasks {
         // Intentar enviar datos de hidratacion y actividad fisica a 
         // API de datos abiertos.
         case sendStatsDataTaskName:
-          //TODO: Mantener esto solo para probar, quitar en produccion.
-          await API.get("https://servicio-web-hydrate.azurewebsites.net/api/v1/datos-abiertos/test");
-
           // Esta tarea necesita inputData para poder completarse con éxito.
           if (inputData == null) return false;
 
@@ -61,8 +62,8 @@ class BackgroundTasks {
           final profileId = getProfileIdFromJwt(authToken);
 
           // Obtener los registros con los datos estadísticos.
-          final hydrationData = await _fetchHydrationFromPastWeek(profileId);
-          final activityData = await _fetchActivitiesFromPastWeek(profileId);
+          final hydrationData = await _retrieveHydrationFromPastWeek(profileId);
+          final activityData = await _retrieveActivitiesFromPastWeek(profileId);
 
           // Enviar datos aportados por el usuario.
           bool result = await _sendStatisticalData(
@@ -83,15 +84,15 @@ class BackgroundTasks {
 
   /// Obtiene los [HydrationRecord] de la semana anterior, ordenados con los más
   /// recientes primero.
-  static Future<Iterable<HydrationRecord>> _fetchHydrationFromPastWeek<T>(int profileId) async {
+  static Future<Iterable<HydrationRecord>> _retrieveHydrationFromPastWeek<T>(int profileId) async {
     // Obtener los registros de hidratación locales.
     final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
       HydrationRecord.fromMap, 
       HydrationRecord.tableName, 
-      where: [ WhereClause("id_perfil", profileId.toString()), ],
-      orderByColumn: "fecha",
+      where: [ WhereClause(HydrationRecord.profileIdFieldName, profileId.toString()), ],
+      orderByColumn: HydrationRecord.dateFieldName,
       orderByAsc: false,
-      limit: 50,
+      limit: maxRecordsToSend,
     );
 
     // Definir rango de fechas como la última semana.
@@ -107,15 +108,15 @@ class BackgroundTasks {
 
     /// Obtiene los [ActivityRecord] de la semana anterior, ordenados con los más
   /// recientes primero.
-  static Future<Iterable<ActivityRecord>> _fetchActivitiesFromPastWeek<T>(int profileId) async {
+  static Future<Iterable<ActivityRecord>> _retrieveActivitiesFromPastWeek<T>(int profileId) async {
     // Obtener los registros de hidratación locales.
     final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
       ActivityRecord.fromMap, 
       ActivityRecord.tableName, 
-      where: [ WhereClause("id_perfil", profileId.toString()), ],
-      orderByColumn: "fecha",
+      where: [ WhereClause(ActivityRecord.profileIdPropName, profileId.toString()), ],
+      orderByColumn: ActivityRecord.datePropName,
       orderByAsc: false,
-      limit: 50,
+      limit: maxRecordsToSend,
     );
 
     // Definir rango de fechas como la última semana.
@@ -136,46 +137,40 @@ class BackgroundTasks {
   /// 
   /// Retorna [true] si los datos fueron enviados con éxito.
   static Future<bool> _sendStatisticalData (
-    String jwt, 
+    String authToken, 
     Iterable<HydrationRecord> hydrationData,
     Iterable<ActivityRecord> activityData
   ) async {
-
-    const jsonMapOptions = MapOptions(
-      useCamelCasePropNames: true,
-      includeCompleteSubEntities: false,
-      useIntBooleanValues: true,
-    );
-
-    final hydrRecordsAsMaps = hydrationData
-      .map((hr) => hr.toMap(options: jsonMapOptions));
-
-    final actRecordsAsMaps = activityData
-      .map((ar) => ar.toMap(options: jsonMapOptions));
-
     // Enviar peticiones POST a API con los datos contribuidos.
-    final sendHydrationRequest = API.post(
-      "aportarDatos/hidr", 
-      hydrRecordsAsMaps, 
-      authorization: jwt,
-      authType: ApiAuthType.bearerToken,
-    );
+    DataApi.instance.authenticateClient(authToken: authToken, authType: ApiAuthType.bearerToken);
 
-    final sendActivitiesRequest = API.post(
-      "aportarDatos/act", 
-      actRecordsAsMaps, 
-      authorization: jwt,
-      authType: ApiAuthType.bearerToken,
-    );
+    // Si ambas peticiones resultan en respuestas 204 y no producen un 
+    // ApiException, los datos fueron enviados con éxito.
+    bool wasDataSendSuccessful;
+    
+    try {
+      final sendHydrationRequest = DataApi.instance.contributeOpenData<HydrationRecord>(
+        data: hydrationData,
+        mapper: (hydrationRecord, mapOptions) => hydrationRecord.toMap(options: mapOptions),
+      );
 
-    // Esperar a completar todas las peticiones para aportar datos.
-    final contributionResults = await Future.wait(
-      [ sendHydrationRequest, sendActivitiesRequest], 
-      eagerError: true
-    );
+      final sendActivitiesRequest = DataApi.instance.contributeOpenData<ActivityRecord>(
+        data: activityData,
+        mapper: (activityRecord, mapOptions) => activityRecord.toMap(options: mapOptions),
+      );
 
-    // Si cada respuesta tiene un código de status 200, la aportación fue exitosa.
-    final wasDataSendSuccessful = contributionResults.every((response) => response.isOk);
+      // Esperar a completar todas las peticiones para aportar datos.
+      await Future.wait(
+        [ sendHydrationRequest, sendActivitiesRequest], 
+        eagerError: true
+      );
+
+      wasDataSendSuccessful = true;
+
+    } on ApiException catch(ex) {
+      wasDataSendSuccessful = false;
+      debugPrint("Exception while contributing open data ($ex)");
+    }
     
     return wasDataSendSuccessful;
   }

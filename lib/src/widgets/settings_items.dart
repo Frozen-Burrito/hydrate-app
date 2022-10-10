@@ -2,11 +2,11 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
-import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
@@ -337,14 +337,14 @@ class SettingsItems extends StatelessWidget {
           _UrlListTile(
             title: localizations.sendComments, 
             leadingIcon: Icons.question_answer,
-            uriToLaunch: API.uriFor("comentarios"),
+            uriToLaunch: ApiClient.urlForPage("comentarios"),
           ),
     
           const Divider( height: 1.0, ),
           _UrlListTile(
             title: localizations.userGuides, 
             leadingIcon: Icons.lightbulb,
-            uriToLaunch: API.uriFor("guias"),
+            uriToLaunch: ApiClient.urlForPage("guias"),
           ),
     
           Padding(

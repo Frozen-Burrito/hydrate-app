@@ -1,4 +1,4 @@
-import 'package:hydrate_app/src/api/api.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 

@@ -28,10 +28,13 @@ class ApiClient {
   static const String notValidUrl = "::Not valid URI::";
 
   static const MapOptions defaultJsonMapOptions = MapOptions(
-    includeCompleteSubEntities: true,
+    subEntityMappingType: EntityMappingType.asMap,
     useCamelCasePropNames: true,
     useIntBooleanValues: false,
   );  
+
+  static const int defaultPageIndex = 0;
+  static const int defaultResultsPerPage = 20;
 
   /// Asocia nombres de rutas del servicio web con sus URIs específicas, 
   /// que llevan a cada recurso si se realiza una petición a ellas.
@@ -44,7 +47,7 @@ class ApiClient {
 
   static final Map<String, String> _apiMap = {
     'aportarDatos/hidr': '$_apiUrl/datos-abiertos/hidratacion',
-    'aportarDatos/act': '$_apiUrl/datos-abiertos/act-fisica',
+    'aportarDatos/actividad': '$_apiUrl/datos-abiertos/act-fisica',
     'login': '$_apiUrl/usuarios/login',
     'signUp': '$_apiUrl/usuarios/registro', 
     'recursos': '$_apiUrl/recursos',
@@ -53,6 +56,7 @@ class ApiClient {
     'sync-config': '$_apiUrl/perfiles/?/configuracion',
     'sync-fcm-token': '$_apiUrl/perfiles/?/fcm',
     'metas': '$_apiUrl/datos/metas',
+    'metas/id': '$_apiUrl/datos/metas/?',
     'hidratacion': '$_apiUrl/datos/hidratacion',
     'actividadFisica': '$_apiUrl/datos/actividad-fisica',
     'rutinas': '$_apiUrl/datos/rutinas',
@@ -316,11 +320,48 @@ class ApiClient {
   /// en el path de la petición (directamente en la URL, no como un parámetro).
   /// 
   /// Envía la petición con [ApiClient.defaultHeaders] por defecto.
-  static Future<http.Response> delete(String endpoint, String resourceId) {
+  Future<http.Response> delete(
+    String endpoint, {
+      String authorization = "", 
+      ApiAuthType authType = ApiAuthType.anonymous,
+      List<String> pathParameters = const <String>[],
+      Map<String, String> queryParameters = const {},
+    }
+  ) {
     
-    final parsedUrl = Uri.parse(_apiUrl + endpoint + '/$resourceId');
+    final parsedUrl = uriForResource(
+      endpoint, 
+      pathParameters: pathParameters,
+      queryParameters: queryParameters,
+    );
 
-    return http.delete(parsedUrl, headers: defaultHeaders);
+    final isUrlValid = parsedUrl != null && parsedUrl.isScheme("HTTPS");
+
+    if (isUrlValid) {
+      final requestHeaders = Map<String, String>.from(defaultHeaders);
+
+      final isAuthHeaderRequired = authorization.isNotEmpty && 
+                                 authType == ApiAuthType.bearerToken;
+
+      if (isAuthHeaderRequired) {
+        // Si recibe opciones de autenticación, incluirlas en la petición.
+        final authorizationCredential = authType == ApiAuthType.bearerToken 
+          ? bearerToken + authorization
+          : authorization;
+
+        requestHeaders[authorizationHeader] = authorizationCredential;
+      }
+
+      // Enviar la petición a la URL especificada, usando el cliente HTTP.
+      return client.delete(
+        parsedUrl!, 
+        headers: requestHeaders,
+      );
+    } else {
+      return Future.error(
+        const FormatException("requested url could not be parsed")
+      );
+    }
   }
 
   Future<void> defaultErrorResponseHandler(http.Response response) {

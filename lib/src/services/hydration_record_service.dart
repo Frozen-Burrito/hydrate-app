@@ -1,5 +1,5 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/api/data_api.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
@@ -27,6 +27,8 @@ class HydrationRecordService extends ChangeNotifier {
     fetchData: _fetchHydrationRecords,
     onDataRefreshed: (_) => notifyListeners(),
   );
+
+  final List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
 
   bool get hasHydrationData => _hydrationRecordsCache.hasData;
 
@@ -74,7 +76,10 @@ class HydrationRecordService extends ChangeNotifier {
         }
       }
       
-      _hydrationRecordsCache.refresh();
+      if (results.isNotEmpty) {
+        _hydrationRecordsCache.refresh();
+      }
+
       return results;
     }
     on Exception catch (e) {
@@ -100,9 +105,13 @@ class HydrationRecordService extends ChangeNotifier {
     final int newHydrationRecordId = await SQLiteDB.instance.insert(hydrationRecord);
 
     if (newHydrationRecordId >= 0) {
+
+      hydrationRecord.id = newHydrationRecordId;
+      _hydrationRecordsPendingSync.add(hydrationRecord);
+
       if (refreshImmediately) {
         // Si se solicita, refrescar el cache inmediatamente.
-        _hydrationRecordsCache.refresh();
+        await _hydrationRecordsCache.refresh();
       } else {
         // Si no, usar refresh perezozo.
         _hydrationRecordsCache.shouldRefresh();
@@ -110,6 +119,17 @@ class HydrationRecordService extends ChangeNotifier {
     }
         
     return newHydrationRecordId;
+  }
+
+  Future<void> syncLocalHydrationRecordsWithAccount() async {
+    if (DataApi.instance.isAuthenticated) {
+      await DataApi.instance.updateData<HydrationRecord>(
+        data: _hydrationRecordsPendingSync,
+        mapper: (hydrationRecord, mapOptions) => hydrationRecord.toMap(options: mapOptions),
+      );
+
+      _hydrationRecordsPendingSync.clear();
+    }
   }
 
   /// Obtiene todos los registros de hidratación de la base de datos.

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/api/data_api.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
@@ -58,6 +59,9 @@ class ActivityService extends ChangeNotifier {
     }
   );
 
+  final Set<Routine> _routinesPendingSync = <Routine>{};
+  final Set<ActivityRecord> _activityRecordsPendingSync = <ActivityRecord>{};
+
   final RoutineActivities _routineActivities = RoutineActivities.empty();
 
   final Map<DateTime, List<RoutineOccurrence>> _activitiesByDay = {};
@@ -84,6 +88,8 @@ class ActivityService extends ChangeNotifier {
   Future<Map<DateTime, List<RoutineOccurrence>>> get activitiesFromPastWeek async {
     return Future.value(_getActivitiesFromPastWeek());
   }
+
+  Future<int> get activitiesToday => _getNumberOfActivitiesRecordedToday();
 
   Future<RoutineActivities> get routineActivities async {
     await _activitiesCache.data;
@@ -164,6 +170,12 @@ class ActivityService extends ChangeNotifier {
     return similarActivities;
   }
 
+  Future<bool> shouldGiveRewardForNewActivity() async {
+    final int numOfActivitiesToday = await _getNumberOfActivitiesRecordedToday();
+
+    return numOfActivitiesToday < ActivityService.actPerDayWithReward;
+  }
+
   Future<List<ActivityRecord>> _queryActivityRecords() async {
     try {
       // Obtener solo los registros de actividad asociados con el perfil.
@@ -201,14 +213,28 @@ class ActivityService extends ChangeNotifier {
     // perfil de usuario activo.
     newActivityRecord.profileId = _profileId;
 
-    final int activityRecordId = await SQLiteDB.instance.insert(newActivityRecord);
+    final int createdActivityRecordId = await SQLiteDB.instance.insert(newActivityRecord);
 
-    if (activityRecordId >= 0) {
+    if (createdActivityRecordId >= 0) {
+      newActivityRecord.id = createdActivityRecordId;
       // Refrescar el cache la próxima vez que sea utilizado.
       _activitiesCache.shouldRefresh();
+
+      _activityRecordsPendingSync.add(newActivityRecord);
     }
 
-    return activityRecordId;
+    return createdActivityRecordId;
+  }
+
+  Future<void> syncLocalActivityRecordsWithAccount() async {
+    if (DataApi.instance.isAuthenticated) {
+      await DataApi.instance.updateData<ActivityRecord>(
+        data: _activityRecordsPendingSync,
+        mapper: (activityRecord, mapOptions) => activityRecord.toMap(options: mapOptions),
+      );
+
+      _activityRecordsPendingSync.clear();
+    }
   }
 
   Future<List<Routine>> _queryRoutines() async {
@@ -235,10 +261,24 @@ class ActivityService extends ChangeNotifier {
     final int newRoutineId = await SQLiteDB.instance.insert(newRoutine);
 
     if (newRoutineId >= 0) {
+      newRoutine.id = newRoutineId;
       _routinesCache.shouldRefresh();
+
+      if (DataApi.instance.isAuthenticated) _routinesPendingSync.add(newRoutine);
     } 
     
     return newRoutineId;
+  }
+
+  Future<void> syncLocalRoutinesWithAccount() async {
+    if (DataApi.instance.isAuthenticated) {
+      await DataApi.instance.updateData<Routine>(
+        data: _routinesPendingSync,
+        mapper: (routine, mapOptions) => routine.toMap(options: mapOptions),
+      );
+
+      _routinesPendingSync.clear();
+    }
   }
 
   Future<List<ActivityType>> _queryActivityTypes() async {
@@ -320,6 +360,15 @@ class ActivityService extends ChangeNotifier {
     assert(activitiesOfWeek.length == 7);
 
     return activitiesOfWeek;
+  }
+
+  Future<int> _getNumberOfActivitiesRecordedToday() async {
+    final today = DateTime.now().onlyDate;
+
+    final activitiesFromPastWeek = await _getActivitiesFromPastWeek( includeRoutines: true );
+    final numOfActivityRecordsToday = activitiesFromPastWeek[today]?.length ?? 0;
+
+    return numOfActivityRecordsToday;
   }
 
   /// Retorna una lista con las cantidades totales de kilocalorías quemadas por 

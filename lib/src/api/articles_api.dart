@@ -1,4 +1,4 @@
-import 'package:hydrate_app/src/api/api.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/api/paged_result.dart';
 import 'package:hydrate_app/src/models/article.dart';
 import 'package:hydrate_app/src/models/map_options.dart';

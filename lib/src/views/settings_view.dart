@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
 import 'package:hydrate_app/src/widgets/settings_items.dart';

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/api/data_api.dart';
+import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/enums/time_term.dart';
@@ -52,82 +54,85 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   /// meta en la DB y redirige a [redirectRoute]. 
   void _validateAndSave(BuildContext context, {String? redirectRoute}) async {
 
-    if (_formKey.currentState!.validate()) {
+    FocusScope.of(context).unfocus();
+    
+    final bool isFormNotValid = !(_formKey.currentState?.validate() ?? false);
 
-      final goalProvider = Provider.of<GoalsService>(context, listen: false);
+    if (isFormNotValid) return;
 
-      // Obtener el número de metas creadas.
-      final numOfExistingGoals = (await goalProvider.goals).length;
-      
-      final hasReachedGoalLimit = numOfExistingGoals >= Goal.maxSimultaneousGoals;
-      bool userChoseGoalsToDelete = false;
+    final goalService = Provider.of<GoalsService>(context, listen: false);
 
-      if (hasReachedGoalLimit) {
-        // Si el usuario ha llegado al límite de metas simultáneas, preguntarle
-        // si desea reemplazar metas existentes usando un Dialog.
-        List<int>? goalIdsToReplace = await showAskGoalReplacemente(context); 
-  
-        userChoseGoalsToDelete = goalIdsToReplace != null && goalIdsToReplace.isNotEmpty;
+    bool canCreateNewGoal = true;
+    bool wasGoalCreated = false;
 
-        if (userChoseGoalsToDelete) {
+    while (!wasGoalCreated && canCreateNewGoal) {
+      try {
+        final int createdGoalId = await goalService.createHydrationGoalWithLimit(newGoal);
+
+        wasGoalCreated = createdGoalId >= 0;
+
+        if (wasGoalCreated) {
+          await goalService.syncUpdatedHydrationGoalsWithAccount();
           
-          for (var id in goalIdsToReplace) {
-            // Remover todas las metas especificadas por el usuario.
-            int result = await goalProvider.deleteHydrationGoal(id);
-            print('Delete result: $result');
+          _navigateOnGoalCreated(context, redirectRoute);
+        } else {
+          _showGoalCreateError(context);
+        }
 
-            if (hasReachedGoalLimit && result >= 0) {
-              // Si se había llegado al límite de metas, pero se removió al menos 
-              // una de ellas, si debería crear la nueva meta.
-              // Asociar el perfil del usuario actual con la nueva meta.
-              userChoseGoalsToDelete = true;
-            }
-          }
+      } on EntityPersistException catch (ex) {
+        final hasToReplaceGoal = ex.exceptionType == EntityPersitExceptionType.hasReachedEntityCountLimit;
+
+        if (hasToReplaceGoal) {
+          final wereGoalsReplaced = await _tryToReplaceExistingGoals(goalService);
+
+          canCreateNewGoal = wereGoalsReplaced;
         }
       }
-
-      final int goalCreateResult = (!hasReachedGoalLimit || userChoseGoalsToDelete)
-        ? await _createGoal(context)
-        : -1;
-
-      if (goalCreateResult >= 0) {
-        if (redirectRoute != null) {
-          Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-        } else {
-          Navigator.of(context).pop();
-        }
-      } else if (userChoseGoalsToDelete) {
-        // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar( 
-            content: Text('Hubo un error al crear la meta'),
-          ),
-        );
-      } 
-    }
+    }   
   }
 
-  Future<int> _createGoal(BuildContext context) async {
+  Future<bool> _tryToReplaceExistingGoals(GoalsService goalService) async {
+    // Si el usuario ha llegado al límite de metas simultáneas, preguntarle
+    // si desea reemplazar metas existentes usando un Dialog.
+    List<int> goalIdsToReplace = (await showAskForGoalReplacementDialog(context)) 
+      ?? const <int>[]; 
 
-    final goalProvider = Provider.of<GoalsService>(context, listen: false);
-    final profile = await Provider.of<ProfileService>(context, listen: false).profile;
+    final bool didUserChooseGoalsToReplace = goalIdsToReplace.isNotEmpty;
+    bool wereGoalsReplaced = false;
 
-    newGoal.profileId = profile?.id ?? -1;
+    if (didUserChooseGoalsToReplace) {
+      // Remover todas las metas especificadas por el usuario.
+      for (final goalId in goalIdsToReplace) {
+        final int goalsEliminated = await goalService.deleteHydrationGoal(goalId);
 
-    // Asociar el perfil del usuario actual con las etiquetas de la meta.
-    for (var tag in newGoal.tags) {
-      tag.profileId = profile?.id ?? -1;
+        wereGoalsReplaced = goalsEliminated >= 0;
+      }
     }
 
-    int newGoalId = await goalProvider.createHydrationGoal(newGoal);
-
-    return newGoalId;
+    return wereGoalsReplaced;
   }
 
-  Future<List<int>?> showAskGoalReplacemente(BuildContext context) {
+  Future<List<int>?> showAskForGoalReplacementDialog(BuildContext context) {
     return showDialog<List<int>>(
       context: context,
       builder: (context) => const ReplaceGoalDialog(),
+    );
+  }
+
+  void _navigateOnGoalCreated(BuildContext context, String? redirectRoute) {
+    if (redirectRoute != null) {
+      Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _showGoalCreateError(BuildContext context) {
+    // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar( 
+        content: Text("Hubo un error al crear la meta"),
+      ),
     );
   }
 

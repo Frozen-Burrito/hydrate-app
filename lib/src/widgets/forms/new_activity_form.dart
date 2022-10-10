@@ -22,58 +22,64 @@ class NewActivityForm extends StatelessWidget {
   /// Agrega un registro para [newActivity], asociado con el perfil de usuario 
   /// activo. Si es exitoso, redirige la app a [redirectRoute].
   void _saveActivityRecord(BuildContext context, ActivityRecord newActivity, {String? redirectRoute}) async {
-
     // Obtener instancias de providers, usando el context.
-    final activityProvider = Provider.of<ActivityService>(context, listen: false);
-
-    final profileProvider = Provider.of<ProfileService>(context, listen: false);
-
-    // Asociar el perfil del usuario actual con la nueva meta.
-    newActivity.profileId = profileProvider.profileId;
-
-    if (newActivity.activityType.id < 0) {
-      final activityTypes = await activityProvider.activityTypes;
-
-      if (activityTypes != null) {
-        int actTypeIndex = activityTypes.indexWhere((t) => t.id == 0);
-
-        newActivity.activityType = activityTypes[actTypeIndex];
-      }
-    }
+    final activityService = Provider.of<ActivityService>(context, listen: false);
 
     assert(newActivity.activityType.id >= 0);
 
-    final pastWeekActivities = await activityProvider.activitiesFromPastWeek;
+    final shouldGiveRewardForActivity = await activityService.shouldGiveRewardForNewActivity();
 
-    final today = DateTime.now().onlyDate;
-    final activitiesToday = pastWeekActivities[today]?.length ?? 0;
+    if (shouldGiveRewardForActivity) {  
+      final profileService = Provider.of<ProfileService>(context, listen: false);
 
-    // Dar una recompensa al usuario si [newActivity] es de sus primeras actividades
-    // el día de hoy.
-    await giveActivityReward(
-      activitiesToday, 
-      newActivity, 
-      profileProvider.profileChanges.addCoins,
-      profileProvider.saveProfileChanges
-    );
+      profileService.profileChanges.addCoins(newActivity.coinReward);
+
+      await profileService.saveProfileChanges();
+    }
+
+    final wasRoutineCreated = await _createRoutineIfPossible(context, newActivity);
+
+    bool wasActivityCreated = false;
+    if (wasRoutineCreated) {
+      _navigateToRoute(context, redirectRoute);
+
+    } else {
+      // Crear registro local de actividad.
+      final int newActivityId = await activityService.createActivityRecord(newActivity);
+      wasActivityCreated = newActivityId >= 0;
+
+      if (wasActivityCreated) {
+        await activityService.syncLocalActivityRecordsWithAccount();
+
+        _navigateToRoute(context, redirectRoute);
+      }
+    }
+  }
+
+  /// Revisa si puede convertir actividades previas y [newActivity] en una 
+  /// rutina. Si puede hacerlo, pide confirmación del usuario. En caso de que el
+  /// usuario acceda, la nueva rutina es creada.
+  /// 
+  /// Retorna __true__ si la rutina fue creada y __false__ en caso contrario.
+  Future<bool> _createRoutineIfPossible(BuildContext context, ActivityRecord newActivity) async {
+
+    final activityService = Provider.of<ActivityService>(context, listen: false);
 
     // Obtener todos los registros de actividades de la semana pasada que sean 
     // similares a newActivity.
-    final similarActivities = await activityProvider
+    final similarActivities = await activityService
         .isActivitySimilarToPrevious(newActivity, onlyPastWeek: true);
 
-    int resultadoDeSave = -1;
+    bool wasRoutineCreated = false;
 
-    // Determinar si puede crear una rutina con la nueva actividad.
     if (similarActivities.isNotEmpty) {
       // Hay actividades similares. Preguntar si desea crear una rutina con ellas.
-      final shouldCreateRoutine = await showAskIfRoutineDialog(
+      final userWantsToCreateRoutine = (await _showShouldCreateRoutineDialog(
         context, 
         similarActivities.length
-      ) ?? false;
+      )) ?? false;
 
-      // Revisar si usuario eligió crear una nueva rutina.
-      if (shouldCreateRoutine) {
+      if (userWantsToCreateRoutine) {
         // Obtener los días de la semana en que el usuario realiza la actividad. 
         final routineDays = similarActivities.map((activity) => activity.date.weekday);
 
@@ -88,55 +94,36 @@ class NewActivityForm extends StatelessWidget {
           uniqueRoutineDays,
           activityId: baseActivity.id,
           timeOfDay: baseActivity.date.onlyTime, 
-          profileId: profileProvider.profileId
         );
         
-        resultadoDeSave = await activityProvider.createRoutine(newRoutine);
-      }
-    } else {
-      // Crear registro local de actividad.
-      resultadoDeSave = await activityProvider.createActivityRecord(newActivity);
-    }
+        final int newRoutineId = await activityService.createRoutine(newRoutine);
 
-    if (resultadoDeSave >= 0) {
-      if (redirectRoute != null) {
-        Navigator.of(context).pushNamedAndRemoveUntil(redirectRoute, (route) => false);
-      } else {
-        Navigator.of(context).pop();
+        wasRoutineCreated = newRoutineId >= 0;
+
+        if (wasRoutineCreated) {
+          await activityService.syncLocalRoutinesWithAccount();
+        }
       }
     }
+
+    return wasRoutineCreated;
   }
 
-  /// Revisa si el usuario ha registrado [] o menos actividades en el día actual.
-  /// 
-  /// Si es así, otorga una recompensa en monedas al perfil de usuario, dada por
-  /// [newActivity.coinReward]. Si no, no realiza ninguna modificación al perfil.
-  Future<void> giveActivityReward(
-    int numOfActivitiesToday, 
-    ActivityRecord newActivity,
-    void Function(int) giveCoinsToProfile,
-    Future<void> Function() saveProfile
-  ) {
-
-    if (numOfActivitiesToday <ActivityService.actPerDayWithReward) {
-      // Si esta nueva actividad es de las tres primeras del día actual,
-      // entregar recompensa en monedas al usuario.
-      giveCoinsToProfile(newActivity.coinReward);
-
-      return saveProfile();
-    } else {
-      return Future.value();
-    }
-  }
-
-  Future<bool?> showAskIfRoutineDialog(BuildContext context, int numOfSimilarActivities) {
-
+  Future<bool?> _showShouldCreateRoutineDialog(BuildContext context, int numOfSimilarActivities) {
     return showDialog<bool>(
       context: context, 
       builder: (context) => SuggestRoutineDialog(
         similarActivityCount: numOfSimilarActivities,
       )
     );
+  }
+
+  void _navigateToRoute(BuildContext context, String? route) {
+    if (route != null) {
+      Navigator.of(context).pushNamedAndRemoveUntil(route, (route) => false);
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -149,7 +136,6 @@ class NewActivityForm extends StatelessWidget {
       future: activityProvider.activitiesFromPastWeek,
       initialData: const {},
       builder: (context, snapshot) {
-
         if (snapshot.hasData) {
 
           final activityRecords = snapshot.data;
@@ -327,7 +313,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
               children: <Widget>[
 
                 _ActivityTypeDropdown(
-                  value: newActivityRecord.activityType.id,
+                  selectedActivityTypeId: newActivityRecord.activityType.id,
                   onActivityTypeChange: (activityType) {
                     onActivityTypeSelected(activityType, userWeight);
                   }
@@ -531,13 +517,43 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
 class _ActivityTypeDropdown extends StatelessWidget {
 
   const _ActivityTypeDropdown({
-    required this.value, 
+    required this.selectedActivityTypeId, 
     required this.onActivityTypeChange,
     Key? key,
   }) : super(key: key);
 
-  final int value;
+  final int selectedActivityTypeId;
   final void Function(ActivityType) onActivityTypeChange;
+
+  void _handleActivityTypeChanged(int? newValue, List<ActivityType> activityTypes) {
+    // Obtener el tipo de actividad correspondiente.
+    int typeIndex = activityTypes
+      .indexWhere((t) => t.id == newValue);
+
+    assert(typeIndex != -1);
+
+    final selectedType = activityTypes[typeIndex];
+
+    onActivityTypeChange(selectedType);
+  }
+
+  int _getDropdownValue(int selectedItemId, List<ActivityType> activityTypes) {
+
+    if (activityTypes.isEmpty) return 0;
+
+    final int dropdownValue;
+
+    if (selectedItemId >= 0) {
+      dropdownValue = selectedItemId;
+    } else {
+      dropdownValue = activityTypes.first.id;
+      Future.microtask(() => _handleActivityTypeChanged(dropdownValue, activityTypes));
+    }
+
+    assert(dropdownValue >= 0);
+
+    return dropdownValue;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -547,30 +563,25 @@ class _ActivityTypeDropdown extends StatelessWidget {
 
     return FutureBuilder<List<ActivityType>?>(
       future: activityProvider.activityTypes,
-      initialData: const [],
+      initialData: const <ActivityType>[],
       builder: (context, snapshot) {
 
-        final activityTypes = snapshot.data;
+        final activityTypes = snapshot.data ?? <ActivityType>[];
 
-        final dropdownItems = activityTypes != null
-          ? DropdownLabels.activityTypes(context, activityTypes)
-          : null;
+        final List<DropdownMenuItem<int>>? dropdownItems;
+        final void Function(int?)? onChangeHandler;
 
-        final onChangeHandler = activityTypes != null
-          ? (int? newValue) {
-              // Obtener el tipo de actividad correspondiente.
-              int typeIndex = activityTypes
-                .indexWhere((t) => t.id == newValue);
-
-              final selectedType = activityTypes[typeIndex];
-
-              onActivityTypeChange(selectedType);
-            }
-          : null;
+        if (activityTypes.isNotEmpty) {
+          dropdownItems = DropdownLabels.activityTypes(context, activityTypes);
+          onChangeHandler = (int? newValue) => _handleActivityTypeChanged(newValue, activityTypes);
+        } else {
+          dropdownItems = null;
+          onChangeHandler = null;
+        }
 
         return DropdownButtonFormField(
           //TODO: Agregar a localizations un disabledHint para dropdown de tipos de act.
-          disabledHint: const Text('No se encontraron actividades'),
+          disabledHint: const Text("No se encontraron actividades"),
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             labelText: localizations.whatType,
@@ -578,8 +589,8 @@ class _ActivityTypeDropdown extends StatelessWidget {
             hintText: localizations.select
           ),
           items: dropdownItems,
-          value: max(value, 0),
-          validator: (int? value) => ActivityType.validateType(value),
+          value: _getDropdownValue(selectedActivityTypeId, activityTypes),
+          validator: (int? value) => ActivityType.validateType(value, activityTypes),
           onChanged: onChangeHandler
         );
       }

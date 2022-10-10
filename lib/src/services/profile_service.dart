@@ -11,6 +11,8 @@ import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
+typedef OnProfileChanged = void Function(UserProfile? profile, String? authToken);
+
 class ProfileService extends ChangeNotifier {
 
   /// El ID del perfil local del usuario.
@@ -18,6 +20,8 @@ class ProfileService extends ChangeNotifier {
 
   /// El JWT para autorizar todas las peticiones del usuario actual.
   String _authToken;
+
+  final OnProfileChanged? _onProfileChanged;
 
   /// El número máximo de veces que el usuario puede modificar su perfil, en un 
   /// año.
@@ -29,7 +33,8 @@ class ProfileService extends ChangeNotifier {
   /// [UserProfile] por defecto.
   ProfileService() 
     : _profileId = UserProfile.defaultProfileId,
-      _authToken = "";
+      _authToken = "",
+      _onProfileChanged = null;
 
   static late final SharedPreferences? _sharedPreferences;
 
@@ -44,8 +49,11 @@ class ProfileService extends ChangeNotifier {
   /// Si no existen keys para el [profileId] o el [linkedAccountId] en Shared 
   /// Preferences, usa sus valores por defecto ([UserProfile.defaultProfileId] 
   /// y un [String] vacío, respectivamente).
-  factory ProfileService.fromSharedPrefs({ bool createDefaultProfile = false }) {
-
+  factory ProfileService.fromSharedPrefs({ 
+    bool createDefaultProfile = false,
+    OnProfileChanged? onProfileChanged,
+  }) 
+  {
     String prefsAuthToken = _sharedPreferences?.getString(authTokenKey) ?? "";
 
     if (isTokenExpired(prefsAuthToken)) {
@@ -64,7 +72,8 @@ class ProfileService extends ChangeNotifier {
 
     return ProfileService.withProfile(
       profileId: currentProfileId,
-      authToken: prefsAuthToken
+      authToken: prefsAuthToken,
+      onProfileChanged: onProfileChanged,
     );
   }
 
@@ -80,8 +89,10 @@ class ProfileService extends ChangeNotifier {
   ProfileService.withProfile({ 
     int profileId = UserProfile.defaultProfileId, 
     String authToken = "", 
+    OnProfileChanged? onProfileChanged,
   }): _profileId = profileId,
-      _authToken = authToken;
+      _authToken = authToken,
+      _onProfileChanged = onProfileChanged;
 
   /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
   /// actual. Esta instancia de [UserProfile] es modificable.
@@ -95,6 +106,8 @@ class ProfileService extends ChangeNotifier {
       // los cambios de perfil son una copia del perfil original. Si no, los 
       // cambios de perfil son inicializados para un perfil por default.
       _profileChanges = UserProfile.modifiableCopyOf(profile ?? UserProfile.defaultProfile);
+
+      if (_onProfileChanged != null) _onProfileChanged!(profile, _authToken);
 
       notifyListeners();
     },

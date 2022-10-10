@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart';
 
-import 'package:hydrate_app/src/api/api.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/models.dart';
@@ -211,7 +211,7 @@ class AuthApi {
 
     final Map<String, Object?> requestBody = profileChanges.toMap(options: const MapOptions(
       useCamelCasePropNames: true,
-      includeCompleteSubEntities: false,
+      subEntityMappingType: EntityMappingType.idOnly,
       useIntBooleanValues: false,
     ));
     

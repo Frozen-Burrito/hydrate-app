@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/api/data_api.dart';
 
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
 
@@ -27,6 +29,12 @@ class GoalsService extends ChangeNotifier {
     fetchData: _fetchGoals,
     onDataRefreshed: (_) => notifyListeners(),
   );
+
+  final Map<DataSyncAction, Set<Goal>> _goalsPendingSync = <DataSyncAction, Set<Goal>>{
+    DataSyncAction.fetch: <Goal>{},
+    DataSyncAction.updated: <Goal>{},
+    DataSyncAction.deleted: <Goal>{},
+  };
 
   late final CacheState<List<Tag>> _tagsCache = CacheState(
     fetchData: _fetchTags,
@@ -171,10 +179,87 @@ class GoalsService extends ChangeNotifier {
     final int newGoalId = await SQLiteDB.instance.insert(newGoal);
 
     if (newGoalId >= 0) {
+      newGoal.id = newGoalId;
       _goalCache.shouldRefresh();
+      _goalsPendingSync[DataSyncAction.updated]!.add(newGoal);
     }
 
     return newGoalId;
+  }
+
+  /// Intenta persistir [newGoal] para el perfil de usuario activo. 
+  /// 
+  /// Retorna el ID de la meta de hidratación persistida, o un entero 
+  /// negativo si no fue posible persistir la meta.
+  /// 
+  /// Lanza un [EntityPersistException] cuando le perfil activo ya ha alcanzado
+  /// el límite de metas activas simultáneas.
+  Future<int> createHydrationGoalWithLimit(Goal newGoal) async {
+
+    final bool hasNotReachedMaxNumberOfGoals = !(await hasReachedGoalCountLimit());
+
+    if (hasNotReachedMaxNumberOfGoals) {
+      return createHydrationGoal(newGoal);
+    } else {
+      throw const EntityPersistException(
+        EntityPersitExceptionType.hasReachedEntityCountLimit,
+        "El perfil actual ha alcanzado el límite de metas actias. Debe eliminar una meta antes de crear una nueva."
+      );
+    }
+  }
+
+  Future<void> syncUpdatedHydrationGoalsWithAccount() async {
+
+    final bool canSyncHydrationGoals = DataApi.instance.isAuthenticated && _goalsPendingSync.isNotEmpty;
+    if (!canSyncHydrationGoals) return; 
+
+    final Map<DataSyncAction, Set<Goal>> synchronizedGoals = {};
+
+    for (final hydrationGoalsToSync in _goalsPendingSync.entries) {
+
+      final syncAction = hydrationGoalsToSync.key;
+      final modifiedHydrationGoals = hydrationGoalsToSync.value;
+
+      switch (syncAction) {
+        case DataSyncAction.fetch:
+          break;
+        case DataSyncAction.updated:
+          await DataApi.instance.updateData<Goal>(
+            data: modifiedHydrationGoals,
+            mapper: (goal, mapOptions) => goal.toMap(options: mapOptions),
+          );
+
+          synchronizedGoals[syncAction] = Set.from(modifiedHydrationGoals);
+          break;
+        case DataSyncAction.deleted:
+          for (final deletedGoal in modifiedHydrationGoals) {
+            await DataApi.instance.deleteData<Goal>(
+              data: deletedGoal,
+              dataId: deletedGoal.id.toString(),
+            );
+
+            if (synchronizedGoals[syncAction] == null) {
+              synchronizedGoals[syncAction] = <Goal>{};
+            }
+
+            synchronizedGoals[syncAction]!.add(deletedGoal);
+          }
+          break;
+      }
+    }
+
+    for (final synchronizedGoalsForAction in synchronizedGoals.entries) {
+
+      final syncAction = synchronizedGoalsForAction.key;
+      final synchronizedGoals = synchronizedGoalsForAction.value;
+
+      if (_goalsPendingSync[syncAction] != null && _goalsPendingSync[syncAction]!.isNotEmpty) {
+        _goalsPendingSync[syncAction]!.removeWhere((goalPendingSync) {
+          return synchronizedGoals.contains(goalPendingSync);
+        });
+      }
+
+    }
   }
 
   /// Cambia la meta principal a la meta que tenga [newMainGoalId] como su ID.
@@ -255,6 +340,10 @@ class GoalsService extends ChangeNotifier {
     final modifiedRowsCount = await SQLiteDB.instance.delete(Goal.tableName, id);
 
     if (modifiedRowsCount >= 0) {
+      final deletedGoal = Goal.uncommited();
+      deletedGoal.id = id;
+
+      _goalsPendingSync[DataSyncAction.deleted]!.add(deletedGoal);
       _goalCache.shouldRefresh();
     } 
 
@@ -297,6 +386,15 @@ class GoalsService extends ChangeNotifier {
     }
 
     return newMedicalReportId;
+  }
+
+  Future<bool> hasReachedGoalCountLimit() async {
+    final currentHydrationGoals = await _fetchGoals();
+    final int numberOfExistingGoals = currentHydrationGoals.length;
+
+    final hasReachedMaxAmountOfGoals = numberOfExistingGoals >= Goal.maxSimultaneousGoals;
+
+    return hasReachedMaxAmountOfGoals;
   }
 
   Future<List<Tag>> _fetchTags() async {

@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/services/nav_provider.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/widgets/activity_sliver_list.dart';

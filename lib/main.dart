@@ -5,16 +5,20 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:workmanager/workmanager.dart';
 
+import 'package:hydrate_app/src/api/api_client.dart';
+import 'package:hydrate_app/src/api/data_api.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/routes/routes.dart';
 import 'package:hydrate_app/src/services/activity_service.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_provider.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/theme/app_themes.dart';
 import 'package:hydrate_app/src/utils/background_tasks.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// El punto de entrada de [HydrateApp]
 Future<void> main() async {
@@ -57,12 +61,31 @@ class HydrateApp extends StatelessWidget {
     }
   }
 
+  void _onProfileChanged(UserProfile? currentProfile, String? authToken) {
+
+    if (currentProfile == null) return;
+    
+    final isProfileAuthenticated = authToken != null && !isTokenExpired(authToken);
+
+    if (isProfileAuthenticated) {
+      DataApi.instance.authenticateClient(
+        authToken: authToken!, 
+        authType: ApiAuthType.bearerToken
+      );
+    } else {
+      DataApi.instance.clearClientAuthentication();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ProfileService>(
-          create: (_) => ProfileService.fromSharedPrefs( createDefaultProfile: true ),
+          create: (_) => ProfileService.fromSharedPrefs( 
+            createDefaultProfile: true,
+            onProfileChanged: _onProfileChanged,
+          ),
         ),
         ChangeNotifierProvider<DevicePairingService>(
           create: (_) => DevicePairingService(),
@@ -95,8 +118,13 @@ class HydrateApp extends StatelessWidget {
               goalProvider.forProfile(profileService.profileId);
 
               final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
-              devicePairingService.addOnNewHydrationRecordListener("save_records", (hydrationRecord) {
-                hydrationProvider.saveHydrationRecord(hydrationRecord, refreshImmediately: true);
+              devicePairingService.addOnNewHydrationRecordListener("save_records", (hydrationRecord) async {
+                await hydrationProvider.saveHydrationRecord(
+                  hydrationRecord, 
+                  refreshImmediately: true
+                );
+
+                await hydrationProvider.syncLocalHydrationRecordsWithAccount();
               });
 
               settingsService.applyCurrentSettings(

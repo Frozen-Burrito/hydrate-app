@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/api/api_client.dart';
 
-import 'package:hydrate_app/src/models/api.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 
 class GuidesDialog extends StatelessWidget {
@@ -31,7 +31,8 @@ class GuidesDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () {
-            UrlLauncher.launchUrlInBrowser(API.uriFor('guias'));
+            final url = ApiClient.urlForPage("guias");
+            UrlLauncher.launchUrlInBrowser(url);
             Navigator.pop(context, true);
           },
           //TODO: agregar i18n.
