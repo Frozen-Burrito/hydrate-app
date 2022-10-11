@@ -41,21 +41,36 @@ class Routine extends SQLiteModel {
 
   static const String tableName = 'registro_rutina';
 
+  static const String idFieldName = "id";
+  static const String daysFieldName = "dias";
+  static const String timeOfDayFieldName = "hora";
+  static const String activityIdFieldName = "id_${ActivityRecord.tableName}";
+  static const String profileIdFieldName = "id_${UserProfile.tableName}";
+
+  /// Una lista con todos los nombres base de los atributos de la entidad.
+  static const baseAttributeNames = <String>[
+    idFieldName,
+    daysFieldName,
+    timeOfDayFieldName,
+    activityIdFieldName,
+    profileIdFieldName,
+  ];
+
   @override
   String get table => tableName;
 
   static const String createTableQuery = '''
     CREATE TABLE ${Routine.tableName} (
-      id ${SQLiteKeywords.idType},
-      dias ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      hora ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
-      id_actividad ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      id_perfil ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $idFieldName ${SQLiteKeywords.idType},
+      $daysFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $timeOfDayFieldName ${SQLiteKeywords.textType} ${SQLiteKeywords.notNullType},
+      $activityIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
+      $profileIdFieldName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
-      ${SQLiteKeywords.fk} (id_${ActivityRecord.tableName}) ${SQLiteKeywords.references} ${ActivityRecord.tableName} (id)
+      ${SQLiteKeywords.fk} ($activityIdFieldName) ${SQLiteKeywords.references} ${ActivityRecord.tableName} (${ActivityRecord.idPropName})
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction},
 
-      ${SQLiteKeywords.fk} (id_${UserProfile.tableName}) ${SQLiteKeywords.references} ${UserProfile.tableName} (id)
+      ${SQLiteKeywords.fk} ($profileIdFieldName) ${SQLiteKeywords.references} ${UserProfile.tableName} (${UserProfile.idFieldName})
           ${SQLiteKeywords.onDelete} ${SQLiteKeywords.cascadeAction}
     )
   ''';
@@ -63,33 +78,68 @@ class Routine extends SQLiteModel {
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
 
-    final Map<String, Object?> map = {
-      'dias': 0x00.setDayBits(_daysOfWeek),
-      'hora': timeOfDay.toString(), 
-      'id_actividad': activityId,
-      'id_perfil': profileId
-    };
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames,
+      specificAttributeMappings: options.useCamelCasePropNames 
+      ? const {
+        profileIdFieldName: "idPerfil",
+        activityIdFieldName: "idActividad",
+      } 
+      : const {
+        profileIdFieldName: profileIdFieldName,
+        activityIdFieldName: activityIdFieldName,
+      }
+    );
 
-    if (id >= 0) map['id'] = id;
+    final Map<String, Object?> map = {};
+
+    if (id >= 0) map[attributeNames[idFieldName]!] = id;
+
+    map.addAll({
+      attributeNames[daysFieldName]!: 0x00.setDayBits(_daysOfWeek),
+      attributeNames[timeOfDayFieldName]!: _getSimpleTimeOfDay(), 
+      attributeNames[activityIdFieldName]!: activityId,
+      attributeNames[profileIdFieldName]!: profileId
+    });
 
     return map;
   }
 
   static Routine fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(), }) {
 
-    final dayBits = int.tryParse(map['dias'].toString()) ?? 0;
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames,
+      specificAttributeMappings: options.useCamelCasePropNames ? {} 
+      : const {
+        profileIdFieldName: profileIdFieldName,
+      }
+    );
 
-    final timeParts = map['hora'].toString().split(':');
-    final hours = int.tryParse(timeParts.first) ?? 0;
-    final minutes = int.tryParse(timeParts.last) ?? 0;
+    final dayBits = map.getIntegerOrDefault(attributeName: attributeNames[daysFieldName]!, defaultValue: 0 );
+
+    final int id = map.getIntegerOrDefault(attributeName: attributeNames[idFieldName]!);
+    final int activityId = map.getIntegerOrDefault(attributeName: attributeNames[activityIdFieldName]!);
+    final int profileId = map.getIntegerOrDefault(attributeName: attributeNames[profileIdFieldName]!);
+
+    final TimeOfDay timeOfDay = map.getTimeOfDayOrDefault(
+      attributeName: attributeNames[timeOfDayFieldName]!,
+      defaultValue: const TimeOfDay(hour: 0, minute: 0)
+    )!;
 
     return Routine(
       dayBits.toWeekdays,
-      id: int.tryParse(map['id'].toString()) ?? -1,
-      timeOfDay: TimeOfDay(hour: hours, minute: minutes),
-      activityId: int.tryParse(map['id_actividad'].toString()) ?? -1,
-      profileId: int.tryParse(map['id_perfil'].toString()) ?? -1,
+      id: id,
+      timeOfDay: timeOfDay,
+      activityId: activityId,
+      profileId: profileId,
     );
+  }
+
+  String _getSimpleTimeOfDay() {
+    final twoDigitHour = timeOfDay.hour.toString().padLeft(2, "0");
+    final twoDigitMinute = timeOfDay.minute.toString().padLeft(2, "0");
+
+    return "$twoDigitHour:$twoDigitMinute";
   }
 
   /// Obtiene la fecha de la siguiente ocurrencia de la rutina, después de 
@@ -116,5 +166,27 @@ class Routine extends SQLiteModel {
     assert(nextDate.isAfter(previousDate));
 
     return nextDate;
+  }
+}
+
+extension _RoutineMapExtension on Map<String, Object?> {
+
+  int getIntegerOrDefault({ required String attributeName, int defaultValue = 0 }) {
+    return int.tryParse(this[attributeName].toString()) ?? defaultValue;
+  }
+
+  TimeOfDay? getTimeOfDayOrDefault({
+    required String attributeName, 
+    TimeOfDay? defaultValue,
+  }) {
+
+    final parsedTime = this[attributeName].toString().split(':');
+
+    if (parsedTime.length < 2) return defaultValue;
+
+    final hours = int.tryParse(parsedTime.first) ?? 0;
+    final minutes = int.tryParse(parsedTime.last) ?? 0;
+
+    return TimeOfDay(hour: hours, minute: minutes);
   }
 }

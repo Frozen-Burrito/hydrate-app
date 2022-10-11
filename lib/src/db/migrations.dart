@@ -57,9 +57,9 @@ class SQLiteMigrator {
       );
       ''',
 
-      '''INSERT INTO ${Country.tableName} VALUES (0, '--');''',
-      '''INSERT INTO ${Country.tableName} VALUES (1, 'EU');''',
-      '''INSERT INTO ${Country.tableName} VALUES (2, 'MX');''',     
+      '''INSERT INTO ${Country.tableName} VALUES (1, '--');''',
+      '''INSERT INTO ${Country.tableName} VALUES (2, 'EU');''',
+      '''INSERT INTO ${Country.tableName} VALUES (3, 'MX');''',     
 
       '''INSERT INTO ${MedicalData.tableName} VALUES (0, 20.0, 17.0, 200.0, 0.0, 100.0, 137.0, "2022-09-14T13:30:00.000000", "2022-09-21T13:30:00.000000", 1);''', 
     ],

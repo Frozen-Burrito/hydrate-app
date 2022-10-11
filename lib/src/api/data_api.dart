@@ -25,7 +25,7 @@ class DataApi {
   static const String hydrationRecordsResourceName = "hidratacion";
   static const String goalsResourceName = "metas";
   static const String singleGoalResourceName = "metas/id";
-  static const String activityRecordsResourceName = "actividad-fisica";
+  static const String activityRecordsResourceName = "actividadFisica";
   static const String routinesResourceName = "rutinas";
 
   static const String openDataHydrationResourceName = "aportarDatos/hidr";

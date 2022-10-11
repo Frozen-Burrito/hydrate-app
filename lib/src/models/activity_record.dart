@@ -161,7 +161,13 @@ class ActivityRecord extends SQLiteModel {
 
     // Modificar los nombres de los atributos para el Map resultante, segun 
     // [options].
-    final attributeNames = options.mapAttributeNames(baseAttributeNames);
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames,
+      specificAttributeMappings: options.useCamelCasePropNames ? const {} 
+        : const {
+          profileIdPropName: profileIdPropName,
+        },
+    );
 
     // Comprobar que hay una entrada por cada atributo de ActivityRecord.
     assert(attributeNames.length == baseAttributeNames.length);

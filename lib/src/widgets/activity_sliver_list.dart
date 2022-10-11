@@ -121,7 +121,11 @@ class _ActivityCard extends StatelessWidget {
 
     final activity = activityRecord.activity;
     
-    final activityTypeLabel = DropdownLabels.activityLabels(context)[activity.activityType.id];
+    final activityTypeLabels = DropdownLabels.activityLabels(context);
+    final int activityTypeIndex = activityTypeLabels
+      .indexWhere((activityTypeLabel) => activityTypeLabel.activityTypeId == activityRecord.activity.activityType.id);
+
+    final activityTypeLabel = activityTypeLabels[activityTypeIndex];
 
     return Card(
       color: Theme.of(context).colorScheme.surface,
