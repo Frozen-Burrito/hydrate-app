@@ -25,6 +25,8 @@ class ValidationMessageBuilder {
   static const String passwordTooShortMsg = "La contraseña debe tener más de 8 caracteres";
   static const String passwordTooLongMsg = "La contraseña debe tener menos de 40 caracteres";
   static const String passwordRequiresSymbolsMsg = "La contraseña debe tener un número y una mayúscula";
+  static const String passwordConfirmIsRequiredMsg = "La confirmación de contraseña es obligatoria";
+  static const String passwordConfirmDoesNotMatchMsg = "La confirmación de contraseña no coincide";
 
   static final Map<String, String> activityMessages = Map.unmodifiable({
     "titleTooLong": "El título debe tener menos de ${ActivityValidator.titleLengthRange.max} caracteres",
@@ -60,6 +62,8 @@ class ValidationMessageBuilder {
       case PasswordError.passwordTooShort: return passwordTooShortMsg;
       case PasswordError.passwordTooLong: return passwordTooLongMsg;
       case PasswordError.requiresSymbols: return passwordRequiresSymbolsMsg;
+      case PasswordError.noPasswordConfirm: return passwordConfirmIsRequiredMsg;
+      case PasswordError.passwordsDoNotMatch: return passwordConfirmDoesNotMatchMsg;
       default: 
         print("Unhandled password validation message for error: $passwordError");
         return "unkown error";

@@ -1,8 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/api/config_api.dart';
-import 'package:hydrate_app/src/services/settings_service.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
@@ -10,7 +7,9 @@ import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/utils/auth_validators.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Un componente BLoC que puede recibir los valores de cada campo de un 
 /// formulario de autenticación, validarlos, enviar el formulario, y 
@@ -327,7 +326,7 @@ class AuthFormBloc {
     final isUsernameValid = _isFieldValid(usernameFieldName, _username, _usernameError.index);
     final isEmailValid = _isFieldValid(emailFieldName, _email, _emailError.index);
     final isPasswordValid = _isFieldValid(passwordFieldName, _password, _passwordError.index);
-    final isPasswordConfirmValid = _isFieldValid(emailFieldName, _passwordConfirm, _passwordConfirmError.index);
+    final isPasswordConfirmValid = _isFieldValid(passwordConfirmFieldName, _passwordConfirm, _passwordConfirmError.index);
 
     return isUsernameValid && isEmailValid && isPasswordValid && isPasswordConfirmValid;
   }

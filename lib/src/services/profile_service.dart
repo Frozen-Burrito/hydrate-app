@@ -587,6 +587,8 @@ class ProfileService extends ChangeNotifier {
       UserProfile.tableName,
       where: whereQuery,
       limit: 1,
+      queryManyToMany: true,
+      includeOneToMany: true,
     );
 
     final localProfile = queryResults.length == 1 ? queryResults.single : null;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
@@ -8,7 +9,6 @@ import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
-import 'package:provider/provider.dart';
 
 class SignupForm extends StatelessWidget {
 
@@ -57,7 +57,7 @@ class SignupForm extends StatelessWidget {
     switch (authResult) {
       case AuthResult.credentialsError:
         //TODO: Add i18n
-        message = "El login o la contraseña no coinciden";
+        message = "El email o usuario no está disponible";
         break;
       case AuthResult.serviceUnavailable:
         message = localizations.errCheckInternetConn;
@@ -292,7 +292,7 @@ class _SignUpFormFields extends StatelessWidget {
                     helperText: ' ',
                     errorText: validationMsgBuilder.messageForPassword(snapshot.data!),
                   ),
-                  onChanged: (passwordValue) => bloc.passwordSink.add(passwordValue),
+                  onChanged: (passwordConfirmValue) => bloc.passwordConfirmSink.add(passwordConfirmValue),
                 );
               }
             ),
