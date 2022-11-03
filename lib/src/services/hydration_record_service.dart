@@ -30,6 +30,9 @@ class HydrationRecordService extends ChangeNotifier {
 
   final List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
 
+  //TODO: Arreglar el problema bien, en vez de usar este workaround.
+  final HydrationRecord? latestHydrationRecord = null;
+
   bool get hasHydrationData => _hydrationRecordsCache.hasData;
 
   Future<List<HydrationRecord>?> get allRecords => _hydrationRecordsCache.data;
@@ -96,6 +99,19 @@ class HydrationRecordService extends ChangeNotifier {
   /// Si [hydrationRecord] no pudo ser persistido, este método retorna un 
   /// entero negativo.
   Future<int> saveHydrationRecord(HydrationRecord hydrationRecord, { refreshImmediately = true }) async {
+
+    final latestDate = latestHydrationRecord?.date;
+    final latestAmount = latestHydrationRecord?.amount;
+
+    final bool hasSameDate = latestDate != null && latestDate.isAtSameMomentAs(hydrationRecord.date);
+    final bool hasSameAmount = latestAmount != null && latestAmount == hydrationRecord.amount;
+
+    if (hasSameDate && hasSameAmount) 
+    {
+      debugPrint("A repeated hydration record would have been saved.");
+      return latestHydrationRecord!.id;
+    }
+
     // Asegurar que el nuevo registro de hidratación sea asociado con el 
     // perfil de usuario activo.
     hydrationRecord.profileId = _profileId;

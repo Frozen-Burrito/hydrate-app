@@ -70,6 +70,18 @@ class GoalsService extends ChangeNotifier {
     return data ?? const <Goal>[];
   });
 
+  Future<List<Goal>> get recommendedGoals async {
+    final activeGoals = (await _goalCache.data) ?? <Goal>[];
+
+    final Goal? recommendedGoal = await _createGoalRecommendation([], []);
+
+    if (recommendedGoal != null) {
+      activeGoals.add(recommendedGoal);
+    }
+
+    return activeGoals;
+  }
+
   Future<Goal?> get mainActiveGoal => _goalCache.data.then((data) {
     final goals = data ?? const <Goal>[];
 
@@ -332,6 +344,10 @@ class GoalsService extends ChangeNotifier {
 
     _goalCache.refresh();
     return newMainGoal.id;
+  }
+
+  Future<Goal?> _createGoalRecommendation(List<Goal> activeGoals, List<HydrationRecord> hydrationForPastWeek) async {
+
   }
 
   /// Elimina una meta de hidratación existente.

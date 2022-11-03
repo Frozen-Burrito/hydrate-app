@@ -58,27 +58,42 @@ class ArticleSliverList extends StatelessWidget {
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.all(8.0),
-                    sliver: hasError 
-                      // Mostrar un placeholder de error.
-                      ? SliverToBoxAdapter(
-                          child: DataPlaceholder(
-                            message: localizations.resourcesErr,
-                            icon: articleSource == ArticleSource.bookmarks
-                              ? Icons.folder_open 
-                              : Icons.cloud_off_rounded,
-                          ),
-                        )
-                      : SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int i) {
-                            return _ArticleCard(
-                              article: articles[i],
-                              source: articleSource,
-                            );
-                          },
-                          childCount: articles.length
-                        )
-                      ),
+                    sliver: Builder(
+                      builder: (context) {
+                        if (hasError) {
+                          return SliverToBoxAdapter(
+                            child: DataPlaceholder(
+                              message: localizations.resourcesErr,
+                              icon: articleSource == ArticleSource.bookmarks
+                                ? Icons.folder_open 
+                                : Icons.cloud_off_rounded,
+                            ),
+                          );
+                        } else if (articles.isEmpty && !isLoading)
+                        {
+                          return SliverToBoxAdapter(
+                            child: DataPlaceholder(
+                              message: localizations.resourcesUnavailable,
+                              icon: articleSource == ArticleSource.bookmarks
+                                ? Icons.inbox 
+                                : Icons.cloud_off_rounded,
+                            ),
+                          );
+                        } else {
+                          return SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (BuildContext context, int i) {
+                                return _ArticleCard(
+                                  article: articles[i],
+                                  source: articleSource,
+                                );
+                              },
+                              childCount: articles.length
+                            )
+                          );
+                        }
+                      }
+                    ),  
                   )
                 ]
               ),

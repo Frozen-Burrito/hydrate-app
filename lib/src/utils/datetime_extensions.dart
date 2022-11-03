@@ -101,7 +101,7 @@ extension DayOfWeekExtensions on int {
     
     int flagSet = this;
 
-    for (var day in daysOfWeek) { 
+    for (int day in daysOfWeek) { 
       flagSet |= dayFlagValues[day];
     }
 
@@ -115,8 +115,8 @@ extension DayOfWeekExtensions on int {
 
     List<int> weekdays = <int>[];
     
-    for (var i = 1; i <= 7; i++) {
-      if ((this & (1 << i)) != 0) {
+    for (int i = 1; i <= 7; i++) {
+      if ((this & dayFlagValues[i]) == dayFlagValues[i]) {
         weekdays.add(i);
       }
     } 

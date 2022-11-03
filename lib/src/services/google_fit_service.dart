@@ -43,9 +43,8 @@ class GoogleFitService {
   //TODO: obtener la fecha de la sincronizacion mas reciente de FitnessData, para
   // solo obtener los datos a partir de esa fecha.
   DateTime? _tempStartTime;
-  DateTime? _tempLatestHydrationSyncTime;
 
-  List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
+  final List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
 
   static final List<int> _supportedFitnessApiActTypes = [
     GoogleFitActivityType.unknown,
@@ -68,7 +67,6 @@ class GoogleFitService {
   ];
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // serverClientId: "845399101862-05j142vf3o72u5pbfod1er178dgcde9e.apps.googleusercontent.com",
     scopes: scopes,
   );
 
@@ -76,7 +74,6 @@ class GoogleFitService {
 
   static const String _currentUserId = "me";
 
-  static const String _caloriesBurnedDataTypeName = "com.google.calories.expended";
   static const String _hydrationDataTypeName = "com.google.hydration";
   
   static final DataType _hydrationDataType = DataType(
@@ -93,12 +90,10 @@ class GoogleFitService {
   static const String _hydrateHydrationDataSourceName = "HydrateAppHydration";
 
   static const String _mergeCaloriesExpDataStreamId = "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended";
-  static const String _userInputCaloriesExpDataStreamId = "raw:com.google.calories.expended:com.google.android.apps.fitness:user_input";
 
   static const String _rawDataSourceType = "raw";
 
   static const String _dataStreamIdField = "dataStreamId";
-  static const String _dataSourceStreamIdFieldAndName = "dataSource.$_dataStreamIdField,dataSource.dataStreamName,dataSource.type";
   static const String _sessionListFields = "session.id,session.name,session.startTimeMillis,session.endTimeMillis,session.activityType,session.activeTimeMillis,session.modifiedTimeMillis";
 
   static const int _caloriesDataPointsLimitPerResponse = 50;

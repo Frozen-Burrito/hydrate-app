@@ -217,6 +217,7 @@ class UserProfile extends SQLiteModel {
         : {
           userAccountIdFieldName: userAccountIdFieldName,
           linkedProfileIdFieldName: linkedProfileIdFieldName,
+          // countryFieldName: countryFieldName,
         }
     );
     
@@ -631,7 +632,11 @@ extension _UserProfileMapExtension on Map<String, Object?> {
         country = (this[attributeName] as Country?) ?? Country.countryNotSpecified;
         break;
       case EntityMappingType.asMap:
-        country = Country.fromMap(this[attributeName] as Map<String, Object?>);
+        if (this[attributeName] is Map<String, Object?>) {
+          country = Country.fromMap(this[attributeName] as Map<String, Object?>);
+        } else {
+          country = Country.countryNotSpecified;
+        }
         break;
       case EntityMappingType.idOnly:
         final int countryId = int.tryParse(this[attributeName].toString()) ?? -1;

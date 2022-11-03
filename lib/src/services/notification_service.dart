@@ -8,6 +8,10 @@ import 'package:hydrate_app/src/api/config_api.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
+typedef MessageHandler = Future<void> Function(RemoteMessage);
+
+typedef MessageErrorHandler = void Function(Object);
+
 /// Mantiene toda la información y funciones para usar el plugin de Firebase Cloud 
 /// Messaging (FCM) en la app.
 class NotificationService {
@@ -19,11 +23,13 @@ class NotificationService {
   /// El número máximo de handlers de segundo plano que puede haber registrados.
   static const maxBackgroundHandlers = 3;
 
+  static StreamSubscription<String>? _onTokenRefreshSubscription;
+
+  static final List<StreamSubscription<RemoteMessage>> _foregroundMessageHandlers = [];
+
   /// Una colección de funciones que son ejecutadas cuando la app recibe
   /// un mensaje mientras está en segundo plano.
-  static final List<Future<void> Function(RemoteMessage)> _backgroundActions = [];
-
-  static StreamSubscription<String>? _onTokenRefreshSubscription;
+  static final List<StreamSubscription<RemoteMessage>> _backgroundHandlers = [];
 
   static FirebaseApp? _firebaseApp;
 
@@ -52,8 +58,7 @@ class NotificationService {
     _onTokenRefreshSubscription?.onError(_onTokenRefreshError);
 
     if (isInDebugMode) {
-      addForegroundHandler((RemoteMessage message) {
-        debugPrint("Se recibió un mensaje estando en foreground!");
+      addForegroundHandler((RemoteMessage message) async {debugPrint("Se recibió un mensaje estando en foreground!");
         debugPrint("Datos del mensaje: ${message.data}");
 
         if (message.notification != null) {
@@ -61,17 +66,8 @@ class NotificationService {
         }
       });
 
-      addBackgroundHandler((RemoteMessage message) {
-        debugPrint("Ejecutando handler para mensajes en segundo plano.");
-
-        return Future.value();
-      });
+      FirebaseMessaging.onBackgroundMessage(_backgroundMessageHandler);
     }
-  }
-
-  void disable() {
-    _onTokenRefreshSubscription?.cancel();
-    _onTokenRefreshSubscription = null;
   }
 
   Future<void> sendFcmTokenToServer(String userAuthToken) async {
@@ -93,15 +89,20 @@ class NotificationService {
     }
   }
 
-  /// Obtiene el token de registro en FCM de esta instancia de la app. Este token
-  /// debe ser actualizado con regularidad en el backend, incluyendo un timestamp.
-  Future<String?> get registrationToken async {
+  void disable() {
 
-    final fcmToken = await FirebaseMessaging.instance.getToken();
-    
-    print('Token de FCM: $fcmToken');
+    _cancelForegroundHandlers();
 
-    return fcmToken;
+    _onTokenRefreshSubscription?.cancel();
+    _onTokenRefreshSubscription = null;
+  }
+
+  void _cancelForegroundHandlers() {
+    for (final foregroundHandler in _foregroundMessageHandlers) {
+      foregroundHandler.cancel();
+    }
+
+    _foregroundMessageHandlers.clear();
   }
 
   Future<void> _sendTokenToServer(String? newFcmToken, String authToken) async {
@@ -131,39 +132,22 @@ class NotificationService {
   /// Para registrar un handler de eventos FCM cuando la app esté en segundo 
   /// plano, se puede usar [NotificationsService.addBackgroundHandler()] 
   static void addForegroundHandler(
-    void Function(RemoteMessage)? onForegroundData,
-    { void Function()? onErrorHandler }
+    MessageHandler onForegroundData,
+    { MessageErrorHandler? onErrorHandler }
   ) {
 
-    FirebaseMessaging.onMessage.listen(
+    final foregroundHandlerSubscription = FirebaseMessaging.onMessage.listen(
       onForegroundData,
-      // onError: onErrorHandler 
+      onError: onErrorHandler
     );
 
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    _foregroundMessageHandlers.add(foregroundHandlerSubscription);
   }
+}
 
-  /// Registra una función __[handler]__ específica para que FCM ejecute cuando 
-  /// reciba un mensaje mientras la app está en segundo plano.
-  /// 
-  /// El __[handler]__ debe ser breve, asíncrono e independiente de la inicialización
-  /// de una clase.
-  void addBackgroundHandler(Future<void> Function(RemoteMessage) handler) {
+Future<void> _backgroundMessageHandler(RemoteMessage message) async {
+  
+  await Firebase.initializeApp();
 
-    if (_backgroundActions.length < maxBackgroundHandlers) {
-      _backgroundActions.add(handler);
-    }
-  }
-
-  static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-    
-    await Firebase.initializeApp();
-
-    print("Manejando un mensaje en el background: ${message.messageId}");
-
-    for (var handler in _backgroundActions) {
-      // Ejecutar cada handler registrado, si es que los hay.
-      handler(message);
-    }
-  }
+  print("Manejando un mensaje en el background: ${message.messageId}");
 }

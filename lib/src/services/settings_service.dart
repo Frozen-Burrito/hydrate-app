@@ -99,12 +99,18 @@ class SettingsService with ChangeNotifier {
       final bool wereNotificationsDisabled = changes.notificationPreferences
         .contains(NotificationSource.disabled);
       
+      final bool canNotificationPrefsBeChanged;
+
       // Si las notificaciones fueron desactivadas, no hay ningún requisito 
       // para el cambio. Si fueron activadas, es necesario que la app tenga 
       // el permiso de recibir notificaciones.
-      final bool canNotificationPrefsBeChanged = wereNotificationsDisabled
-        ? true
-        : await Permission.notification.request().isGranted;
+      if (wereNotificationsDisabled) {
+        canNotificationPrefsBeChanged = true;
+      } else if (await Permission.notification.isDenied) {
+        canNotificationPrefsBeChanged = await openAppSettings();
+      } else {
+        canNotificationPrefsBeChanged = false;
+      }
 
       if (canNotificationPrefsBeChanged) {
         enabledNotificationSources = changes.notificationPreferences;
@@ -178,11 +184,13 @@ class SettingsService with ChangeNotifier {
         NotificationService.instance.init(
           isInDebugMode: true,
           authToken: userAuthToken,
-        );
+        ).then((_) {
+          NotificationService.instance.sendFcmTokenToServer(userAuthToken);
+        });
 
-        NotificationService.instance.sendFcmTokenToServer(userAuthToken);
       } else {
-        NotificationService.instance.clearFcmToken(userAuthToken);
+        NotificationService.instance.clearFcmToken(userAuthToken)
+          .then((_) => NotificationService.instance.disable());
       }
     } 
     

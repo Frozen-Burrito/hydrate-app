@@ -108,7 +108,7 @@ class SQLiteDB {
   /// Inserta un [SQLiteModel] en la base de datos.
   /// 
   /// [entity] es convertida a un mapa usando su método [SQLiteModel.toMap()], 
-  /// con las opciones especificadas en [entityFromRecordMappingOptions]. Estas opciones 
+  /// con las opciones especificadas en [entityToMapOptions]. Estas opciones 
   /// determinan la forma en que serán manejadas las relaciones y transformación
   /// a columnas de SQLite.
   /// 

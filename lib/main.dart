@@ -121,7 +121,7 @@ class HydrateApp extends StatelessWidget {
               devicePairingService.addOnNewHydrationRecordListener("save_records", (hydrationRecord) async {
                 await hydrationProvider.saveHydrationRecord(
                   hydrationRecord, 
-                  refreshImmediately: true
+                  refreshImmediately: false
                 );
 
                 await hydrationProvider.syncLocalHydrationRecordsWithAccount();
@@ -137,7 +137,7 @@ class HydrateApp extends StatelessWidget {
                 title: "Hydrate App",
                 initialRoute: _getInitialAppRoute(
                   settingsService.appStartups, 
-                  profileService.doesDefaultProfileRequireSignIn
+                  false,
                 ),
                 // Configuracion del tema de color.
                 theme: AppThemes.appLightTheme,

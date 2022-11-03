@@ -341,8 +341,7 @@ class ArticleService with ChangeNotifier {
   /// inmediato.
   void _handleOnArticlesLoaded(List<Article>? fetchedArticles) {
 
-    final shouldNotify = _isMounted && fetchedArticles != null 
-                      && fetchedArticles.isNotEmpty;
+    final shouldNotify = _isMounted && fetchedArticles != null;
     
     // Si no es apropiado notificar a los listeners con los nuevos resultados,
     // retornar de inmediato.

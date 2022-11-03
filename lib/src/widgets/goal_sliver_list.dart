@@ -13,36 +13,44 @@ import 'package:hydrate_app/src/widgets/shapes.dart';
 
 class GoalSliverList extends StatelessWidget {
 
-  const GoalSliverList({Key? key}) : super(key: key);
+  const GoalSliverList({
+    Key? key,
+    required this.hydrationGoalSource,
+    this.showPlaceholderWhenEmpty = true,
+    this.showLoadingIndicator = true,
+  }) : super(key: key);
+
+  final Future<List<Goal>> hydrationGoalSource;
+
+  final bool showPlaceholderWhenEmpty;
+
+  final bool showLoadingIndicator;
 
   @override
   Widget build(BuildContext context) {
 
-    final goalsProvider = Provider.of<GoalsService>(context);
-    
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
       sliver: FutureBuilder<List<Goal>?>(
-        future: goalsProvider.goals,
+        future: hydrationGoalSource,
         builder: (context, snapshot) {
           
           if (snapshot.hasData) {
 
-            final goals = snapshot.data;
+            final hydrationGoals = snapshot.data ?? const <Goal>[];
 
-            if (goals != null && goals.isNotEmpty) {
-
+            if (hydrationGoals.isNotEmpty) {
               return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int i) {
                     return _GoalCard(
-                      goal: goals[i],
+                      goal: hydrationGoals[i],
                     );
                   },
-                  childCount: goals.length,
+                  childCount: hydrationGoals.length,
                 ),
               );
-            } else {
+            } else if (showPlaceholderWhenEmpty) {
               // Retornar un placeholder si los datos están cargando, o no hay datos aín.
               //TODO: Agregar i18n.
               return SliverToBoxAdapter(
@@ -72,7 +80,7 @@ class GoalSliverList extends StatelessWidget {
                 hasTopSpacing: false,
               ),
             ); 
-          } else {
+          } else if (showLoadingIndicator) {
             // El future no tiene datos ni error, aún no ha sido
             // completado.
             return const SliverToBoxAdapter(
@@ -82,6 +90,10 @@ class GoalSliverList extends StatelessWidget {
               ),
             );  
           }
+
+          return const SliverToBoxAdapter(
+            child: SizedBox( height: 0.0, width: 0.0 )
+          );
         },
       ),
     );

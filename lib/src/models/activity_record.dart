@@ -4,6 +4,7 @@ import "package:hydrate_app/src/db/sqlite_model.dart";
 import "package:hydrate_app/src/models/activity_type.dart";
 import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:hydrate_app/src/models/models.dart';
 import "package:hydrate_app/src/models/user_profile.dart";
 import 'package:hydrate_app/src/models/validators/activity_validator.dart';
 
@@ -163,7 +164,13 @@ class ActivityRecord extends SQLiteModel {
     // [options].
     final attributeNames = options.mapAttributeNames(
       baseAttributeNames,
-      specificAttributeMappings: options.useCamelCasePropNames ? const {} 
+      specificAttributeMappings: options.useCamelCasePropNames 
+        ? const {
+          kcalPropName: "kcalQuemadas",
+          outdoorsPropName: "fueAlAireLibre",
+          actTypeIdPropName: "idTipoDeActividad",
+          isRoutinePropName: "rutina",
+        } 
         : const {
           profileIdPropName: profileIdPropName,
         },
@@ -197,12 +204,17 @@ class ActivityRecord extends SQLiteModel {
       map[attributeNames[isRoutinePropName]!] = isRoutine;
     }
 
+    //TODO: arreglar este metodo
     switch (options.subEntityMappingType) {
       case EntityMappingType.noMapping:
         map[attributeNames[actTypeIdPropName]!] = activityType;
         break;
       case EntityMappingType.asMap:
         map[attributeNames[actTypeIdPropName]!] = activityType.toMap(options: options);
+        if (options.useCamelCasePropNames) {
+          map[attributeNames[actTypeIdPropName]!] = activityType.id;
+          map[attributeNames[isRoutinePropName]!] = null;
+        } 
         break;
       case EntityMappingType.idOnly:
         map[attributeNames[actTypeIdPropName]!] = activityType.id;

@@ -62,11 +62,9 @@ class MapOptions {
     final bool shouldApplyAutoMapping = !(specificAttributeMappings.containsKey(attribute));
 
     if (shouldApplyAutoMapping) {
-      // if (includeCompleteSubEntities) {
-      //   transformedAttribute = transformedAttribute.replaceFirst("id_", "");
-      // }
       switch (subEntityMappingType) { 
         case EntityMappingType.noMapping:
+          break;
         case EntityMappingType.asMap:
           transformedAttribute = transformedAttribute.replaceFirst("id_", "");
           break;
@@ -90,4 +88,34 @@ class MapOptions {
 
     return MapEntry(attribute, transformedAttribute);
   }
+
+  @override
+  String toString() {
+    final strBuf = StringBuffer("MapOptions {");
+
+    strBuf.writeAll(["useCamelCasePropNames:", useCamelCasePropNames, ", "]);
+    strBuf.writeAll(["subEntityMappingType:", subEntityMappingType.name, ", "]);
+    strBuf.writeAll(["useIntBooleanValues:", useIntBooleanValues, ", "]);
+
+    strBuf.write("}");
+
+    return strBuf.toString();      
+  }
+
+  @override
+  bool operator==(covariant MapOptions other) {
+
+    final bool usesCamelCase = useCamelCasePropNames == other.useCamelCasePropNames;
+    final bool hasSameSubEntityMapping = subEntityMappingType == other.subEntityMappingType;
+    final bool convertsBooleansToIntegers = useIntBooleanValues == other.useIntBooleanValues;
+
+    return usesCamelCase && hasSameSubEntityMapping && convertsBooleansToIntegers;
+  }
+  
+  @override
+  int get hashCode => Object.hashAll([
+    useCamelCasePropNames,
+    subEntityMappingType,
+    useIntBooleanValues,
+  ]);
 }

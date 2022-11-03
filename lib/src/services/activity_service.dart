@@ -373,6 +373,7 @@ class ActivityService extends ChangeNotifier {
 
   /// Retorna una lista con las cantidades totales de kilocalorías quemadas por 
   /// día en las actividades de los 7 días más recientes.
+  //TODO: revisar la manera en que este método obtiene los rangos de fechas.
   Future<List<int>> _previousSevenDaysTotals({ bool includeToday = true }) async {
 
     final List<int> kcalTotals = List.filled(7, 0);
@@ -389,6 +390,7 @@ class ActivityService extends ChangeNotifier {
       includeRoutines: true,
     );
 
+    //TODO: Cambiar esto por un for estructurado.
     activitiesInPastWeek.forEach((day, activities) {
       // Sumar la cantidad de kCal quemadas de cada actividad en el día pasado.
       int totalKcal = 0;

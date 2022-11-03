@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -65,7 +66,23 @@ class HomeTab extends StatelessWidget {
             )
           ),
 
-          const GoalSliverList(),
+          Consumer<GoalsService>(
+            builder: (_, hydrationGoalService, __) {
+              return GoalSliverList(
+                hydrationGoalSource: hydrationGoalService.goals,
+              );
+            }
+          ),
+
+          // Consumer<GoalsService>(
+          //   builder: (_, hydrationGoalService, __) {
+          //     return GoalSliverList(
+          //       hydrationGoalSource: hydrationGoalService.recommendedGoals,
+          //       showLoadingIndicator: false,
+          //       showPlaceholderWhenEmpty: false,
+          //     );
+          //   }
+          // ),
         ], 
       ),
     );
