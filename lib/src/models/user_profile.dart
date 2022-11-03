@@ -167,6 +167,17 @@ class UserProfile extends SQLiteModel {
   ];
 
   static const Map<String, String> jsonApiAttributeNames = <String, String>{
+    idFieldName: "id",
+    firstNameFieldName: "nombre",
+    lastNameFieldName: "apellido",
+    dateOfBirthFieldName: "fechaNacimiento",
+    heightFieldName: "estatura",
+    weightFieldName: "peso",
+    occupationFieldName: "ocupacion",
+    modificationCountFieldName: "numModificaciones",
+    createdAtFieldName: "fechaCreacion",
+    modifiedAtFieldName: "fechaModificacion",
+    latestSyncWithGoogleFitFieldName: "fechaSyncConGoogleFit",
     sexFieldName: "sexoUsuario",
     medicalConditionFieldName: "condicionMedica",
     userAccountIdFieldName: "idCuentaUsuario",
@@ -205,7 +216,13 @@ class UserProfile extends SQLiteModel {
     )
   ''';
 
-  static UserProfile fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(),}) {
+  static UserProfile fromMap(
+    Map<String, Object?> map, { 
+      MapOptions options = const MapOptions(),
+      List<Country> existingCountries = const <Country>[],
+      List<Environment> allEnvironments = const <Environment>[],
+    }
+  ) {
 
     final bool obtainedFromJson = options.useCamelCasePropNames;
     // Modificar los nombres de los atributos que serán usados para acceder
@@ -222,8 +239,9 @@ class UserProfile extends SQLiteModel {
     );
     
     final Country country = map.getCountryOrDefault(
-      attributeName: attributeNames[countryFieldName]!,
+      attributeName: (options.useCamelCasePropNames && options.subEntityMappingType == EntityMappingType.asMap) ? "paisDeResidencia" : attributeNames[countryFieldName]!,
       mappingType: options.subEntityMappingType,
+      existingCountries: existingCountries,
     );
 
     final userSexIndex = map.getEnumIndex(
@@ -243,7 +261,7 @@ class UserProfile extends SQLiteModel {
 
     final unlockedEnvironments = map.getUnlockedEnvironmentsOrDefault(
       attributeName: attributeNames[unlockedEnvsFieldName]!,
-      existingEnvironments: []
+      existingEnvironments: allEnvironments,
     );
 
     final selectedEnvIdAttributeValue = map[attributeNames[selectedEnvFieldName]].toString();
@@ -330,7 +348,7 @@ class UserProfile extends SQLiteModel {
         map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments;
         break;
       case EntityMappingType.asMap:
-        map[attributeNames[countryFieldName]!] = _country.toMap(options: options);
+        map[options.useCamelCasePropNames ? "paisDeResidencia" : (attributeNames[countryFieldName]!)] = _country.toMap(options: options);
         map[attributeNames[unlockedEnvsFieldName]!] = _unlockedEnvironments
           .map((environment) => environment.toMap(options: options))
           .toList();
@@ -656,14 +674,16 @@ extension _UserProfileMapExtension on Map<String, Object?> {
     List<Environment> existingEnvironments = const <Environment>[],
   }) {
     final List<Environment> unlockedEnvironments = <Environment>[];
-    final unlockedEnvironmentsFromMap = this[attributeName];
+    final Object? unlockedEnvironmentsFromMap = this[attributeName];
+
+    print("Type: ${unlockedEnvironmentsFromMap.runtimeType}");
 
     if (unlockedEnvironmentsFromMap is List<Map<String, Object?>>) {
       unlockedEnvironments.addAll(
         unlockedEnvironmentsFromMap.map((environment) => Environment.fromMap(environment))
         .toList()
       );
-    } else if (unlockedEnvironmentsFromMap is List<int>) {
+    } else if (unlockedEnvironmentsFromMap is List<dynamic>) {
       unlockedEnvironments.addAll(
         existingEnvironments.where((environment) => unlockedEnvironmentsFromMap.contains(environment.id))
       );

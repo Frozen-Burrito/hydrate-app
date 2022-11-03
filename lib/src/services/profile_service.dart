@@ -245,13 +245,13 @@ class ProfileService extends ChangeNotifier {
   }
 
   Future<List<Environment>> _fetchAllEnvironments() async {
-    // Query a BD.
+
     final queryResults = await SQLiteDB.instance.select<Environment>(
       Environment.fromMap, 
       Environment.tableName,
     );
 
-    return Future.value(queryResults.toList());
+    return queryResults.toList();
   }
 
   Future<List<Country>> _fetchCountries() async {
@@ -287,10 +287,17 @@ class ProfileService extends ChangeNotifier {
     final int existingLinkedProfileId = await findProfileLinkedToAccount(userAccountId); 
     final localProfileExists = existingLinkedProfileId >= UserProfile.defaultProfileId;
 
+    final allLocalCountries = await _fetchCountries();
+    final allLocalEnvironments = await _fetchAllEnvironments();
+
     // Obtener el perfil para userAccountId desde el servicio web.
     final _authApi = AuthApi();
 
-    final profileFromAuthService = await _authApi.fetchProfileForAccount(authToken);
+    final profileFromAuthService = await _authApi.fetchProfileForAccount(
+      authToken,
+      allCountries: allLocalCountries,
+      allEnvironments: allLocalEnvironments,
+    );
 
     _authApi.dispose();
 
@@ -488,15 +495,15 @@ class ProfileService extends ChangeNotifier {
       if (currentProfile!.hasCriticalChanges(_profileChanges)) {
         // Los cambios deben ser restringidos por el numero de modificaciones en el
         // perfil.
-        if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {
-          // El perfil ya alcanzó el límite de modificaciones restringidas.
-          // Reestablecer los cambios al perfil.
-          _profileChanges = UserProfile.modifiableCopyOf(_profileCache.cachedData!);
-          // El perfil no debe ser modificado.
-          return SaveProfileResult.reachedChangeLimit;
-        }
+        // if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {
+        //   // El perfil ya alcanzó el límite de modificaciones restringidas.
+        //   // Reestablecer los cambios al perfil.
+        //   _profileChanges = UserProfile.modifiableCopyOf(_profileCache.cachedData!);
+        //   // El perfil no debe ser modificado.
+        //   return SaveProfileResult.reachedChangeLimit;
+        // }
 
-        _profileChanges.recordModification();
+        // _profileChanges.recordModification();
       }
 
       // Intentar guardar los cambios al perfil existente
@@ -565,7 +572,7 @@ class ProfileService extends ChangeNotifier {
 
     try {
 
-      await _authApi.updateProfileChanges(authToken, localProfileChanges);
+      await _authApi.updateProfileWithChanges(authToken, localProfileChanges);
 
     } on ApiException catch (ex) {
       //TODO: notificar al usuario que su perfil no pudo ser sincronizado.

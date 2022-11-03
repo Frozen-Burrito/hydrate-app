@@ -11,7 +11,7 @@ class Country extends SQLiteModel {
 
   Country.uncommitted() : this( id: -1, code: "--" );
 
-  static const unspecifiedCountryId = 0;
+  static const unspecifiedCountryId = 1;
 
   static final countryNotSpecified = Country( 
     id: unspecifiedCountryId, 

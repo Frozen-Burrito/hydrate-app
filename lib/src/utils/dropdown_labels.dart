@@ -39,7 +39,7 @@ class DropdownLabels {
 
     return countries.map((country) {
       return DropdownMenuItem(
-        value: country.id,
+        value: country.id - 1,
         child: Text(labels[country.code] ?? 'No especificado', overflow: TextOverflow.ellipsis,),
       );
     }).toList();

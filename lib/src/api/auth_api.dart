@@ -147,7 +147,12 @@ class AuthApi {
   /// Si [authToken] no tiene un formato válido, ocurre un error al enviar
   /// la petición o la respuesta no es la esperada, este método lanza un 
   /// [ApiException].
-  Future<UserProfile> fetchProfileForAccount(String authToken) async {
+  Future<UserProfile> fetchProfileForAccount(
+    String authToken, {
+      List<Country> allCountries = const <Country>[],
+      List<Environment> allEnvironments = const <Environment>[],
+    }
+  ) async {
     try {
       
       final int currentProfileId = getProfileIdFromJwt(authToken);
@@ -167,9 +172,14 @@ class AuthApi {
         // De-serializar el perfil de usuario desde el cuerpo de la respuesta.
         final Map<String, Object?> profileJsonData = json.decode(response.body);
         
-        final perfil = UserProfile.fromMap(profileJsonData, options: ApiClient.defaultJsonMapOptions);
+        final profile = UserProfile.fromMap(
+          profileJsonData, 
+          options: ApiClient.defaultJsonMapOptions,
+          existingCountries: allCountries,
+          allEnvironments: allEnvironments,
+        );
 
-        return perfil;
+        return profile;
 
       } else {
         // Usar el manejador por defecto de errores en respuesta.
@@ -205,7 +215,7 @@ class AuthApi {
     } 
   }
 
-  Future<void> updateProfileChanges(String authToken, UserProfile profileChanges) async {
+  Future<void> updateProfileWithChanges(String authToken, UserProfile profileChanges) async {
 
     final int profileId = getProfileIdFromJwt(authToken);
 

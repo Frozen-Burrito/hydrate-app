@@ -69,6 +69,7 @@ class MapOptions {
           transformedAttribute = transformedAttribute.replaceFirst("id_", "");
           break;
         case EntityMappingType.idOnly:
+          //TODO: Revisar como se aplica esta opcion, en el caso del perfil, no parece correcta.
           if (!transformedAttribute.startsWith("id_")) {
             transformedAttribute = "id_" + transformedAttribute;
           }
