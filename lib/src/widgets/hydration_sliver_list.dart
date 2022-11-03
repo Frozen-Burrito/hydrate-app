@@ -259,9 +259,9 @@ class _MedicalRecordData extends StatelessWidget {
                   .isAtSameMomentAs(hydrationRecords.first.date)
                 );
 
-            // if (recordsForDate.isNotEmpty) {
+            if (recordsForDate.isNotEmpty) {
 
-              final medicalRecord = MedicalData(id: 1, profileId: 1, hypervolemia: 0.0, postDialysisWeight: 0.0, extracellularWater: 0.0, normovolemia: 0.0, recommendedGain: 20.0, actualGain: 10.0, nextAppointment: DateTime.now(), createdAt: DateTime.now());
+              final medicalRecord = recordsForDate.first;
 
               //TODO: agregar i18n
               return Theme(
@@ -314,7 +314,7 @@ class _MedicalRecordData extends StatelessWidget {
                 ),
               );
             } 
-          // } 
+          } 
 
           // Si no hay registros médicos, o no hay uno que coincida con la 
           // fecha de hydrationRecord retornar un SizedBox vacío.

@@ -1,9 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/api/data_api.dart';
-import 'package:permission_handler/permission_handler.dart';
 
+import 'package:hydrate_app/src/api/data_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/models/models.dart';
@@ -85,8 +82,15 @@ class ActivityService extends ChangeNotifier {
 
   /// Obtiene todos los [ActivityRecord] de los 7 días más recientes, agrupados 
   /// por día, con los registros más recientes primero. 
-  Future<Map<DateTime, List<RoutineOccurrence>>> get activitiesFromPastWeek async {
-    return Future.value(_getActivitiesFromPastWeek());
+  Future<List<List<RoutineOccurrence>>> get activitiesFromPastWeek {
+    final now = DateTime.now();
+    final aWeekAgo = now.onlyDate.subtract(const Duration( days: 7 ));
+    
+    return _getActivitiesInDateRange(
+      begin: aWeekAgo,
+      end: now,
+      sortByDateAscending: false,
+    );
   }
 
   Future<int> get activitiesToday => _getNumberOfActivitiesRecordedToday();
@@ -122,19 +126,16 @@ class ActivityService extends ChangeNotifier {
   /// [activity.isExhausting] sea __true__. 
   /// 
   /// También retorna __false__ si [activityRecords] es nulo.
-  bool hasExhaustingActivities(Map<DateTime, List<RoutineOccurrence>>? activityRecords) {
+  bool hasExhaustingActivities(List<List<RoutineOccurrence>> activityRecords) {
 
     bool hasExhausting = false;
 
-    if (activityRecords != null) {
-      // Solo buscar actividades si activityRecords no es nulo.
-      activityRecords.forEach((date, activities) {
-        
-        if (activities.any((record) => record.activity.isExhausting)) {
-          hasExhausting = true;
-          return;
-        }
-      });
+    // Solo buscar actividades si activityRecords no es nulo.
+    for (final activitiesInDay in activityRecords) {
+      if (activitiesInDay.any((record) => record.activity.isExhausting)) {
+        hasExhausting = true;
+        break;
+      }
     }
     
     return hasExhausting;
@@ -153,19 +154,22 @@ class ActivityService extends ChangeNotifier {
     { bool onlyPastWeek = false }
   ) async {
 
+    final yesterday = DateTime.now().subtract(const Duration( days: 1 ));
+    final aWeekAgo = yesterday.onlyDate.subtract(const Duration( days: 6 ));
+
     final activityRecords = onlyPastWeek 
-      ? await _getActivitiesFromPastWeek(includeToday: false) 
-      : activitiesByDay;
+      ? await _getActivitiesInDateRange(begin: aWeekAgo, end: yesterday) 
+      : activitiesByDay.values.toList();
 
     final similarActivities = <ActivityRecord>[];
 
-    activityRecords.forEach((date, activities) { 
-      final similarRecords = activities
+    for (final activitiesForDay in activityRecords) {
+      final similarRecordsInDay = activitiesForDay
         .where((record) => !record.activity.isRoutine && activityRecord.isSimilarTo(record.activity))
-        .map((similarAct) => similarAct.activity);
+        .map((similarRecord) => similarRecord.activity); 
 
-      similarActivities.addAll(similarRecords);
-    });
+      similarActivities.addAll(similarRecordsInDay);
+    }
 
     return similarActivities;
   }
@@ -312,100 +316,84 @@ class ActivityService extends ChangeNotifier {
     }
   }
 
-  /// Crea un mapa con los [ActivityRecord] de la semana pasada, agrupados por 
-  /// día.  
-  /// 
-  /// Si __[includeToday]__ es __true__, los registros abarcarán 7 días, incluyendo
-  /// el día actual. Por ejemplo, si el día actual es martes e __[includeToday]__ 
-  /// es __true__, el resultado incluirá todos los registros hasta el miércoles
-  /// de la semana pasada, sin incluir el martes pasado.
-  Future<Map<DateTime, List<RoutineOccurrence>>> _getActivitiesFromPastWeek({ 
-    bool includeToday = true,
-    bool includeRoutines = false,
+  Future<List<List<RoutineOccurrence>>> _getActivitiesInDateRange({
+    required DateTime begin, 
+    required DateTime end,
+    bool sortByDateAscending = true,
   }) async {
+    // Determinar si hace falta invertir las fechas para que begin sea antes
+    // que end.
+    if (begin.isAfter(end)) {
+      // Invertir las fechas para formar un rango de fechas válido.
+      final tempDate = begin;
+      begin = end;
+      end = tempDate;
+    }
 
-    final int daysToSubtract = includeToday ? 6 : 7;
+    assert(begin.isBefore(end), "'beginDate' debe ser antes que 'endDate'");
+
+    final int daysBetweenDates = (end.difference(begin).inHours / 24).ceil();
+
+    final List<List<RoutineOccurrence>> activitiesInDateRange = List
+      .filled(daysBetweenDates, <RoutineOccurrence>[], growable: false);
 
     await _activitiesCache.data;
     await _routinesCache.data;
 
     _joinDailyRecords(_routineActivities.activitiesWithRoutines);
 
-    // Obtener la fecha de hoy y la fecha de siete días atrás.
-    final DateTime now = DateTime.now();
-    final DateTime aWeekAgo = DateTime(now.year, now.month, now.day - daysToSubtract);
+    for (int i = 0; i < daysBetweenDates; i++) {
 
-    final Map<DateTime, List<RoutineOccurrence>> activitiesOfWeek = {};
+      final DateTime previousDay = end.subtract(Duration( days: i)).onlyDate;
 
-    // Iterar los registros de los siete días más recientes, comenzando por el 
-    // el día actual.
-    for (int i = 0; i < 7; i++) {
-      
-      // Agregar [i] días a la fecha de hace siete días, hasta llegar al día actual.
-      final DateTime pastDay = aWeekAgo.add(Duration( days: i ));
-
-      final pastDayActivities = _activitiesByDay[pastDay];
-
-      if (pastDayActivities != null) {
-        // Existen registros de actividad para el día.
-        activitiesOfWeek[pastDay] = List<RoutineOccurrence>.from(pastDayActivities);
-
-      } else {
-        // No hubo actividades registradas, agregar una lista vacia.
-        activitiesOfWeek[pastDay] = List<RoutineOccurrence>.empty();
-      }
+      // Asignar las actividades realizadas el día i.
+      activitiesInDateRange[i] = _activitiesByDay[previousDay] ?? const <RoutineOccurrence>[];
     }
 
-    // Asegurar que el mapa resultante tiene exactamente 7 entradas.
-    assert(activitiesOfWeek.length == 7);
+    // Asegurar que la lista tenga una colección de actividades por cada día en el rango.
+    assert(activitiesInDateRange.length == daysBetweenDates);
 
-    return activitiesOfWeek;
+    // Retornar los totales, ordenados con fecha ascendiente o descendiente, según
+    // isSortByDateDescending.
+    return sortByDateAscending 
+      ? activitiesInDateRange
+      : activitiesInDateRange.reversed.toList(); 
   }
 
   Future<int> _getNumberOfActivitiesRecordedToday() async {
-    final today = DateTime.now().onlyDate;
+    final now = DateTime.now();
 
-    final activitiesFromPastWeek = await _getActivitiesFromPastWeek( includeRoutines: true );
-    final numOfActivityRecordsToday = activitiesFromPastWeek[today]?.length ?? 0;
+    final activitiesToday = await _getActivitiesInDateRange(
+      begin: now.onlyDate,
+      end: now,
+    );
 
-    return numOfActivityRecordsToday;
+    final int activityCount = activitiesToday.isNotEmpty ? activitiesToday.first.length : 0;
+
+    return activityCount;
   }
 
   /// Retorna una lista con las cantidades totales de kilocalorías quemadas por 
   /// día en las actividades de los 7 días más recientes.
-  //TODO: revisar la manera en que este método obtiene los rangos de fechas.
-  Future<List<int>> _previousSevenDaysTotals({ bool includeToday = true }) async {
-
-    final List<int> kcalTotals = List.filled(7, 0);
-
-    final int daysToSubtract = includeToday ? 6 : 7;
-
+  Future<List<int>> _previousSevenDaysTotals() async {
     // Obtener la fecha de siete días atrás.
-    final today = DateTime.now().onlyDate;
-    final aWeekAgo = today.subtract(Duration( days: daysToSubtract ));
+    final today = DateTime.now();
+    final aWeekAgo = today.onlyDate.subtract(const Duration( days: 6 ));
+
+    final List<int> kcalTotals = List.filled(7, 0, growable: false);
 
     // Obtener todos los registros de actividad en los últimos 7 días.
-    final activitiesInPastWeek = await _getActivitiesFromPastWeek(
-      includeToday: includeToday,
-      includeRoutines: true,
+    final activitiesInPastWeek = await _getActivitiesInDateRange(
+      begin: aWeekAgo,
+      end: today,
+      sortByDateAscending: false,
     );
 
-    //TODO: Cambiar esto por un for estructurado.
-    activitiesInPastWeek.forEach((day, activities) {
-      // Sumar la cantidad de kCal quemadas de cada actividad en el día pasado.
-      int totalKcal = 0;
-
-      for (var record in activities) {
-        totalKcal += record.activity.kiloCaloriesBurned;
+    for (int i = 0; i < activitiesInPastWeek.length; i++) {
+      for (int j = 0; j < activitiesInPastWeek[i].length; j++) {
+        kcalTotals[i] += activitiesInPastWeek[i][j].activity.kiloCaloriesBurned;
       }
-
-      // El número de días entre el día de los registros y el día de hace una semana.
-      // Este valor puede estar entre 0 y 6.
-      final daysAgo = day.difference(aWeekAgo).inDays;
-
-      // La diferencia en días es la posición en el array.
-      kcalTotals[daysAgo] = totalKcal;
-    });
+    }
 
     return kcalTotals.toList();
   }

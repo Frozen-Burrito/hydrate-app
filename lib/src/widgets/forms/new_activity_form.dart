@@ -24,18 +24,9 @@ class NewActivityForm extends StatelessWidget {
   void _saveActivityRecord(BuildContext context, ActivityRecord newActivity, {String? redirectRoute}) async {
     // Obtener instancias de providers, usando el context.
     final activityService = Provider.of<ActivityService>(context, listen: false);
+    final profileService = Provider.of<ProfileService>(context, listen: false);
 
     assert(newActivity.activityType.id >= 0);
-
-    final shouldGiveRewardForActivity = await activityService.shouldGiveRewardForNewActivity();
-
-    if (shouldGiveRewardForActivity) {  
-      final profileService = Provider.of<ProfileService>(context, listen: false);
-
-      profileService.profileChanges.addCoins(newActivity.coinReward);
-
-      await profileService.saveProfileChanges();
-    }
 
     final wasRoutineCreated = await _createRoutineIfPossible(context, newActivity);
 
@@ -49,6 +40,15 @@ class NewActivityForm extends StatelessWidget {
       wasActivityCreated = newActivityId >= 0;
 
       if (wasActivityCreated) {
+        final shouldGiveRewardForActivity = await activityService.shouldGiveRewardForNewActivity();
+
+        if (shouldGiveRewardForActivity) {  
+
+          profileService.profileChanges.addCoins(newActivity.coinReward);
+
+          await profileService.saveProfileChanges();
+        }
+
         await activityService.syncLocalActivityRecordsWithAccount();
 
         _navigateToRoute(context, redirectRoute);
@@ -132,13 +132,13 @@ class NewActivityForm extends StatelessWidget {
     final activityProvider = Provider.of<ActivityService>(context);
     final localizations = AppLocalizations.of(context)!;
 
-    return FutureBuilder<Map<DateTime, List<RoutineOccurrence>>>(
+    return FutureBuilder<List<List<RoutineOccurrence>>>(
       future: activityProvider.activitiesFromPastWeek,
-      initialData: const {},
+      initialData: const <List<RoutineOccurrence>>[],
       builder: (context, snapshot) {
         if (snapshot.hasData) {
 
-          final activityRecords = snapshot.data;
+          final activityRecords = snapshot.data!;
 
           bool hasExhausting = activityProvider.hasExhaustingActivities(activityRecords);
 
