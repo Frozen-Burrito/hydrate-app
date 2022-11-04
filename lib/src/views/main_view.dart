@@ -22,7 +22,6 @@ class MainView extends StatelessWidget {
   /// Muestra un [GuidesDialog] si la app ha sido abierta menos de 
   /// [SettingsService.appStartupsToShowGuides] veces.
   Future<void> _showGuidesDialog(BuildContext context) async {
-
     // Incrementar la cuenta del número de veces que ha sido abierta la app.
     final settingsProvider = Provider.of<SettingsService>(context, listen: false);
 
@@ -48,33 +47,26 @@ class MainView extends StatelessWidget {
   Future<void> _showDialogIfReportAvailable(BuildContext context) async {
     // Obtener una referencia al provider de metas y datos de hidratacion.
     final goalsProvider = Provider.of<GoalsService>(context, listen: false);
-
+    final areWeeklyFormsEnabled = Provider.of<SettingsService>(context, listen: false).areWeeklyFormsEnabled;
+    final profile = await Provider.of<ProfileService>(context, listen: false).profile;
+    
     final isWeeklyReportAvailable = await goalsProvider.isWeeklyReportAvailable;
     final isMedicalReportAvailable = await goalsProvider.isMedicalReportAvailable;
 
     // Mostrar Dialog 
-    if (isWeeklyReportAvailable) {
+    if (isWeeklyReportAvailable && areWeeklyFormsEnabled) {
 
-      final settings = Provider.of<SettingsService>(context, listen: false);
+      final result = await showDialog<bool>(
+        context: context, 
+        builder: (context) =>  const ReportAvailableDialog.weekly(),
+      );
 
-      if (settings.areWeeklyFormsEnabled) {
-        final result = await showDialog<bool>(
-          context: context, 
-          builder: (context) =>  const ReportAvailableDialog.weekly(),
-        );
-
-        if (result != null) {
-          goalsProvider.appAskedForPeriodicalData();
-        }
+      if (result != null) {
+        goalsProvider.appAskedForPeriodicalData();
       }
-    } else if (isMedicalReportAvailable) {
+    } else if (isMedicalReportAvailable && profile != null) {
 
-      final profile = await Provider.of<ProfileService>(context, listen: false).profile;
-
-      final hasRenalInsufficiency = profile?.hasRenalInsufficiency ?? false;
-      final hasNephroticSyndrome = profile?.hasNephroticSyndrome ?? false;
-
-      if (hasRenalInsufficiency || hasNephroticSyndrome) {
+      if (profile.hasRenalInsufficiency || profile.hasNephroticSyndrome) {
         final medicalResult = await showDialog<bool>(
           context: context, 
           builder: (context) =>  const ReportAvailableDialog.medical(),
@@ -90,7 +82,7 @@ class MainView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    Future.delayed(const Duration(seconds: 1), () {
+    Future.microtask(() {
       _showGuidesDialog(context);
       _showDialogIfReportAvailable(context);
     });
