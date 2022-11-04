@@ -204,6 +204,23 @@ class ActivityService extends ChangeNotifier {
     }
   }
 
+  Future<Iterable<int>> saveActivityRecords(Iterable<ActivityRecord> activityRecords) async {
+
+    final results = <int>[];
+
+    for (final newActivityRecord in activityRecords) {
+      final int result = await SQLiteDB.instance.insert(newActivityRecord);
+
+      if (result >= 0) {
+        results.add(result);
+      }
+    }
+
+    if (results.isNotEmpty) _activitiesCache.shouldRefresh();
+
+    return results;
+  }
+
   /// Persiste a [newActivityRecord] en la base de datos.
   /// 
   /// Cuando [newActivityRecord] es persistido con éxito, este método refresca 

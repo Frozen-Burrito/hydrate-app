@@ -40,10 +40,6 @@ class GoogleFitService {
 
   bool _isSigningIn = false;
 
-  //TODO: obtener la fecha de la sincronizacion mas reciente de FitnessData, para
-  // solo obtener los datos a partir de esa fecha.
-  DateTime? _tempStartTime;
-
   final List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
 
   static final List<int> _supportedFitnessApiActTypes = [
@@ -110,7 +106,7 @@ class GoogleFitService {
 
   set hydrateProfileId(int profileId) => _hydrateProfileId = profileId;
 
-  bool get isSignedInWithGoogle => _currentUser != null;
+  bool get isSignedInWithGoogle => _isGoogleUserSignedIn();
 
   bool get isSigningIn => _isSigningIn;
 
@@ -167,7 +163,7 @@ class GoogleFitService {
 
     debugPrint("Signed out of Google account: $_currentUser");
 
-    return (_currentUser == null);
+    return !(_isGoogleUserSignedIn());
   }
 
   void addHydrationRecordToSyncQueue(HydrationRecord hydrationRecord) {
@@ -191,7 +187,7 @@ class GoogleFitService {
       return 0;
     }
 
-    if (_currentUser == null || _fitnessApi == null) {
+    if (!_hasAuthForGoogleFitApi()) {
       debugPrint("No user or API instance from which to sync Sessions data");
       return 0;
     }
@@ -292,19 +288,96 @@ class GoogleFitService {
     return 0;
   }
 
-  Future<int> syncActivitySessions() async {
+  // activityRecords.sublist(0, min(5, activityRecords.length)).forEach(print);
+  //TODO: Persistir actividades retornadas.
+  //TODO: Actualizar la fecha de la sincronizacion mas reciente. 
+  /// Obtiene información de actividad física (sessions) del usuario en Google
+  /// Fit, y las convierte en una colección de [ActivityRecord].
+  Future<Iterable<ActivityRecord>> syncActivitySessions({ 
+    //TODO: obtener y actualizar todos estos datos.
+    DateTime? startTime, 
+    DateTime? endTime,
+    Map<int, ActivityType> supportedGoogleFitActTypes = const {},
+  }) async {
 
-    if (_currentUser == null || _fitnessApi == null) {
+    if (!_hasAuthForGoogleFitApi()) {
       debugPrint("No user or API instance from which to sync Sessions data");
-      return 0;
+      return const <ActivityRecord>[];
     }
 
-    final startTime = _tempStartTime;
-    final endTime = DateTime.now();
+    final sessionData = await _fetchSessionData(startTime, endTime);
 
+    final List<ActivityRecord> activityRecords = sessionData.map((session) { 
+
+      final activityType = supportedGoogleFitActTypes[session.activityType] 
+        ?? ActivityType.uncommited(); 
+
+      return GoogleFitActivityExtension.fromSession(session, activityType, _hydrateProfileId);
+    }).toList();
+
+    activityRecords.sort((a, b) => a.date.compareTo(b.date));
+
+    // Si se obtuvieron registros de actividad, obtener más datos específicos 
+    // para cada registro de actividad (kCal).
+    if (activityRecords.isNotEmpty) {
+      final startTime = activityRecords.first.date;
+      final endTime = activityRecords.last.date;
+
+      final caloriesExpDataPoints = await _fetchCaloriesBurnedInSessions(startTime, endTime);
+
+      if (caloriesExpDataPoints.isNotEmpty) {
+        for (final activityRecord in activityRecords) {
+          _accumulateKcalForActivity(activityRecord, caloriesExpDataPoints);
+        }
+      }
+    }
+
+    return List.unmodifiable(activityRecords);
+  }
+
+  Future<List<DataPoint>> _fetchCaloriesBurnedInSessions(DateTime startTime, DateTime endTime) async {
+    final caloriesExpendedDataset = await _fitnessApi?.users.dataSources.datasets.get(
+      _currentUserId, 
+      _mergeCaloriesExpDataStreamId, 
+      _buildDataSetId(startTime, endTime),
+      limit: _caloriesDataPointsLimitPerResponse,
+    );
+
+    return caloriesExpendedDataset?.point ?? const <DataPoint>[];
+  }
+
+  void _accumulateKcalForActivity(final ActivityRecord activityRecord, List<DataPoint> kcalData) {
+    // Obtener las kcal quemadas durante cada una de las actividades.
+    final int nsStartTime = activityRecord.date.nanosecondsSinceEpoch;
+    final int nsEndTime = nsStartTime + activityRecord.durationInNanoseconds;
+
+    final caloriesDataPointsDuringActivity = kcalData.where(
+      (dataPoint) => _isDataPointInTimeRange(dataPoint, nsStartTime, nsEndTime)
+    );
+
+    debugPrint("Found ${caloriesDataPointsDuringActivity.length} calories expended data points that match the Activity Record");
+
+    for (final dataPoint in caloriesDataPointsDuringActivity) {
+
+      final dataPointValue = dataPoint.value ?? const <Value>[];
+      if (dataPointValue.isNotEmpty) {
+        // Agregar el valor del dataPoint al total de calorias quemadas
+        // durante la actividad.
+        activityRecord.kiloCaloriesBurned += dataPointValue.first.fpVal?.round() ?? 0;
+      }
+    }
+
+    debugPrint("Total kCal for activity: ${activityRecord.kiloCaloriesBurned}");
+  }
+
+  Future<List<Session>> _fetchSessionData(DateTime? startTime, DateTime? endTime) async {
+
+    startTime ??= DateTime.now().subtract( const Duration(days: 180) );
+    endTime ??= DateTime.now();
+    
     final listSessionResponse = await _fitnessApi?.users.sessions.list(
       _currentUserId,
-      startTime: startTime?.toRfc3999String(),
+      startTime: startTime.toRfc3999String(),
       endTime: endTime.toRfc3999String(),
       activityType: _supportedFitnessApiActTypes,
       includeDeleted: false,
@@ -313,91 +386,7 @@ class GoogleFitService {
 
     final sessionData = listSessionResponse?.session ?? const <Session>[];
 
-    debugPrint("Total sessions recovered: ${sessionData.length}");
-
-    final activityTypes = await _queryActivityTypes();
-
-    final activityRecords = <ActivityRecord>[];
-
-    for (final session in sessionData) {
-      debugPrint("Session data: $session");
-
-      final int startMsSinceEpoch = int.tryParse(session.startTimeMillis ?? "0") ?? 0;
-      final int endMsSinceEpoch = int.tryParse(session.endTimeMillis ?? "0") ?? 0;
-
-      final DateTime activityDate = DateTime.fromMillisecondsSinceEpoch(startMsSinceEpoch); 
-      final DateTime endDate = DateTime.fromMillisecondsSinceEpoch(endMsSinceEpoch); 
-      final Duration activityDuration = endDate.difference(activityDate);
-
-      final sessionActivityRecord = ActivityRecord(
-        title: session.name ?? "Untitled Session Activity",
-        date: activityDate,
-        duration: activityDuration.inMinutes,
-        doneOutdoors: _isGoogleFitActivityDoneOutdoors(session.activityType ?? GoogleFitActivityType.unknown),
-        activityType: activityTypes.singleWhere(
-          (actType) => actType.googleFitActivityType == session.activityType,
-          orElse: () => ActivityType.uncommited()
-        ),
-        profileId: _hydrateProfileId,
-      );
-
-      activityRecords.add(sessionActivityRecord);
-    }
-
-    activityRecords.sort((a, b) => a.date.compareTo(b.date));
-
-    debugPrint("Total activity records created: ${activityRecords.length}");
-
-    // Si se obtuvieron registros de actividad, obtener más datos específicos 
-    // para cada registro de actividad (kCal).
-    if (activityRecords.isNotEmpty) {
-      final startTime = activityRecords.first.date;
-      final endTime = activityRecords.last.date;
-
-      final caloriesExpendedDataset = await _fitnessApi?.users.dataSources.datasets.get(
-        _currentUserId, 
-        _mergeCaloriesExpDataStreamId, 
-        _buildDataSetId(startTime, endTime),
-        limit: _caloriesDataPointsLimitPerResponse,
-      );
-
-      final caloriesExpDataPoints = caloriesExpendedDataset?.point ?? const <DataPoint>[];
-
-      if (caloriesExpDataPoints.isNotEmpty) {
-        for (int i = 0; i < activityRecords.length; ++i) {
-          // Obtener las kcal quemadas durante cada una de las actividades.
-          final int nsStartTime = activityRecords[i].date.nanosecondsSinceEpoch;
-          final int nsEndTime = nsStartTime + activityRecords[i].durationInNanoseconds;
-
-          final caloriesDataPointsDuringActivity = caloriesExpDataPoints.where(
-            (dataPoint) => _isDataPointInTimeRange(dataPoint, nsStartTime, nsEndTime)
-          );
-
-          debugPrint("Found ${caloriesDataPointsDuringActivity.length} calories expended data points that match the Activity Record");
-
-          for (final dataPoint in caloriesDataPointsDuringActivity) {
-
-            final dataPointValue = dataPoint.value ?? const <Value>[];
-            if (dataPointValue.isNotEmpty) {
-              // Agregar el valor del dataPoint al total de calorias quemadas
-              // durante la actividad.
-              activityRecords[i].kiloCaloriesBurned += dataPointValue.first.fpVal?.round() ?? 0;
-            }
-          }
-
-          debugPrint("Total kCal for activity: ${activityRecords[i].kiloCaloriesBurned}");
-        }
-      }
-    }
-
-    //TODO: persistir los activity record obtenidos.
-    activityRecords.sublist(0, min(5, activityRecords.length)).forEach(print);
-
-    // Actualizar la fecha de la sincronizacion mas reciente. 
-    //TODO: persistir este valor de alguna forma.
-    _tempStartTime = endTime;
-
-    return activityRecords.length;
+    return sessionData;
   }
 
   void dispose() {
@@ -427,6 +416,7 @@ class GoogleFitService {
   }
 
   Future<AuthClient?> _getAuthenticatedClient({
+    // ignore: unused_element
     GoogleSignInAuthentication? debugAuthentication,
     List<String>? debugScopes
   }) async 
@@ -452,6 +442,7 @@ class GoogleFitService {
     return authenticatedClient(http.Client(), credentials);
   }
 
+  //TODO: encontrar una forma de no repetir este metodo (ya existe en ActivityService).
   Future<List<ActivityType>> _queryActivityTypes() async {
     try {
       final queryResults = await SQLiteDB.instance.select<ActivityType>(
@@ -466,24 +457,6 @@ class GoogleFitService {
     }
   }
 
-  bool _isGoogleFitActivityDoneOutdoors(int googleFitActivityType) {
-
-    final Map<int, bool> _googleFitActivitiesOutdoors = {
-      GoogleFitActivityType.unknown: false,
-      GoogleFitActivityType.walking: false,
-      GoogleFitActivityType.running: true,
-      GoogleFitActivityType.biking: true,
-      GoogleFitActivityType.swimming: false,
-      GoogleFitActivityType.soccer: true,
-      GoogleFitActivityType.basketball: true,
-      GoogleFitActivityType.volleyball: true,
-      GoogleFitActivityType.dancing: false,
-      GoogleFitActivityType.yoga: false,
-    };
-
-    return _googleFitActivitiesOutdoors[googleFitActivityType] ?? false;
-  }
-
   String _buildDataSetId(DateTime startTime, DateTime endTime) {
     final dataSetIdStrBuf = StringBuffer();
 
@@ -493,6 +466,10 @@ class GoogleFitService {
 
     return dataSetIdStrBuf.toString();
   }
+
+  bool _hasAuthForGoogleFitApi() => _isGoogleUserSignedIn() && _fitnessApi != null;
+
+  bool _isGoogleUserSignedIn() => _currentUser != null;
 
   bool _isDataPointInTimeRange(DataPoint dataPoint, int startTimeNanos, int endTimeNanos) {
 
@@ -509,5 +486,47 @@ class GoogleFitService {
     final isBeforeEndTime = dataPointEndTimeNanos <= endTimeNanos;
 
     return isAfterStartTime && isBeforeEndTime;
+  }
+}
+
+extension GoogleFitActivityExtension on ActivityRecord {
+
+  static ActivityRecord fromSession(Session session, ActivityType activityType, int profileId) {
+
+    final int startMsSinceEpoch = int.tryParse(session.startTimeMillis ?? "0") ?? 0;
+    final int endMsSinceEpoch = int.tryParse(session.endTimeMillis ?? "0") ?? 0;
+
+    final DateTime activityDate = DateTime.fromMillisecondsSinceEpoch(startMsSinceEpoch); 
+    final DateTime endDate = DateTime.fromMillisecondsSinceEpoch(endMsSinceEpoch); 
+    final Duration activityDuration = endDate.difference(activityDate);
+
+    final sessionActivityRecord = ActivityRecord(
+      title: session.name ?? "Untitled Session Activity",
+      date: activityDate,
+      duration: activityDuration.inMinutes,
+      doneOutdoors: _isGoogleFitActivityDoneOutdoors(session.activityType ?? GoogleFitActivityType.unknown),
+      activityType: activityType,
+      profileId: profileId,
+    );
+
+    return sessionActivityRecord;
+  }
+
+  static bool _isGoogleFitActivityDoneOutdoors(int googleFitActivityType) {
+
+    final Map<int, bool> _googleFitActivitiesOutdoors = {
+      GoogleFitActivityType.unknown: false,
+      GoogleFitActivityType.walking: false,
+      GoogleFitActivityType.running: true,
+      GoogleFitActivityType.biking: true,
+      GoogleFitActivityType.swimming: false,
+      GoogleFitActivityType.soccer: true,
+      GoogleFitActivityType.basketball: true,
+      GoogleFitActivityType.volleyball: true,
+      GoogleFitActivityType.dancing: false,
+      GoogleFitActivityType.yoga: false,
+    };
+
+    return _googleFitActivitiesOutdoors[googleFitActivityType] ?? false;
   }
 }

@@ -441,6 +441,14 @@ class ProfileService extends ChangeNotifier {
     return wasEnvConfirmed;
   }
 
+  Future<bool> updateGoogleFitSyncDate() async {
+
+    _profileChanges.latestSyncWithGoogleFit = DateTime.now();
+    final saveResult = await saveProfileChanges();
+
+    return saveResult == SaveProfileResult.changesSaved;
+  }
+
   /// Persiste un nuevo [UserProfile] en la base de datos y cambia la sesión
   /// al nuevo perfil. Retorna el ID del perfil creado, o un entero negativo
   /// si el perfil no pudo ser creado.
