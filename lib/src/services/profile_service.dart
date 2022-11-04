@@ -507,6 +507,7 @@ class ProfileService extends ChangeNotifier {
       }
 
       // Intentar guardar los cambios al perfil existente
+      _profileChanges.modifiedAt = DateTime.now();
       final int alteredRows = await SQLiteDB.instance.update(_profileChanges);
 
       // Si ninguna fila fue modificada, el perfil no pudo ser actualizado a 
