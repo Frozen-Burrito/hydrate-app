@@ -1,9 +1,12 @@
+import 'package:flutter/widgets.dart';
+
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/models/validators/range.dart';
 import 'package:hydrate_app/src/utils/numbers_common.dart';
 
 class Goal extends SQLiteModel {
@@ -11,8 +14,8 @@ class Goal extends SQLiteModel {
   int id;
   int profileId;
   TimeTerm term;
-  DateTime? startDate;
-  DateTime? endDate;
+  DateTime startDate;
+  DateTime endDate;
   int reward;
   int quantity;
   bool isMainGoal;
@@ -36,8 +39,8 @@ class Goal extends SQLiteModel {
     id: -1,
     profileId: -1,
     term: TimeTerm.daily,
-    startDate: null,
-    endDate: null,
+    startDate: DateTime.now(),
+    endDate: DateTime.now().add(defaultGoalDuration),
     reward: 0,
     quantity: 0,
     isMainGoal: false,
@@ -46,6 +49,12 @@ class Goal extends SQLiteModel {
   );
 
   static const int maxSimultaneousGoals = 3;
+
+  static const Duration defaultGoalDuration = Duration(days: 7);
+
+  static const int maxTagCount = 3;
+  static const int maxNotesLength = 100;
+  static const Range waterQuantityMlRange = Range(min: 1, max: 1000);
 
   static const String tableName = "meta";
 
@@ -73,6 +82,24 @@ class Goal extends SQLiteModel {
     notesFieldName,
     tagsFieldName,
   ];
+
+  static final defaultFieldValues = <String, Object?>{
+    termFieldName: TimeTerm.daily,
+    startDateFieldName: DateTime.now(),
+    endDateFieldName: DateTime.now().add(defaultGoalDuration),
+    rewardFieldName: 0,
+    quantityFieldName: 0,
+    notesFieldName: null,
+    tagsFieldName: <Tag>[],
+  };
+
+  static const requiredFields = <String>{
+    startDateFieldName,
+    endDateFieldName,
+    rewardFieldName,
+    quantityFieldName,
+    notesFieldName,
+  };
 
   @override
   String get table => tableName;
@@ -110,8 +137,15 @@ class Goal extends SQLiteModel {
       defaultValue: -1
     );
 
-    final startDate = map.getDateTimeOrDefault(attributeName: attributeNames[startDateFieldName]!);
-    final endDate = map.getDateTimeOrDefault(attributeName: attributeNames[endDateFieldName]!);
+    final startDate = map.getDateTimeOrDefault(
+      attributeName: attributeNames[startDateFieldName]!,
+      defaultValue: DateTime.now()
+    );
+
+    final endDate = map.getDateTimeOrDefault(
+      attributeName: attributeNames[endDateFieldName]!,
+      defaultValue: DateTime.now().add(defaultGoalDuration)
+    );
 
     final int termIndex = map.getEnumIndex(
       attributeName: attributeNames[termFieldName]!, 
@@ -141,8 +175,8 @@ class Goal extends SQLiteModel {
     final goal = Goal(
       id: hydrationGoalId,
       term: goalTimeTerm,
-      startDate: startDate,
-      endDate: endDate,
+      startDate: startDate!,
+      endDate: endDate!,
       reward: coinReward,
       quantity: quantity,
       isMainGoal: isMainGoal,
@@ -200,8 +234,8 @@ class Goal extends SQLiteModel {
 
     map.addAll({
       attributeNames[termFieldName]!: term.index,
-      attributeNames[startDateFieldName]!: startDate?.toIso8601String(), 
-      attributeNames[endDateFieldName]!: endDate?.toIso8601String(),
+      attributeNames[startDateFieldName]!: startDate.toIso8601String(), 
+      attributeNames[endDateFieldName]!: endDate.toIso8601String(),
       attributeNames[rewardFieldName]!: reward,
       attributeNames[quantityFieldName]!: quantity,
       attributeNames[notesFieldName]!: notes,
@@ -217,69 +251,6 @@ class Goal extends SQLiteModel {
     }
 
     return map;
-  }
-
-  /// Obtiene una [List<Tag>] a partir de un [inputValue], con cada etiquta 
-  /// separada por comas.
-  /// 
-  /// Regresa el número de etiquetas asignadas.
-  /// 
-  /// ```dart
-  /// parseTags('uno,naranja,arbol') // Resulta en ['uno', 'naranja', 'arbol']
-  /// ```
-  int parseTags(String? inputValue, List<Tag> existingTags) {
-
-    if (inputValue == null) return 0;
-
-    final strTags = inputValue.split(',').toList();
-
-    if (strTags.isNotEmpty && strTags.first.isNotEmpty) {
-
-      int tagCount = tags.length;
-      int newTagCount = strTags.length;
-
-      if (tagCount == newTagCount) {
-        // Si el numero de tags es el mismo, solo cambió el valor de la última.
-        tags.last = _tryToFindExistingTag(strTags.last, existingTags);
-      
-      } else {
-        if (strTags.last.isNotEmpty) {
-          if (tagCount < newTagCount) {
-            // Crear una nueva etiqueta para el usuario.
-            tags.add(_tryToFindExistingTag(strTags.last, existingTags));
-          } else {
-            // Si hay un tag menos, quita el último.
-            tags.removeLast();
-          }
-        }
-      }
-    } else {
-      tags.clear();
-    }
-
-    return inputValue.isEmpty ? 0 : tags.length;
-  }
-
-  Tag _tryToFindExistingTag(String inputTagValue, List<Tag> existingTags) {
-    // Revisar si la etiqueta introducida ya fue creado por el usuario.
-    final matchingTags = existingTags.where((tag) => tag.value == inputTagValue);
-
-    if (matchingTags.isNotEmpty) {
-      // Ya existe una etiqueta con el valor, hacer referencia a ella.
-      final existingTag = matchingTags.first;
-
-      return Tag(
-        existingTag.value, 
-        id: existingTag.id, 
-        profileId: existingTag.profileId
-      );
-    } else {
-      return Tag(
-        inputTagValue,
-        id: -1,
-        profileId: -1,
-      );
-    }
   }
 
   static String? validateTerm(int? termIndex) {
@@ -299,7 +270,7 @@ class Goal extends SQLiteModel {
       if (endDateValue != null && startDateValue != null)
       {
         if (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue)) {
-          return 'La fecha de termino debe ser mayor que la fecha de inicio.';
+          return 'La fecha de termino debe ocurrir después que la fecha de inicio.';
         }
       }
     }
@@ -313,8 +284,8 @@ class Goal extends SQLiteModel {
     int? waterQuantity = int.tryParse(inputValue);
     
     if (waterQuantity != null) {
-      if (waterQuantity < 1 || waterQuantity > 1000) {
-        return 'La cantidad debe ser entre 0 y 1000 ml.';
+      if (waterQuantityMlRange.compareTo(waterQuantity) != 0) {
+        return 'La cantidad debe ser entre 1 y 1000 ml.';
       }
     }
 
@@ -347,7 +318,7 @@ class Goal extends SQLiteModel {
 
       if (totalLength > 30) return 'Exceso de caracteres para etiquetas.';
 
-      if (strTags.length > 3 && strTags.last.isNotEmpty) {
+      if (strTags.length > maxTagCount && strTags.last.isNotEmpty) {
         return 'Una meta debe tener 3 etiquetas o menos.';
       }
     }
@@ -356,8 +327,8 @@ class Goal extends SQLiteModel {
   } 
 
   static String? validateNotes(String? inputValue) {
-    return (inputValue != null && inputValue.length > 100)
-        ? 'Las notas deben tener menos de 100 caracteres'
+    return (inputValue != null && inputValue.characters.length > maxNotesLength)
+        ? "Las notas deben tener menos de $maxNotesLength caracteres"
         : null;
   }
 }
@@ -378,6 +349,8 @@ extension _GoalMapExtension on Map<String, Object?> {
     } else if (tagsFromMap is List<int>) {
       final tagsForGoal = availableTags.where((tag) => tagsFromMap.contains(tag.id));
       tagList.addAll(tagsForGoal);
+    } else if (tagsFromMap is List<Tag>) {
+      tagList.addAll(tagsFromMap);
     }
 
     return tagList;

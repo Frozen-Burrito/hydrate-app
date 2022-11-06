@@ -289,11 +289,12 @@ class _GoalProgressBar extends StatelessWidget {
           future: hydrationProvider.getGoalProgressInMl(goal),
           initialData: 0,
           builder: (context, snapshot) {
+            
+            final goalQuantityMl = min(max(goal.quantity, Goal.waterQuantityMlRange.min), Goal.waterQuantityMlRange.max);
+            final progressInMl = max(min(snapshot.data!, goalQuantityMl), 0);
 
-            final progressInMl = max(min(snapshot.data!, goal.quantity), 0);
-
-            final adjustedProgress = progressInMl / goal.quantity.toDouble();
-            final isGoalComplete = progressInMl >= goal.quantity;
+            final adjustedProgress = progressInMl / goalQuantityMl.toDouble();
+            final isGoalComplete = progressInMl >= goalQuantityMl;
 
             return Container(
               margin: const EdgeInsets.only( top: 16.0 ),

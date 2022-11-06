@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
@@ -230,6 +232,9 @@ class AuthFormBloc {
   Future<void> fetchProfileSettings(BuildContext context, String authToken) async {
 
     final settingsService = Provider.of<SettingsService>(context, listen: false);
+    final profileService = Provider.of<ProfileService>(context, listen: false);
+    final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
+    final activityService = Provider.of<ActivityService>(context, listen: false);
 
     final settingsForProfile = await settingsService.fecthSettingsForAccount(authToken);
 
@@ -239,6 +244,9 @@ class AuthFormBloc {
       settingsService.applyCurrentSettings(
         userAuthToken: authToken,
         notify: false,
+        activityService: activityService,
+        profileService: profileService,
+        devicePairingService: devicePairingService,
       );
     }
 

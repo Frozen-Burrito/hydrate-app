@@ -134,7 +134,16 @@ class _ProfileTabState extends State<ProfileTab> {
               }
             ),
 
-            const AuthOptionsMenu()
+            IconButton(
+              onPressed: () async {
+
+                  profileProvider.profileChanges.addCoins(100);
+                  await profileProvider.saveProfileChanges();
+              },
+              icon: const Icon(Icons.add),
+            )
+
+            // const AuthOptionsMenu()
           ],
         ),
   

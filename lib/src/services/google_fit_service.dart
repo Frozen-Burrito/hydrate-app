@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -288,13 +287,9 @@ class GoogleFitService {
     return 0;
   }
 
-  // activityRecords.sublist(0, min(5, activityRecords.length)).forEach(print);
-  //TODO: Persistir actividades retornadas.
-  //TODO: Actualizar la fecha de la sincronizacion mas reciente. 
   /// Obtiene información de actividad física (sessions) del usuario en Google
   /// Fit, y las convierte en una colección de [ActivityRecord].
   Future<Iterable<ActivityRecord>> syncActivitySessions({ 
-    //TODO: obtener y actualizar todos estos datos.
     DateTime? startTime, 
     DateTime? endTime,
     Map<int, ActivityType> supportedGoogleFitActTypes = const {},

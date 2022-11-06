@@ -80,6 +80,71 @@ class Tag extends SQLiteModel {
     return map;
   } 
   
+  /// Obtiene una [List<Tag>] a partir de un [inputValue], con cada etiquta 
+  /// separada por comas.
+  /// 
+  /// Regresa el número de etiquetas asignadas.
+  /// 
+  /// ```dart
+  /// parseTags('uno,naranja,arbol') // Resulta en ['uno', 'naranja', 'arbol']
+  /// ```
+  static List<Tag> parseFromString(List<Tag> currentTags, String? inputValue, List<Tag> existingTags) {
+
+    if (inputValue == null) return const <Tag>[];
+
+    final strTags = inputValue.split(',').toList();
+
+    final List<Tag> updatedTags = List.from(currentTags);
+
+    if (strTags.isNotEmpty && strTags.first.isNotEmpty) {
+
+      int tagCount = currentTags.length;
+      int newTagCount = strTags.length;
+
+      if (tagCount == newTagCount) {
+        // Si el numero de tags es el mismo, solo cambió el valor de la última.
+        updatedTags.last = _tryToFindExistingTag(strTags.last, existingTags);
+      
+      } else {
+        if (strTags.last.isNotEmpty) {
+          if (tagCount < newTagCount) {
+            // Crear una nueva etiqueta para el usuario.
+            updatedTags.add(_tryToFindExistingTag(strTags.last, existingTags));
+          } else {
+            // Si hay un tag menos, quita el último.
+            updatedTags.removeLast();
+          }
+        }
+      }
+    } else {
+      updatedTags.clear();
+    }
+
+    return updatedTags;
+  }
+
+  static Tag _tryToFindExistingTag(String inputTagValue, List<Tag> existingTags) {
+    // Revisar si la etiqueta introducida ya fue creado por el usuario.
+    final matchingTags = existingTags.where((tag) => tag.value == inputTagValue);
+
+    if (matchingTags.isNotEmpty) {
+      // Ya existe una etiqueta con el valor, hacer referencia a ella.
+      final existingTag = matchingTags.first;
+
+      return Tag(
+        existingTag.value, 
+        id: existingTag.id, 
+        profileId: existingTag.profileId
+      );
+    } else {
+      return Tag(
+        inputTagValue,
+        id: -1,
+        profileId: -1,
+      );
+    }
+  }
+
   @override
   String toString() {
     return value;

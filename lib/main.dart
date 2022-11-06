@@ -108,29 +108,30 @@ class HydrateApp extends StatelessWidget {
           return Consumer<SettingsService>(
             builder: (context, settingsService, __) {
 
-              final activityProvider = Provider.of<ActivityService>(context, listen: false);
-              activityProvider.forProfile(profileService.profileId);
+              final activityService = Provider.of<ActivityService>(context, listen: false);
+              activityService.forProfile(profileService.profileId);
 
-              final hydrationProvider = Provider.of<HydrationRecordService>(context, listen: false);
-              hydrationProvider.forProfile(profileService.profileId);
+              final hydrationService = Provider.of<HydrationRecordService>(context, listen: false);
+              hydrationService.forProfile(profileService.profileId);
 
-              final goalProvider = Provider.of<GoalsService>(context, listen: false);
-              goalProvider.forProfile(profileService.profileId);
+              final goalService = Provider.of<GoalsService>(context, listen: false);
+              goalService.forProfile(profileService.profileId);
 
               final devicePairingService = Provider.of<DevicePairingService>(context, listen: false);
               devicePairingService.addOnNewHydrationRecordListener("save_records", (hydrationRecord) async {
-                await hydrationProvider.saveHydrationRecord(
+                await hydrationService.saveHydrationRecord(
                   hydrationRecord, 
                   refreshImmediately: false
                 );
 
-                await hydrationProvider.syncLocalHydrationRecordsWithAccount();
+                await hydrationService.syncLocalHydrationRecordsWithAccount();
               });
 
               settingsService.applyCurrentSettings(
                 userAuthToken: profileService.authToken,
-                addOnNewHydrationRecordListener: devicePairingService.addOnNewHydrationRecordListener,
-                removeOnNewHydrationRecordListener: devicePairingService.removeHydrationRecordListener,
+                activityService: activityService,
+                profileService: profileService,
+                devicePairingService: devicePairingService,
               );
 
               return MaterialApp(

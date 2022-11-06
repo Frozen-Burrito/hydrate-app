@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/activity_type.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -145,8 +148,9 @@ class SettingsService with ChangeNotifier {
   void applyCurrentSettings({ 
     String userAuthToken = "",
     bool notify = false,
-    void Function(String, HydrationRecordCallback)? addOnNewHydrationRecordListener,
-    void Function(String)? removeOnNewHydrationRecordListener,
+    final DevicePairingService? devicePairingService,
+    final ProfileService? profileService,
+    final ActivityService? activityService,
   }) {
 
     final settings = _getCurrentSettings();
@@ -198,30 +202,66 @@ class SettingsService with ChangeNotifier {
       NotificationService.instance.disable();
     }
 
+    if (devicePairingService != null && activityService != null && profileService != null) {
+      _setIntegrationWithGoogleFit(
+        settings: settings, 
+        authToken: userAuthToken,
+        devicePairingService: devicePairingService,
+        profileService: profileService,
+        activityService: activityService,
+      );
+    }
+
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  Future<void> _setIntegrationWithGoogleFit({
+    required Settings settings, 
+    required String authToken,
+    bool notify = false,
+    required DevicePairingService devicePairingService,
+    required ProfileService profileService,
+    required ActivityService activityService,
+  }) async {
     // Aplicar configuracion de sincronizacion con Google Fit.
-    if (settings.isGoogleFitIntegrated && userAuthToken.isNotEmpty) {
-      GoogleFitService.instance.hydrateProfileId = getProfileIdFromJwt(userAuthToken);
+    if (settings.isGoogleFitIntegrated && authToken.isNotEmpty) {
+      GoogleFitService.instance.hydrateProfileId = getProfileIdFromJwt(authToken);
 
-      final isNotAlreadySignedInWithGoogle = !(GoogleFitService.instance.isSigningIn || 
-        GoogleFitService.instance.isSignedInWithGoogle);
+      bool isSignedInWithGoogle = GoogleFitService.instance.isSignedInWithGoogle;
 
-      if (isNotAlreadySignedInWithGoogle) {
+      final requiresGoogleSignIn = !(GoogleFitService.instance.isSigningIn || isSignedInWithGoogle);
 
-        GoogleFitService.instance.signInWithGoogle().then((wasSignInSuccessful) {
-          if (wasSignInSuccessful && addOnNewHydrationRecordListener != null) {
-            addOnNewHydrationRecordListener(
-              GoogleFitService.onSyncHydrationRecordListenerName, 
-              GoogleFitService.instance.addHydrationRecordToSyncQueue
-            );
-
-            GoogleFitService.instance.syncActivitySessions().then((totalSyncSessions) {
-              debugPrint("$totalSyncSessions sessions were synchronized with Google Fit");
-            });
-          }
-        });
+      if (requiresGoogleSignIn) {
+        isSignedInWithGoogle = await GoogleFitService.instance.signInWithGoogle();
       }
-    } else if (removeOnNewHydrationRecordListener != null) {
-      removeOnNewHydrationRecordListener(GoogleFitService.onSyncHydrationRecordListenerName);
+
+      if (isSignedInWithGoogle) {
+        devicePairingService.addOnNewHydrationRecordListener(
+          GoogleFitService.onSyncHydrationRecordListenerName, 
+          GoogleFitService.instance.addHydrationRecordToSyncQueue
+        );
+
+        final activityTypes = (await activityService.activityTypes) ?? const <ActivityType>[];
+        final latestSyncWithGoogleFit = (await profileService.profile)?.latestSyncWithGoogleFit;
+
+        final newActivityRecords = await GoogleFitService.instance.syncActivitySessions(
+          startTime: latestSyncWithGoogleFit,
+          endTime: DateTime.now(),
+          supportedGoogleFitActTypes: Map.fromEntries(activityTypes.map((activityType) => MapEntry(activityType.googleFitActivityType, activityType))),
+        );
+
+        final activityPersistenceResults = await activityService.saveActivityRecords(newActivityRecords);
+
+        final wasSyncSuccessful = newActivityRecords.length == activityPersistenceResults.length;
+
+        if (wasSyncSuccessful) {
+          await profileService.updateGoogleFitSyncDate();
+        }
+      }
+    } else {
+      devicePairingService.removeHydrationRecordListener(GoogleFitService.onSyncHydrationRecordListenerName);
     }
 
     if (notify) {

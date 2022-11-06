@@ -345,7 +345,7 @@ class HydrationRecordService extends ChangeNotifier {
     // Determinar el número de días de registros necesarios (segun plazo, fecha
     // de inicio de la meta y la fecha de hoy).
     final DateTime now = DateTime.now();
-    final DateTime goalStartDate = goal.startDate!;
+    final DateTime goalStartDate = goal.startDate;
     final diffBetweenDates = now.difference(goalStartDate);
 
     // El número de días de registros de hidratación necesarios para calcular 
