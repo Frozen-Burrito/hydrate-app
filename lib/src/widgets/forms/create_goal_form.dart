@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
+import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/services/form_control_bloc.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 
@@ -297,7 +298,19 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
 
           const SizedBox( height: 16.0, ),
 
-          _TagFormField(formControl: formControl),
+          Consumer<GoalsService>(
+            builder: (context, goalsService, __) {
+              return FutureBuilder<List<Tag>>(
+                future: goalsService.tags,
+                builder: (context, snapshot) {
+                  return _TagFormField(
+                    formControl: formControl,
+                    availableTags: snapshot.data ?? const <Tag>{},
+                  );
+                }
+              );
+            }
+          ),
 
           const SizedBox( height: 16.0, ),
 
@@ -404,54 +417,189 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
   }
 }
 
-class _TagFormField extends StatelessWidget {
+class _TagFormField extends StatefulWidget {
 
   const _TagFormField({
     Key? key,
     required this.formControl,
+    this.availableTags = const <Tag>{},
   }) : super(key: key);
 
   final FormControlBloc formControl; 
 
+  final Iterable<Tag> availableTags;
+
+  static String _displayStringForTag(Tag tag) => tag.value;
+
+  @override
+  State<_TagFormField> createState() => _TagFormFieldState();
+}
+
+class _TagFormFieldState extends State<_TagFormField> {
+
+  late TextEditingController _autocompleteTextController;
+
+  bool _tagHasValue(Tag tag, String value) => tag.value.toLowerCase() == value.toLowerCase();
+
+  Iterable<Tag> _buildTagOptions(String inputValue, int profileId) {
+    // Mostrar tags existentes, y una opcion para agregar un nuevo tag
+    // Siempre retorna al menos una opcion.
+    final Set<Tag> options = <Tag>{};
+
+    if (inputValue.characters.isEmpty) {
+      return options;
+    }
+
+    options.addAll(widget.availableTags.where((tag) {
+      return  tag.value.toLowerCase()
+      .contains(inputValue.toLowerCase()) &&
+      tag.profileId == profileId;
+    }));
+
+    // Opcion para crear una nueva etiqueta.
+    final isExactInputNotCreated = !(options.any((tag) => _tagHasValue(tag, inputValue)));
+    if (isExactInputNotCreated) {
+      options.add(Tag( 
+        value: inputValue, 
+        profileId: profileId,
+      ));
+    }
+
+    return options;
+  }
+
+  void _selectTag(Tag selectedTag, List<Tag> currentTags) {
+    final modifiedTags = List.from(currentTags);
+
+    if (modifiedTags.contains(selectedTag)) return;
+
+    if (modifiedTags.length >= Goal.maxTagCount) {
+      modifiedTags.removeLast();
+    }
+    modifiedTags.add(selectedTag);
+
+    widget.formControl.changeFieldValue(
+      Goal.tagsFieldName, 
+      modifiedTags,
+    );
+
+    _autocompleteTextController.clear();
+  }
+
   @override
   Widget build(BuildContext context) {
 
-    final goalService = Provider.of<GoalsService>(context);
-
-    return FutureBuilder<List<Tag>>(
-      future: goalService.tags,
+    return StreamBuilder<List<dynamic>>(
+      stream: widget.formControl.getFieldValueStream<List<dynamic>>(Goal.tagsFieldName),
       initialData: const <Tag>[],
       builder: (context, snapshot) {
+    
+        final addedTags = snapshot.data?.cast<Tag>() ?? const <Tag>[]; 
+        
+        return Column(
+          children: <Widget>[
+            Consumer<ProfileService>(
+              builder: (context, profileService, __) { 
+                return Autocomplete<Tag>(
+                  displayStringForOption: _TagFormField._displayStringForTag,
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    return _buildTagOptions(
+                      textEditingValue.text, 
+                      profileService.profileId
+                    );
+                  },
+                  onSelected: (Tag selectedTag) => _selectTag(selectedTag, addedTags),
+                  fieldViewBuilder: (context, textController, focusNode, _) {
 
-        final existingTags = snapshot.data ?? const <Tag>[]; 
+                    _autocompleteTextController = textController;
 
-        //TODO: usar el widget Autocomplete para mostrar posibles etiquetas
-        // ver tambien: https://api.flutter.dev/flutter/material/Autocomplete-class.html
-        return StreamBuilder<List<Tag>>(
-          stream: formControl.getFieldValueStream<List<Tag>>(Goal.tagsFieldName),
-          initialData: const <Tag>[],
-          builder: (context, snapshot) {
+                    return TextFormField(
+                      // keyboardType: TextInputType.text,
+                      controller: _autocompleteTextController,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        //TODO: agregar i18n
+                        labelText: "Etiquetas",
+                      ),
+                    );
+                  },
+                );
+              }
+            ),
 
-            final addedTags = snapshot.data ?? const <Tag>[]; 
-            
-            return TextFormField(
-              keyboardType: TextInputType.text,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                //TODO: agregar i18n
-                labelText: "Etiquetas",
-                helperText: " ",
-                counterText: "${addedTags.length.toString()}/${Goal.maxTagCount}"
+            Container(
+              margin: const EdgeInsets.only( top: 4.0 ),
+              child: Row(
+                // mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  (addedTags.isNotEmpty
+                    ? _TagList(
+                      tags: addedTags, 
+                      changeFieldValue: widget.formControl.changeFieldValue
+                    )
+                    : const SizedBox( width: 0.0) 
+                  ),
+                  
+                  Text(
+                    "${addedTags.length.toString()}/${Goal.maxTagCount}",
+                    style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w500
+                    ),
+                  ),
+                ],
               ),
-              onChanged: (value) => formControl.changeFieldValue(
-                Goal.tagsFieldName, 
-                Tag.parseFromString(addedTags, value, existingTags),
-              ),
-              validator: (value) => Goal.validateTags(value),
-            );
-          }
+            )
+          ],
         );
       }
     );    
+  }
+}
+
+class _TagList extends StatelessWidget {
+  const _TagList({
+    Key? key,
+    required this.tags,
+    required this.changeFieldValue,
+  }) : super(key: key);
+
+  final List<Tag> tags;
+  final void Function(String, Object?) changeFieldValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40.0,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        itemCount: tags.length,
+        itemBuilder: (BuildContext context, int i) {
+          return Container(
+            margin: const EdgeInsets.only( right: 8.0 ),
+            child: Chip(
+              key: Key(tags[i].id.toString()),
+              label: Text(
+                tags[i].value,
+                style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                  fontWeight: FontWeight.w500
+                ),
+              ),
+              onDeleted: () {
+                tags.removeAt(i);
+                changeFieldValue(
+                  Goal.tagsFieldName, 
+                  tags,
+                );
+              },
+            ),
+          );
+        }
+      ),
+    );
   }
 }

@@ -1,19 +1,22 @@
+import 'package:flutter/widgets.dart';
+
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 
+@immutable
 class Tag extends SQLiteModel {
 
   final int id;
   final String value;
-  int profileId;
+  final int profileId;
 
-  Tag(this.value, {
-      this.id = -1, 
-      this.profileId = -1
-    }
-  );
+  Tag({
+    required this.value,
+    this.id = -1, 
+    this.profileId = -1
+  });
 
   static const String tableName = "etiqueta";
 
@@ -43,15 +46,20 @@ class Tag extends SQLiteModel {
 
   static Tag fromMap(Map<String, Object?> map, { MapOptions options = const MapOptions(), }) {
 
-    final attributeNames = options.mapAttributeNames(baseAttributeNames); 
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames, 
+      specificAttributeMappings: options.useCamelCasePropNames
+        ? { profileIdFieldName: "idPerfil" }
+        : { profileIdFieldName: profileIdFieldName },
+    ); 
 
     final int id = int.tryParse(map[attributeNames[idFieldName]!].toString()) ?? -1;
     final String value = map[attributeNames[valueFieldName]!].toString();
     final int profileId = int.tryParse(map[attributeNames[profileIdFieldName]!].toString()) ?? -1;
 
     return Tag(
-      value,
       id: id,
+      value: value,
       profileId: profileId,
     );
   }
@@ -132,13 +140,13 @@ class Tag extends SQLiteModel {
       final existingTag = matchingTags.first;
 
       return Tag(
-        existingTag.value, 
+        value: existingTag.value, 
         id: existingTag.id, 
         profileId: existingTag.profileId
       );
     } else {
       return Tag(
-        inputTagValue,
+        value: inputTagValue,
         id: -1,
         profileId: -1,
       );
@@ -149,4 +157,18 @@ class Tag extends SQLiteModel {
   String toString() {
     return value;
   }
+
+  @override
+  bool operator==(Object? other) {
+    if (other.runtimeType != runtimeType) return false;
+
+    return other is Tag && other.value == value && other.id == id;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    value,
+    profileId,
+  ]);
 }

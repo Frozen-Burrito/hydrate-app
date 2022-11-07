@@ -186,10 +186,6 @@ class GoalsService extends ChangeNotifier {
   Future<int> createHydrationGoal(Goal newGoal) async {
     // Asegurar que la nueva meta sea asociada con el perfil de usuario actual.
     newGoal.profileId = _profileId;
-
-    for (final tag in newGoal.tags) { 
-      tag.profileId = _profileId;
-    }
     
     final int newGoalId = await SQLiteDB.instance.insert(newGoal);
 

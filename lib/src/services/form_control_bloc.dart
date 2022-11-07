@@ -45,7 +45,7 @@ class FormControlBloc {
 
   final Map<String, Object?> _formFields;
   final Map<String, Object?> _defaultFieldValues;
-  final Map<String, StreamController<Object?>> _formFieldStreams;
+  final Map<String, StreamController<dynamic>?> _formFieldStreams;
 
   final Map<String, String?> _errorMessages;
 

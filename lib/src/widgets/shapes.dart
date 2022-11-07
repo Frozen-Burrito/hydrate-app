@@ -69,8 +69,8 @@ class _WaveShapePainter extends CustomPainter {
     path.lineTo(0, size.height * 0.75);
     path.quadraticBezierTo(size.width * 0.25, size.height * 0.7, size.width * 0.5, size.height * 0.75);
     path.quadraticBezierTo(size.width * 0.75, size.height * 0.8, size.width, size.height * 0.75);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
+    path.lineTo(size.width, size.height + (size.height * 0.3));
+    path.lineTo(0, size.height + (size.height * 0.3));
 
     canvas.drawPath(path, paint);
   }
