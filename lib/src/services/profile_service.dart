@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -583,10 +584,14 @@ class ProfileService extends ChangeNotifier {
 
       await _authApi.updateProfileWithChanges(authToken, localProfileChanges);
 
+    //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
     } on ApiException catch (ex) {
-      //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
       debugPrint("Error al sincronizar cambios a perfil ($ex)");
-    } 
+    } on SocketException catch (ex) {
+      debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+    } on IOException catch (ex) {
+      debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+    }
   }
 
   /// Busca un [UserProfile] local que tenga un userAccountID igual a 

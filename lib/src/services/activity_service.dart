@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'package:hydrate_app/src/api/data_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
@@ -177,7 +180,7 @@ class ActivityService extends ChangeNotifier {
   Future<bool> shouldGiveRewardForNewActivity() async {
     final int numOfActivitiesToday = await _getNumberOfActivitiesRecordedToday();
 
-    return numOfActivitiesToday < ActivityService.actPerDayWithReward;
+    return numOfActivitiesToday <= ActivityService.actPerDayWithReward;
   }
 
   Future<List<ActivityRecord>> _queryActivityRecords() async {
@@ -249,12 +252,21 @@ class ActivityService extends ChangeNotifier {
 
   Future<void> syncLocalActivityRecordsWithAccount() async {
     if (DataApi.instance.isAuthenticated) {
-      await DataApi.instance.updateData<ActivityRecord>(
-        data: _activityRecordsPendingSync,
-        mapper: (activityRecord, mapOptions) => activityRecord.toMap(options: mapOptions),
-      );
+      try {
+        await DataApi.instance.updateData<ActivityRecord>(
+          data: _activityRecordsPendingSync,
+          mapper: (activityRecord, mapOptions) => activityRecord.toMap(options: mapOptions),
+        );
 
-      _activityRecordsPendingSync.clear();
+        _activityRecordsPendingSync.clear();
+      //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
+      } on ApiException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil ($ex)");
+      } on SocketException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      } on IOException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      }
     }
   }
 
@@ -293,12 +305,21 @@ class ActivityService extends ChangeNotifier {
 
   Future<void> syncLocalRoutinesWithAccount() async {
     if (DataApi.instance.isAuthenticated) {
-      await DataApi.instance.updateData<Routine>(
-        data: _routinesPendingSync,
-        mapper: (routine, mapOptions) => routine.toMap(options: mapOptions),
-      );
+      try {
+        await DataApi.instance.updateData<Routine>(
+          data: _routinesPendingSync,
+          mapper: (routine, mapOptions) => routine.toMap(options: mapOptions),
+        );
 
-      _routinesPendingSync.clear();
+        _routinesPendingSync.clear();
+      //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
+      } on ApiException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil ($ex)");
+      } on SocketException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      } on IOException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      }
     }
   }
 

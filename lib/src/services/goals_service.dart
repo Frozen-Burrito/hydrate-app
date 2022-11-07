@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/api/data_api.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+
+import 'package:hydrate_app/src/api/data_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
 import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
@@ -232,31 +235,16 @@ class GoalsService extends ChangeNotifier {
       final syncAction = hydrationGoalsToSync.key;
       final modifiedHydrationGoals = hydrationGoalsToSync.value;
 
-      switch (syncAction) {
-        case DataSyncAction.fetch:
-          break;
-        case DataSyncAction.updated:
-          await DataApi.instance.updateData<Goal>(
-            data: modifiedHydrationGoals,
-            mapper: (goal, mapOptions) => goal.toMap(options: mapOptions),
-          );
+      try {
 
-          synchronizedGoals[syncAction] = Set.from(modifiedHydrationGoals);
-          break;
-        case DataSyncAction.deleted:
-          for (final deletedGoal in modifiedHydrationGoals) {
-            await DataApi.instance.deleteData<Goal>(
-              data: deletedGoal,
-              dataId: deletedGoal.id.toString(),
-            );
-
-            if (synchronizedGoals[syncAction] == null) {
-              synchronizedGoals[syncAction] = <Goal>{};
-            }
-
-            synchronizedGoals[syncAction]!.add(deletedGoal);
-          }
-          break;
+        synchronizedGoals[syncAction] = await _syncHydrationGoals(syncAction, modifiedHydrationGoals);
+      //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
+      } on ApiException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil ($ex)");
+      } on SocketException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      } on IOException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
       }
     }
 
@@ -272,6 +260,40 @@ class GoalsService extends ChangeNotifier {
       }
 
     }
+  }
+
+  Future<Set<Goal>> _syncHydrationGoals(DataSyncAction syncAction, Set<Goal> recordsToSync) async {
+
+    final goalsSynchronizedWithSuccess = <Goal>{};
+
+    switch (syncAction) {
+      case DataSyncAction.fetch:
+        //TODO: Implementar sincronización de datos.
+        break;
+      case DataSyncAction.updated:
+        await DataApi.instance.updateData<Goal>(
+          data: recordsToSync,
+          mapper: (goal, mapOptions) => goal.toMap(options: mapOptions),
+        );
+
+        goalsSynchronizedWithSuccess.addAll(recordsToSync);
+        break;
+      case DataSyncAction.deleted:
+        final idsOfDeletedRecords = await DataApi.instance.deleteCollection(
+          data: recordsToSync, 
+          ids: recordsToSync.map((goal) => goal.id.toString()).toSet(),
+        );
+
+        goalsSynchronizedWithSuccess.addAll(
+          recordsToSync.where(
+            (hydrationGoal) => idsOfDeletedRecords.contains(hydrationGoal.id.toString())
+          )
+        );
+
+        break;
+    }
+
+    return goalsSynchronizedWithSuccess;
   }
 
   /// Cambia la meta principal a la meta que tenga [newMainGoalId] como su ID.

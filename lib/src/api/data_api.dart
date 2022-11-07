@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart';
 
 import 'package:hydrate_app/src/api/api_client.dart';
@@ -196,10 +197,26 @@ class DataApi {
       throw ApiException(
         ApiErrorType.requestError,
         httpStatusCode: response.statusCode,
-        message: "Error al intentar eliminar una meta de hidratacion",
+        message: "Error al intentar eliminar un registro de datos",
         problemDetails: response.body,
       );
     }
+  }
+
+  Future<Set<String>> deleteCollection<T extends Iterable>({ required T data, required Set<String> ids, String? authToken }) async {
+
+    final recordIdsSuccessfullyDeleted = <String>{};
+
+    for (final id in ids) {
+      try {
+        await deleteData(data: data.first, dataId: id, authToken: authToken);
+        recordIdsSuccessfullyDeleted.add(id);
+      } on ApiException catch (ex) {
+        debugPrint("Error al intentar eliminar un registro de datos ($ex)");
+      }
+    }
+
+    return recordIdsSuccessfullyDeleted;
   }
 
   Future<void> contributeOpenData<T>({ 

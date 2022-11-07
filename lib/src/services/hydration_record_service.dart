@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/api/data_api.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+
+import 'package:hydrate_app/src/api/data_api.dart';
 import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
@@ -139,12 +142,21 @@ class HydrationRecordService extends ChangeNotifier {
 
   Future<void> syncLocalHydrationRecordsWithAccount() async {
     if (DataApi.instance.isAuthenticated) {
-      await DataApi.instance.updateData<HydrationRecord>(
-        data: _hydrationRecordsPendingSync,
-        mapper: (hydrationRecord, mapOptions) => hydrationRecord.toMap(options: mapOptions),
-      );
+      try {
+        await DataApi.instance.updateData<HydrationRecord>(
+          data: _hydrationRecordsPendingSync,
+          mapper: (hydrationRecord, mapOptions) => hydrationRecord.toMap(options: mapOptions),
+        );
 
-      _hydrationRecordsPendingSync.clear();
+        _hydrationRecordsPendingSync.clear();
+      //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
+      } on ApiException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil ($ex)");
+      } on SocketException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      } on IOException catch (ex) {
+        debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+      }
     }
   }
 

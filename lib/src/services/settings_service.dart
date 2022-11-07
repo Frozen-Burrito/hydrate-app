@@ -1,20 +1,22 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/activity_type.dart';
-import 'package:hydrate_app/src/services/activity_service.dart';
-import 'package:hydrate_app/src/services/device_pairing_service.dart';
-import 'package:hydrate_app/src/services/profile_service.dart';
-import 'package:hydrate_app/src/utils/jwt_parser.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import 'package:hydrate_app/src/api/config_api.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
-import 'package:hydrate_app/src/services/google_fit_service.dart';
-import 'package:hydrate_app/src/services/notification_service.dart';
-import 'package:hydrate_app/src/utils/background_tasks.dart';
+import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
+import 'package:hydrate_app/src/services/notification_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/utils/background_tasks.dart';
+import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Facilita el acceso y modificación de la configuración de la app en Shared Preferences.
 class SettingsService with ChangeNotifier {
@@ -68,8 +70,13 @@ class SettingsService with ChangeNotifier {
 
       await ConfigApi.instance.updateSettings(authToken, localSettings);
       
+    //TODO: notificar al usuario que su perfil no pudo ser sincronizado.
     } on ApiException catch (ex) {
       debugPrint("Error while updating user configuration ($ex)");
+    } on SocketException catch (ex) {
+      debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
+    } on IOException catch (ex) {
+      debugPrint("Error al sincronizar cambios a perfil, el dispositivo tiene conexion? ($ex)");
     }
   }
 
