@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/widgets/dialogs/add_data_dialog.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/routes/route_names.dart';
@@ -14,6 +15,7 @@ import 'package:hydrate_app/src/widgets/dialogs/guides_dialog.dart';
 import 'package:hydrate_app/src/widgets/dialogs/report_available_dialog.dart';
 import 'package:hydrate_app/src/widgets/bottom_nav_bar.dart';
 import 'package:hydrate_app/src/widgets/tab_page_view.dart';
+import 'package:hydrate_app/src/widgets/speed_dial_fab.dart';
 
 class MainView extends StatelessWidget {
 
@@ -100,12 +102,15 @@ class MainView extends StatelessWidget {
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
         floatingActionButton: FloatingActionButton(
-          child: const Icon(Icons.directions_run),
-          //TODO: agregar i18n.
-          tooltip: 'Registrar actividad',
+          onPressed: () => showDialog(
+            context: context, 
+            builder: (_) => const AddDataDialog(),
+          ),
+          tooltip: "Agregar datos",
+          heroTag: null,
           backgroundColor: Theme.of(context).colorScheme.primary,
           foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          onPressed: () => Navigator.pushNamed(context, RouteNames.newActivity)
+          child: const Icon( Icons.add ),
         ),
         bottomNavigationBar: const BottomNavBar(),
       ),
