@@ -1,12 +1,13 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
@@ -100,14 +101,20 @@ class GoalSliverList extends StatelessWidget {
   }
 }
 
+enum GoalCardAction { none, togglePrimary, share }
+
 class _GoalCard extends StatelessWidget {
 
-  const _GoalCard({ required this.goal, Key? key }) : super(key: key);
+  const _GoalCard({ 
+    required this.goal, 
+    Key? key 
+  }) : super(key: key);
 
   final Goal goal;
 
   //TODO: Agregar i18n para plazos de tiempo
   static const termLabels = <String>['Diario','Semanal','Mensual'];
+  static const timeMeasureNames = <String>["día", "semana", "mes"];
   
   //TODO: Agregar i18n para rangos de fechas en metas
   String _buildDateLabel(DateTime? start, DateTime? end) {
@@ -125,6 +132,36 @@ class _GoalCard extends StatelessWidget {
     return strBuf.toString();
   }
 
+  List<PopupMenuEntry<GoalCardAction>> _buildGoalActions(BuildContext context) {
+    return <PopupMenuEntry<GoalCardAction>>[
+      PopupMenuItem(
+        value: GoalCardAction.none,
+        child: ListTile(
+          title: Text(goal.notes ?? "Meta de hidratación"),
+        ),
+      ),
+      const PopupMenuDivider(),
+      PopupMenuItem(
+        value: GoalCardAction.togglePrimary,
+        child: Consumer<GoalsService>(
+          builder: (_, goalsService, __) {
+            return ListTile(
+              leading: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
+              title: Text(goal.isMainGoal ? "Quitar meta principal" : "Hacer meta principal"),
+            );
+          }
+        ),
+      ),
+      const PopupMenuItem(
+        value: GoalCardAction.share,
+        child: ListTile(
+          leading: Icon( Icons.share ), 
+          title: Text("Compartir"),
+        ),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -139,23 +176,9 @@ class _GoalCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.075,
-                  child: Consumer<GoalsService>(
-                    builder: (_, provider, __) {
-                      return IconButton(
-                        icon: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
-                        onPressed: () => provider.setMainGoal(goal.id),
-                      );
-                    }
-                  )
-                ),
-
-                const SizedBox( width: 8.0 ),
-
-                SizedBox(
                   width: MediaQuery.of(context).size.width * 0.6,
                   child: Text(
-                    goal.notes ?? 'Meta', 
+                    goal.notes ?? 'Meta de hidratación', 
                     style: Theme.of(context).textTheme.headline6,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -192,7 +215,31 @@ class _GoalCard extends StatelessWidget {
                       ),
                     ),
                   ],
-                )
+                ), 
+
+                Consumer<GoalsService>(
+                  builder: (context, goalsService, __) {
+                    return PopupMenuButton<GoalCardAction>(
+                      onSelected: (GoalCardAction selectedAction) {
+                        switch (selectedAction) {
+                          case GoalCardAction.togglePrimary:
+                            goalsService.setMainGoal(goal.id);
+                            break;
+                          case GoalCardAction.share:
+                            const String subject = "Progreso en mis metas de hidratación"; 
+                            final String timeTermName = timeMeasureNames[goal.term.index];
+                            final String message = "Este mes he alcanzado mi meta de tomar ${goal.quantity}ml de agua natural cada $timeTermName. Estoy muy orgullos@ de mis resultados!";
+                            Share.share(message, subject: subject);
+                            break;
+                          case GoalCardAction.none:
+                            break;
+                        }
+                      },
+                      itemBuilder: _buildGoalActions,
+                      initialValue: GoalCardAction.none,
+                    );
+                  }
+                ),
               ]
             ),
 

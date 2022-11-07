@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/enums/user_sex.dart';
 
 class DropdownLabels {
@@ -45,20 +45,20 @@ class DropdownLabels {
     }).toList();
   }
 
-  static List<IconLabel> activityLabels(BuildContext context) {
+  static List<IconItemData> activityLabels(BuildContext context) {
 
     final localizations = AppLocalizations.of(context)!;
 
-    return <IconLabel> [
-      IconLabel(1, localizations.actTypeWalk, Icons.directions_walk),
-      IconLabel(2, localizations.actTypeRun, Icons.directions_run),
-      IconLabel(3, localizations.actTypeCycle, Icons.directions_bike),
-      IconLabel(4, localizations.actTypeSwim, Icons.pool),
-      IconLabel(5, localizations.actTypeSoccer, Icons.sports_soccer),
-      IconLabel(6, localizations.actTypeBasketball, Icons.sports_basketball),
-      IconLabel(7, localizations.actTypeVolleyball, Icons.sports_volleyball),
-      IconLabel(8, localizations.actTypeDance, Icons.emoji_people),
-      IconLabel(9, localizations.actTypeYoga, Icons.self_improvement),
+    return <IconItemData> [
+      IconItemData(1, localizations.actTypeWalk, Icons.directions_walk),
+      IconItemData(2, localizations.actTypeRun, Icons.directions_run),
+      IconItemData(3, localizations.actTypeCycle, Icons.directions_bike),
+      IconItemData(4, localizations.actTypeSwim, Icons.pool),
+      IconItemData(5, localizations.actTypeSoccer, Icons.sports_soccer),
+      IconItemData(6, localizations.actTypeBasketball, Icons.sports_basketball),
+      IconItemData(7, localizations.actTypeVolleyball, Icons.sports_volleyball),
+      IconItemData(8, localizations.actTypeDance, Icons.emoji_people),
+      IconItemData(9, localizations.actTypeYoga, Icons.self_improvement),
     ];
   }
 
@@ -69,11 +69,11 @@ class DropdownLabels {
     return activityTypes.map((activityType) {
       
       final int activityTypeIndex = activityLabels.indexWhere(
-        (activityLabel) => activityLabel.activityTypeId == activityType.id);
+        (activityLabel) => activityLabel.value == activityType.id);
 
-      final IconLabel labelForActivityType = activityTypeIndex >= 0 
+      final IconItemData labelForActivityType = activityTypeIndex >= 0 
         ? activityLabels[activityTypeIndex] 
-        : const IconLabel.unknownItem();
+        : const IconItemData.unknownItem();
 
       return DropdownMenuItem(
         value: activityType.id,
@@ -142,13 +142,13 @@ class DropdownLabels {
   }
 }
 
-class IconLabel {
+class IconItemData {
 
-  final int activityTypeId;
+  final int value;
   final String label;
   final IconData icon;
 
-  const IconLabel(this.activityTypeId, this.label, this.icon);
+  const IconItemData(this.value, this.label, this.icon);
 
-  const IconLabel.unknownItem() : this(-1, "Unknown item", Icons.question_answer);
+  const IconItemData.unknownItem() : this(-1, "Unknown item", Icons.question_answer);
 }

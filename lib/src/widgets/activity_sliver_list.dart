@@ -123,7 +123,7 @@ class _ActivityCard extends StatelessWidget {
     
     final activityTypeLabels = DropdownLabels.activityLabels(context);
     final int activityTypeIndex = activityTypeLabels
-      .indexWhere((activityTypeLabel) => activityTypeLabel.activityTypeId == activityRecord.activity.activityType.id);
+      .indexWhere((activityTypeLabel) => activityTypeLabel.value == activityRecord.activity.activityType.id);
 
     final activityTypeLabel = activityTypeLabels[activityTypeIndex];
 
