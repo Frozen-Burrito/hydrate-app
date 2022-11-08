@@ -16,8 +16,8 @@ class Environment extends SQLiteModel {
 
   static const int firstUnlockedId = 1;
 
-  static const int _dryEnvironmentThresholdMl = -250;
-  static const int _moistEnvironmentThresholdMl = 250;
+  static const double _dryEnvironmentThresholdPercent = -0.25;
+  static const double _moistEnvironmentThresholdPercent = 0.25;
 
   static const String _environmentsPath = "assets/img/entornos/";
 
@@ -85,11 +85,14 @@ class Environment extends SQLiteModel {
 
     envImagePathBuffer.writeAll([imagePath, "/"]);
 
-    if (hydrationDifference > _moistEnvironmentThresholdMl) {
+    final int dryThresholdMl = (target * _dryEnvironmentThresholdPercent).round();
+    final int moistThresholdMl = (target * _moistEnvironmentThresholdPercent).round();
+
+    if (hydrationDifference > moistThresholdMl) {
 
       envImagePathBuffer.write(_moistEnvAssetPathEnding);
 
-    } else if (hydrationDifference < _dryEnvironmentThresholdMl) {
+    } else if (hydrationDifference < dryThresholdMl) {
 
       envImagePathBuffer.write(_dryEnvAssetPathEnding);
     } else {

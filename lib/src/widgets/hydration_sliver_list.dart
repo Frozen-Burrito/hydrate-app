@@ -27,10 +27,6 @@ class HydrationSliverList extends StatelessWidget {
               return CustomScrollView(
                 physics: const BouncingScrollPhysics(),
                 slivers: <Widget> [
-                  // SliverOverlapInjector(
-                  //   handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
-                  // ),
-
                   SliverToBoxAdapter(
                     child: WeekTotalsChart(
                       dailyTotals: provider.pastWeekMlTotals,
