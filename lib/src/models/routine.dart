@@ -111,6 +111,7 @@ class Routine extends SQLiteModel {
       baseAttributeNames,
       specificAttributeMappings: options.useCamelCasePropNames ? {} 
       : const {
+        activityIdFieldName: activityIdFieldName,
         profileIdFieldName: profileIdFieldName,
       }
     );
