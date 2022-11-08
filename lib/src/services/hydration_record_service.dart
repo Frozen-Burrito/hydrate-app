@@ -9,6 +9,7 @@ import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
+import 'package:hydrate_app/src/models/medical_data.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 
@@ -65,6 +66,51 @@ class HydrationRecordService extends ChangeNotifier {
       end: now,
       sortByDateAscending: false
     );
+  }
+
+  Future<List<HydrationSummary>> getHydrationSummary({
+    List<MedicalData> medicalRecords = const <MedicalData>[]
+  }) async {
+    final hydrationRecords = await _groupDailyHydration();
+
+    final List<HydrationSummary> hydrationSummary = <HydrationSummary>[];
+
+    for (final hydrationForDay in hydrationRecords.values) {
+      hydrationSummary.add(HydrationSummary(hydrationRecords: hydrationForDay));
+    }
+
+    for (final medicalRecord in medicalRecords) {
+
+      int correspondingDayIndex = hydrationSummary
+          .indexWhere((hydrationSummary) {
+            final bool summaryContainsDate = hydrationSummary.recordedDate != null;
+            final bool isSameDate = hydrationSummary.recordedDate!.isAtSameMomentAs(medicalRecord.createdAt.onlyDate);
+
+            return summaryContainsDate && isSameDate;
+          });
+
+      final canSetMedicalRecordForDay = correspondingDayIndex >= 0 && 
+                                        hydrationSummary[correspondingDayIndex].medicalRecord == null;
+
+      if (canSetMedicalRecordForDay) {
+        hydrationSummary[correspondingDayIndex].medicalRecord = medicalRecord;
+      } else {
+        hydrationSummary.add(HydrationSummary(
+          hydrationRecords: const <HydrationRecord>[],
+          medicalRecord: medicalRecord,
+        ));
+      }
+    }
+
+    hydrationSummary.sort((a, b) {
+      if (a.recordedDate != null && b.recordedDate != null) {
+        return b.recordedDate!.compareTo(a.recordedDate!);
+      } else {
+        return 0;
+      }
+    });
+
+    return hydrationSummary;
   }
 
   /// Guarda una coleccion de registros de hidratación en la base de datos.
@@ -389,4 +435,21 @@ class HydrationRecordService extends ChangeNotifier {
   }
 }
 
+class HydrationSummary {
 
+  HydrationSummary({
+    required this.hydrationRecords, 
+    this.medicalRecord
+  });
+  
+  final List<HydrationRecord> hydrationRecords;
+  MedicalData? medicalRecord;
+
+  DateTime? get recordedDate {
+    if (hydrationRecords.isNotEmpty) {
+      return hydrationRecords.first.date.onlyDate;
+    } else {
+      return medicalRecord?.createdAt.onlyDate;
+    }
+  }
+}

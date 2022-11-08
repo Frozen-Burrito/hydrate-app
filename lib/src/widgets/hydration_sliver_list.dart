@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/goal.dart';
-import 'package:hydrate_app/src/models/user_profile.dart';
-import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
@@ -13,6 +11,7 @@ import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
 
 class HydrationSliverList extends StatelessWidget {
+
   const HydrationSliverList({ Key? key }) : super(key: key);
 
   @override
@@ -20,103 +19,152 @@ class HydrationSliverList extends StatelessWidget {
     return SafeArea(
       top: false,
       bottom: false,
-      child: Builder(
-        builder: (context) {
-          return Consumer<HydrationRecordService>(
-            builder: (_, provider, __) {
-              return CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: <Widget> [
-                  SliverToBoxAdapter(
-                    child: WeekTotalsChart(
-                      dailyTotals: provider.pastWeekMlTotals,
-                      maxYValue: 2000.0,
-                      yUnit: 'ml',
-                    ),
-                  ),
+      child: Consumer<HydrationRecordService>(
+        builder: (_, hydrationRecordService, __) {
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: <Widget> [
+              SliverToBoxAdapter(
+                child: WeekTotalsChart(
+                  dailyTotals: hydrationRecordService.pastWeekMlTotals,
+                  maxYValue: 2000.0,
+                  yUnit: 'ml',
+                ),
+              ),
 
-                  SliverPadding(
-                    padding: const EdgeInsets.all(8.0),
-                    sliver: FutureBuilder<Map<DateTime, List<HydrationRecord>>>(
-                      future: provider.dailyHidration,
+              SliverPadding(
+                padding: const EdgeInsets.all(8.0),
+                sliver: Consumer<GoalsService>(
+                  builder: (context, goalsService, __) {
+                    return FutureBuilder<List<MedicalData>>(
+                      future: goalsService.medicalData,
+                      initialData: const <MedicalData>[],
                       builder: (context, snapshot) {
 
-                        if (snapshot.hasData) {
-                          if (snapshot.data!.isNotEmpty) {
-                            final sortedRecords = snapshot.data!.values.toList();
+                        final medicalRecords = snapshot.data ?? const <MedicalData>[];
 
-                            // Retornar la lista de registros de hidratacion del usuario.
-                            return SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int i) {
-                                  return _HydrationCard(
-                                    hydrationRecords: sortedRecords[i],
-                                  );
-                                },
-                                childCount: snapshot.data!.length,
-                              ),
-                            );
-                          } else {
+                        return FutureBuilder<List<HydrationSummary>>(
+                          future: hydrationRecordService.getHydrationSummary(medicalRecords: medicalRecords),
+                          initialData: const <HydrationSummary>[],
+                          builder: (context, snapshot) {
+
+                            if (snapshot.hasData) {
+                              if (snapshot.data!.isNotEmpty) {
+
+                                final historialHydration = snapshot.data ?? const <HydrationSummary>[];
+
+                                return SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (BuildContext context, int i) {
+                                      return _HydrationCard(
+                                        hydrationRecords: historialHydration[i].hydrationRecords,
+                                        associatedMedicalRecord: historialHydration[i].medicalRecord,
+                                      );
+                                    },
+                                    childCount: historialHydration.length,
+                                  ),
+                                );
+                              } else {
+                                return const SliverToBoxAdapter(
+                                  child: DataPlaceholder(
+                                    //TODO: agregar i18n.
+                                    message: 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.',
+                                    icon: Icons.fact_check_rounded,
+                                  ),
+                                );
+                              }
+                            } else if (snapshot.hasError) {
+                              return const SliverToBoxAdapter(
+                                child: DataPlaceholder(
+                                  //TODO: agregar i18n.
+                                  message: 'Hubo un error al intentar obtener registros de hidratación.',
+                                  icon: Icons.error_outline,
+                                ),
+                              );
+                            }
+
                             return const SliverToBoxAdapter(
                               child: DataPlaceholder(
-                                //TODO: agregar i18n.
-                                message: 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.',
-                                icon: Icons.fact_check_rounded,
+                                isLoading: true,
                               ),
                             );
                           }
-                        } else if (snapshot.hasError) {
-                          return const SliverToBoxAdapter(
-                            child: DataPlaceholder(
-                              //TODO: agregar i18n.
-                              message: 'Hubo un error al intentar obtener registros de hidratación.',
-                              icon: Icons.error_outline,
-                            ),
-                          );
-                        }
-
-                        return const SliverToBoxAdapter(
-                          child: DataPlaceholder(
-                            isLoading: true,
-                          ),
                         );
                       }
-                    ),
-                  ),
-                ],
-              );
-            }
+                    );
+                  }
+                ),
+              ),
+            ],
           );
         }
       ),
-    ); 
+    );
   }
 }
 
 class _HydrationCard extends StatelessWidget {
 
+  const _HydrationCard({ 
+    Key? key,
+    required this.hydrationRecords, 
+    this.associatedMedicalRecord,
+  }) : super(key: key);
+
   final List<HydrationRecord> hydrationRecords;
 
-  const _HydrationCard({ required this.hydrationRecords, Key? key }) : super(key: key);
+  final MedicalData? associatedMedicalRecord;
+
+  String _getDateLabel() {
+
+    final DateTime? timestamp;
+
+    if (hydrationRecords.isEmpty) {
+      timestamp = associatedMedicalRecord?.createdAt;
+    } else {
+      timestamp = hydrationRecords.first.date;
+    }
+
+    assert(timestamp != null, "Una _HydrationCard fue creada sin registros de hidratacion ni medicos");
+
+    if (timestamp != null) {
+      final today = DateTime.now().onlyDate;
+      final yesterday = today.subtract(const Duration(days: 1));
+
+      String dateAsString = timestamp.toString().substring(0,10);
+    
+      if (timestamp.isAfter(today)) {
+        //TODO: agregar i18n
+        dateAsString = 'Hoy';
+      } else if (timestamp.isAfter(yesterday)) {
+        //TODO: agregar i18n
+        dateAsString = 'Ayer';
+      }
+
+      return dateAsString;
+    } else {
+      return "Unknown date";
+    }
+  }
+
+  int _getTotalWaterIntakeForDay() {
+    if (hydrationRecords.isNotEmpty) {
+      return hydrationRecords
+        .map((e) => e.amount)
+        .reduce((total, v) => total + v);
+
+    } else {
+      return 0;
+    }
+  }
+
+  String _getHydrationRecordLabel(HydrationRecord hydrationRecord) {
+    final timeAsString = hydrationRecord.date.toString().substring(11,16);
+    return "$timeAsString - ${hydrationRecord.amount} ml";
+  }
 
   @override
   Widget build(BuildContext context) {
-
-    final totalIntake = hydrationRecords.isNotEmpty 
-      ? hydrationRecords.map((e) => e.amount).reduce((total, v) => total + v)
-      : 0;
-
-    final DateTime now = DateTime.now();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-
-    String dateString = hydrationRecords[0].date.toString().substring(0,10);
-    
-    //TODO: agregar i18n
-    if (hydrationRecords[0].date.isAfter(today)) {
-      dateString = 'Hoy';
-    } else if (hydrationRecords[0].date.isAfter(today.subtract(const Duration(days: 1)))) {
-      dateString = 'Ayer';
-    }
 
     return Card(
       child: Column(
@@ -124,45 +172,46 @@ class _HydrationCard extends StatelessWidget {
         children: [
           ListTile(
             title: Text(
-              hydrationRecords.isNotEmpty ? dateString : 'Sin fecha',
+              _getDateLabel(),
               style: Theme.of(context).textTheme.headline4?.copyWith(fontWeight: FontWeight.w500),
             ),
-            trailing: _DailyProgressText(totalIntake: totalIntake),
+            trailing: _DailyProgressText(
+              totalIntake: _getTotalWaterIntakeForDay()
+            ),
             minVerticalPadding: 0,
             visualDensity: VisualDensity.compact,
           ),
 
-          SizedBox(
+          Container(
             height: 16.0 * hydrationRecords.length + 48.0,
-            child:Padding(
-              padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
-              child: ListView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(top: 16.0),
-                itemCount: hydrationRecords.length,
-                itemBuilder: (context, i) {
-                  return Row(
-                    children: [
-                      Container(
-                        width: 16.0,
-                        height: 16.0,
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        margin: const EdgeInsets.only(right: 4.0),
-                      ),
+            padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
+            child: ListView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(top: 16.0),
+              itemCount: hydrationRecords.length,
+              itemBuilder: (context, i) {
+                return Row(
+                  children: [
+                    Container(
+                      width: 16.0,
+                      height: 16.0,
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      margin: const EdgeInsets.only(right: 4.0),
+                    ),
 
-                      Text(
-                        '${hydrationRecords[i].date.toString().substring(11,16)} - ${hydrationRecords[i].amount} ml',
-                        style: Theme.of(context).textTheme.bodyText1,
-                      ),
-                    ],
-                  );
-                },
-              ),
+                    Text(
+                      _getHydrationRecordLabel(hydrationRecords[i]),
+                      style: Theme.of(context).textTheme.bodyText1,
+                    ),
+                  ],
+                );
+              },
             ),
           ),
 
+          if (associatedMedicalRecord != null)
           _MedicalRecordData(
-            hydrationRecords: hydrationRecords,
+            medicalRecord: associatedMedicalRecord!,
           ),
         ],
       ),
@@ -215,10 +264,10 @@ class _MedicalRecordData extends StatelessWidget {
 
   const _MedicalRecordData({
     Key? key, 
-    this.hydrationRecords = const <HydrationRecord>[],
+    required this.medicalRecord,
   }) : super(key: key);
 
-  final List<HydrationRecord> hydrationRecords;
+  final MedicalData medicalRecord;
 
   IconData _getIconForGain(double actualGain, double recommendedGain) {
     if (actualGain == recommendedGain) {
@@ -232,91 +281,55 @@ class _MedicalRecordData extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    final goalsService = Provider.of<GoalsService>(context);
-    final profileService = Provider.of<ProfileService>(context);
-
-    return FutureBuilder<UserProfile?>(
-      future: profileService.profile,
-      builder: (context, profileSnapshot) => FutureBuilder<List<MedicalData>>(
-        future: goalsService.medicalData,
-        builder: (context, snapshot) {
-          
-          final hasMedicalCondition = profileSnapshot.hasData && 
-            (profileSnapshot.data!.hasRenalInsufficiency || 
-             profileSnapshot.data!.hasNephroticSyndrome);
-            
-          if (hasMedicalCondition && snapshot.hasData ) {
-            // Existen registros médicos del usuario.
-            final medicalRecords = snapshot.data!;
-
-            final recordsForDate = medicalRecords
-                .where((record) => record.createdAt.onlyDate
-                  .isAtSameMomentAs(hydrationRecords.first.date)
-                );
-
-            if (recordsForDate.isNotEmpty) {
-
-              final medicalRecord = recordsForDate.first;
-
-              //TODO: agregar i18n
-              return Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  title: Text("Reporte médico"),
-                  subtitle: Text("Tus datos médicos para este día:"),
-                  leading: Icon(
-                    _getIconForGain(
-                      medicalRecord.actualGain, 
-                      medicalRecord.recommendedGain
-                    ),
-                  ),
-                  children: [
-                    GridView.count(
-                      primary: false,
-                      mainAxisSpacing: 8.0,
-                      crossAxisSpacing: 8.0,
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      childAspectRatio: MediaQuery.of(context).size.width * 0.5 / 64.0,
-                      children: [
-                        ListTile(
-                          title: Text("Hipervolemia"),
-                          trailing: Text(medicalRecord.hypervolemia.toString()),
-                        ),
-                        ListTile(
-                          title: Text("Peso post-diálisis"),
-                          trailing: Text(medicalRecord.postDialysisWeight.toString()),
-                        ),
-                        ListTile(
-                          title: Text("Agua extracelular"),
-                          trailing: Text(medicalRecord.extracellularWater.toString()),
-                        ),
-                        ListTile(
-                          title: Text("Normovolemia"),
-                          trailing: Text(medicalRecord.normovolemia.toString()),
-                        ),
-                        ListTile(
-                          title: Text("Ganancia recomendada"),
-                          trailing: Text(medicalRecord.recommendedGain.toString()),
-                        ),
-                        ListTile(
-                          title: Text("Ganancia real"),
-                          trailing: Text(medicalRecord.actualGain.toString()),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            } 
-          } 
-
-          // Si no hay registros médicos, o no hay uno que coincida con la 
-          // fecha de hydrationRecord retornar un SizedBox vacío.
-          return const SizedBox( height: 0.0,);
-        },
-      )
+    //TODO: agregar i18n
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        title: Text("Reporte médico"),
+        subtitle: Text("Tus datos médicos para este día:"),
+        leading: Icon(
+          _getIconForGain(
+            medicalRecord.actualGain, 
+            medicalRecord.recommendedGain
+          ),
+        ),
+        children: [
+          GridView.count(
+            primary: false,
+            mainAxisSpacing: 8.0,
+            crossAxisSpacing: 8.0,
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            childAspectRatio: MediaQuery.of(context).size.width * 0.5 / 64.0,
+            children: [
+              ListTile(
+                title: Text("Hipervolemia"),
+                trailing: Text(medicalRecord.hypervolemia.toString()),
+              ),
+              ListTile(
+                title: Text("Peso post-diálisis"),
+                trailing: Text(medicalRecord.postDialysisWeight.toString()),
+              ),
+              ListTile(
+                title: Text("Agua extracelular"),
+                trailing: Text(medicalRecord.extracellularWater.toString()),
+              ),
+              ListTile(
+                title: Text("Normovolemia"),
+                trailing: Text(medicalRecord.normovolemia.toString()),
+              ),
+              ListTile(
+                title: Text("Ganancia recomendada"),
+                trailing: Text(medicalRecord.recommendedGain.toString()),
+              ),
+              ListTile(
+                title: Text("Ganancia real"),
+                trailing: Text(medicalRecord.actualGain.toString()),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
-  }
-}
+  } 
+} 
