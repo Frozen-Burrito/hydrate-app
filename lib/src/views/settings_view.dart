@@ -201,6 +201,18 @@ class _BatteryUsageChart extends StatelessWidget {
     return strBuf.toString();
   }
 
+  List<LineTooltipItem> _getTooltips(List<LineBarSpot> lineSpots) {
+    return lineSpots.map((spot) {
+      return LineTooltipItem(
+        "${spot.y.round()}%", 
+        TextStyle(
+          color: Colors.yellow.shade300,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -260,6 +272,11 @@ class _BatteryUsageChart extends StatelessWidget {
                     }
                   ),
                 ),
+              ),
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipItems: _getTooltips,
+                )
               ),
               gridData: FlGridData(
                 show: true,
