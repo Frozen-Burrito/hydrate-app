@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/models/environment.dart';
-import 'package:hydrate_app/src/models/goal.dart';
-import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'package:hydrate_app/src/models/environment.dart';
+import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/widgets/asset_fade_in_image.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
@@ -21,7 +21,6 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return SafeArea(
       top: false,
       bottom: false,
@@ -72,6 +71,45 @@ class HomeTab extends StatelessWidget {
               );
             }
           ),
+
+          Consumer<GoalsService>(
+            builder: (_, goalsService, __) {
+              return FutureBuilder<int>(
+                future: goalsService.getNumberOfDaysForRecommendation(),
+                initialData: 1,
+                builder: (context, snapshot) {
+
+                  final daysOfHydrationRequired = snapshot.data ?? 1;
+                  final endDate = DateTime.now();
+                  final beginDate = endDate.subtract( Duration( days: daysOfHydrationRequired ));
+
+                  return Consumer<HydrationRecordService>(
+                    builder: (context, hydrationRecordService, __) {
+                      return FutureBuilder<List<int>>(
+                        future: hydrationRecordService.totalsFromPrevDaysInMl(
+                          begin: beginDate, 
+                          end: endDate,
+                          sortByDateAscending: false,
+                        ),
+                        builder: (context, snapshot) {
+                          final recommendedGoals = goalsService.getRecommendedGoals(
+                            totalWaterIntakeForPeriod: snapshot.data
+                          );
+
+                          return GoalSliverList(
+                            hydrationGoalSource: recommendedGoals,
+                            goalsAreRecommendations: true,
+                            showLoadingIndicator: false,
+                            showPlaceholderWhenEmpty: false,
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          ),          
         ], 
       ),
     );

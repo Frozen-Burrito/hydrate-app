@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
+import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -19,6 +21,7 @@ class GoalSliverList extends StatelessWidget {
     required this.hydrationGoalSource,
     this.showPlaceholderWhenEmpty = true,
     this.showLoadingIndicator = true,
+    this.goalsAreRecommendations = false,
   }) : super(key: key);
 
   final Future<List<Goal>> hydrationGoalSource;
@@ -26,6 +29,8 @@ class GoalSliverList extends StatelessWidget {
   final bool showPlaceholderWhenEmpty;
 
   final bool showLoadingIndicator;
+
+  final bool goalsAreRecommendations;
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +51,7 @@ class GoalSliverList extends StatelessWidget {
                   (BuildContext context, int i) {
                     return _GoalCard(
                       goal: hydrationGoals[i],
+                      isRecommendation: goalsAreRecommendations,
                     );
                   },
                   childCount: hydrationGoals.length,
@@ -107,10 +113,13 @@ class _GoalCard extends StatelessWidget {
 
   const _GoalCard({ 
     required this.goal, 
+    this.isRecommendation = false,
     Key? key 
   }) : super(key: key);
 
   final Goal goal;
+
+  final bool isRecommendation;
 
   //TODO: Agregar i18n para plazos de tiempo
   static const termLabels = <String>['Diario','Semanal','Mensual'];
@@ -131,6 +140,16 @@ class _GoalCard extends StatelessWidget {
 
     return strBuf.toString();
   }
+
+  String _getGoalTitle(BuildContext context) {
+    if (isRecommendation) {
+      return "Meta Recomendada";
+    } else {
+      return goal.notes ?? "Meta de hidratación";
+    }
+  }
+
+  String _getFormattedGoalTarget(BuildContext context) => "${goal.quantity.toString()}ml";
 
   List<PopupMenuEntry<GoalCardAction>> _buildGoalActions(BuildContext context) {
     return <PopupMenuEntry<GoalCardAction>>[
@@ -178,7 +197,7 @@ class _GoalCard extends StatelessWidget {
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.6,
                   child: Text(
-                    goal.notes ?? 'Meta de hidratación', 
+                    _getGoalTitle(context), 
                     style: Theme.of(context).textTheme.headline6,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -190,7 +209,7 @@ class _GoalCard extends StatelessWidget {
                 Column(
                   children: <Widget> [
                     Text(
-                      '${goal.quantity.toString()}ml',
+                      _getFormattedGoalTarget(context),
                       style: Theme.of(context).textTheme.subtitle1,
                     ),
                     
@@ -217,6 +236,7 @@ class _GoalCard extends StatelessWidget {
                   ],
                 ), 
 
+                if (!isRecommendation)
                 Consumer<GoalsService>(
                   builder: (context, goalsService, __) {
                     return PopupMenuButton<GoalCardAction>(
@@ -252,29 +272,28 @@ class _GoalCard extends StatelessWidget {
               )
             ),
 
-            ( goal.tags.isNotEmpty)
-            ? SizedBox(
-                height: 48.0,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: goal.tags.length,
-                  itemBuilder: (BuildContext context, int i) {
-                    return Container(
-                      margin: const EdgeInsets.only( right: 8.0 ),
-                      child: Chip(
-                        key: Key(goal.tags[i].id.toString()),
-                        label: Text(
-                          goal.tags[i].value,
-                          style: Theme.of(context).textTheme.bodyText2?.copyWith(
-                            fontWeight: FontWeight.w500
-                          ),
+            if (goal.tags.isNotEmpty)
+            SizedBox(
+              height: 48.0,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: goal.tags.length,
+                itemBuilder: (BuildContext context, int i) {
+                  return Container(
+                    margin: const EdgeInsets.only( right: 8.0 ),
+                    child: Chip(
+                      key: Key(goal.tags[i].id.toString()),
+                      label: Text(
+                        goal.tags[i].value,
+                        style: Theme.of(context).textTheme.bodyText2?.copyWith(
+                          fontWeight: FontWeight.w500
                         ),
                       ),
-                    );
-                  }
-                ),
-              )
-            : const SizedBox( width: 0.0,),
+                    ),
+                  );
+                }
+              ),
+            ),
               
             Text(
               _buildDateLabel(goal.startDate, goal.endDate), 
@@ -282,7 +301,10 @@ class _GoalCard extends StatelessWidget {
               textAlign: TextAlign.left
             ),
 
-            _GoalProgressBar(goal: goal),
+            ( isRecommendation 
+            ? _GoalRecommendationActions( recommendedGoal: goal, )
+            : _GoalProgressBar(goal: goal)
+            ),
           ],
         ),
       ),
@@ -368,6 +390,131 @@ class _GoalProgressBar extends StatelessWidget {
           }
         );
       }
+    );
+  }
+}
+
+class _GoalRecommendationActions extends StatelessWidget {
+
+  const _GoalRecommendationActions({
+    Key? key,
+    required this.recommendedGoal,
+  }) : super(key: key);
+
+  final Goal recommendedGoal;
+
+  static const int _maxGoalPersistAttempts = 3;
+
+  Future<void> _handleRecommendationAccepted(BuildContext context) async {
+
+    final goalService = Provider.of<GoalsService>(context, listen: false);
+    
+    bool canCreateNewGoal = true;
+    bool wasGoalCreated = false;
+    int goalCreationAttemptCount = 0;
+
+    recommendedGoal.id = -1;
+    recommendedGoal.isMainGoal = false;
+
+    while (!wasGoalCreated && canCreateNewGoal && goalCreationAttemptCount <= _maxGoalPersistAttempts) {
+      try {
+        final int createdGoalId = await goalService.createHydrationGoalWithLimit(recommendedGoal);
+
+        wasGoalCreated = createdGoalId >= 0;
+
+        if (wasGoalCreated) {
+          await goalService.syncUpdatedHydrationGoalsWithAccount();
+        } else {
+          _showGoalCreateError(context);
+        }
+
+      } on EntityPersistException catch (ex) {
+        final hasToReplaceGoal = ex.exceptionType == EntityPersitExceptionType.hasReachedEntityCountLimit;
+
+        if (hasToReplaceGoal) {
+          final wereGoalsReplaced = await _tryToReplaceExistingGoals(context, goalService);
+
+          canCreateNewGoal = wereGoalsReplaced;
+        }
+      }
+    }
+  }
+
+  Future<bool> _tryToReplaceExistingGoals(BuildContext context, GoalsService goalService) async {
+    // Si el usuario ha llegado al límite de metas simultáneas, preguntarle
+    // si desea reemplazar metas existentes usando un Dialog.
+    List<int> goalIdsToReplace = (await showAskForGoalReplacementDialog(context)) 
+      ?? const <int>[]; 
+
+    final bool didUserChooseGoalsToReplace = goalIdsToReplace.isNotEmpty;
+    bool wereGoalsReplaced = false;
+
+    if (didUserChooseGoalsToReplace) {
+      // Remover todas las metas especificadas por el usuario.
+      for (final goalId in goalIdsToReplace) {
+        final int goalsEliminated = await goalService.deleteHydrationGoal(goalId);
+
+        wereGoalsReplaced = goalsEliminated >= 0;
+      }
+    }
+
+    return wereGoalsReplaced;
+  }
+
+  Future<List<int>?> showAskForGoalReplacementDialog(BuildContext context) {
+    return showDialog<List<int>>(
+      context: context,
+      builder: (context) => const ReplaceGoalDialog(),
+    );
+  }
+
+  void _showGoalCreateError(BuildContext context) {
+    // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar( 
+        content: Text("Hubo un error al crear la meta"),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    //TODO: agregar i18n.
+    return Container(
+      padding: const EdgeInsets.only( top: 16.0 ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Consumer<GoalsService>(
+              builder: (context, goalsService, __) {
+                return OutlinedButton.icon(
+                  icon: const Icon( Icons.close, color: Colors.red, ),
+                  label: Text("Rechazar"),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                    textStyle: Theme.of(context).textTheme.bodyText1,
+                  ),
+                  onPressed: () => goalsService.rejectRecommendedGoal(recommendedGoal),
+                );
+              }
+            ),
+          ),
+
+          const SizedBox( width: 16.0, ),
+
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: Icon( Icons.check, color: Colors.green.shade300, ),
+              label: Text("Aceptar"),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                textStyle: Theme.of(context).textTheme.bodyText1,
+              ),
+              onPressed: () => _handleRecommendationAccepted(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

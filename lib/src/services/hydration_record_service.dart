@@ -61,7 +61,7 @@ class HydrationRecordService extends ChangeNotifier {
 
     final now = DateTime.now();
 
-    return _totalsFromPrevDaysInMl(
+    return totalsFromPrevDaysInMl(
       begin: now.subtract(const Duration( days: 6 )).onlyDate, 
       end: now,
       sortByDateAscending: false
@@ -339,7 +339,7 @@ class HydrationRecordService extends ChangeNotifier {
   /// con los más antiguos primero (el más antiguo será el primero). Si este 
   /// argumento es __false__, los totales serán ordenados con los más recientes 
   /// primero. 
-  Future<List<int>> _totalsFromPrevDaysInMl({
+  Future<List<int>> totalsFromPrevDaysInMl({
     required DateTime begin, 
     required DateTime end,
     bool sortByDateAscending = true, 
@@ -418,7 +418,7 @@ class HydrationRecordService extends ChangeNotifier {
 
     // Obtener los totales de registros de hidratación con la antiguedad para 
     // la meta.
-    final totals = await _totalsFromPrevDaysInMl(
+    final totals = await totalsFromPrevDaysInMl(
       // begin: (isCompleteTerm) ? goalProgressBegin.onlyDate : goalProgressBegin, 
       begin: goalProgressBegin, 
       end: now,

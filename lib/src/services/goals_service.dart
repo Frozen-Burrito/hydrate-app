@@ -7,7 +7,9 @@ import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/db/where_clause.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
+import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/models/validators/range.dart';
 import 'package:hydrate_app/src/services/cache_state.dart';
 
 /// Maneja el estado para los [Goal], [Tag], [Habits] y [MedicalData].
@@ -54,6 +56,8 @@ class GoalsService extends ChangeNotifier {
     onDataRefreshed: (_) => notifyListeners()
   );
 
+  static const int goalRepetitionsNeededForRecommendation = 5;
+
   bool _hasAskedForPeriodicalData = false;
   bool _hasAskedForMedicalData = false;
   
@@ -72,18 +76,6 @@ class GoalsService extends ChangeNotifier {
   Future<List<Goal>> get goals => _goalCache.data.then((data) {
     return data ?? const <Goal>[];
   });
-
-  Future<List<Goal>> get recommendedGoals async {
-    final activeGoals = (await _goalCache.data) ?? <Goal>[];
-
-    final Goal? recommendedGoal = await _createGoalRecommendation([], []);
-
-    if (recommendedGoal != null) {
-      activeGoals.add(recommendedGoal);
-    }
-
-    return activeGoals;
-  }
 
   Future<Goal?> get mainActiveGoal => _goalCache.data.then((data) {
     final goals = data ?? const <Goal>[];
@@ -214,9 +206,71 @@ class GoalsService extends ChangeNotifier {
     } else {
       throw const EntityPersistException(
         EntityPersitExceptionType.hasReachedEntityCountLimit,
-        "El perfil actual ha alcanzado el límite de metas actias. Debe eliminar una meta antes de crear una nueva."
+        "El perfil actual ha alcanzado el límite de metas activas. Debe eliminar una meta antes de crear una nueva."
       );
     }
+  }
+
+  Future<int> getNumberOfDaysForRecommendation() async {
+
+    final activeGoals = (await _goalCache.data) ?? const <Goal>[];
+
+    int requiredDaysOfRecords = 1;
+
+    for (final activeGoal in activeGoals) {
+      if (activeGoal.term.inDays > requiredDaysOfRecords) {
+        requiredDaysOfRecords = activeGoal.term.inDays;
+      }
+    }
+
+    requiredDaysOfRecords *= goalRepetitionsNeededForRecommendation;
+
+    return requiredDaysOfRecords;
+  }
+
+  Future<List<Goal>> getRecommendedGoals({ List<int>? totalWaterIntakeForPeriod }) async {
+
+    final List<Goal> recommendations = <Goal>[];
+
+    if (totalWaterIntakeForPeriod == null || totalWaterIntakeForPeriod.isEmpty) {
+      return recommendations;
+    }
+
+    final activeGoals = (await _goalCache.data) ?? <Goal>[];
+
+    for (final activeGoal in activeGoals) {
+      
+      final int daysOfHydrationToConsider = activeGoal.term.inDays * goalRepetitionsNeededForRecommendation;
+      final dailyHydrationDuringGoal = totalWaterIntakeForPeriod.sublist(0, daysOfHydrationToConsider);
+
+      final List<int> hydrationDuringGoal;
+
+      if (daysOfHydrationToConsider % goalRepetitionsNeededForRecommendation != 0) {
+        hydrationDuringGoal = <int>[];
+
+        for (int i = 0; i < daysOfHydrationToConsider; i += activeGoal.term.inDays) {
+          int totalForGoalPeriod = dailyHydrationDuringGoal
+            .sublist(i, i + activeGoal.term.inDays)
+            .reduce((total, totalForDay) => total += totalForDay);
+
+          hydrationDuringGoal.add(totalForGoalPeriod);
+        }
+      } else {
+        hydrationDuringGoal = dailyHydrationDuringGoal;
+      }
+
+      final Goal? recommendedGoal = _createGoalRecommendation(activeGoal, hydrationDuringGoal,);
+
+      if (recommendedGoal != null) {
+        recommendations.add(recommendedGoal);
+      }
+    }
+
+    return recommendations;
+  }
+
+  void rejectRecommendedGoal(Goal rejectedRecommendation) {
+  
   }
 
   Future<void> syncUpdatedHydrationGoalsWithAccount() async {
@@ -364,8 +418,83 @@ class GoalsService extends ChangeNotifier {
     return newMainGoal.id;
   }
 
-  Future<Goal?> _createGoalRecommendation(List<Goal> activeGoals, List<HydrationRecord> hydrationForPastWeek) async {
+  Goal? _createGoalRecommendation(Goal activeGoal, List<int> hydrationDuringPeriod) {
 
+    final bool goalIsNotDaily = activeGoal.term != TimeTerm.daily;
+
+    final bool hasThreeDaysWithNoHydration = _hasConsecutiveItemsInRange(
+      hydrationDuringPeriod,
+      3, 
+      const Range(min: -1, max: 1),
+    );
+
+    final int lowHydrationThreshold = (activeGoal.quantity * 2.0).round();
+    final bool everyGoalIterationHasLessHydration = hydrationDuringPeriod
+        .every((totalForGoalIteration) => totalForGoalIteration < lowHydrationThreshold);
+
+    final int excessHydrationThreshold = (activeGoal.quantity * 0.5).round();
+    final bool everyGoalIterationHasExcessHydration = hydrationDuringPeriod
+        .every((totalForGoalIteration) => totalForGoalIteration > excessHydrationThreshold);
+
+    Goal? recommendedGoal;
+
+    if (goalIsNotDaily && hasThreeDaysWithNoHydration) {
+
+      recommendedGoal ??= _copyActiveGoal(activeGoal);
+
+      recommendedGoal.term = TimeTerm.daily;
+    }
+
+    if (everyGoalIterationHasExcessHydration) {
+      recommendedGoal ??= _copyActiveGoal(activeGoal);
+
+      recommendedGoal.quantity = (activeGoal.quantity * 0.75).round();
+    }
+
+    if (everyGoalIterationHasLessHydration) {
+      recommendedGoal ??= _copyActiveGoal(activeGoal);
+
+      recommendedGoal.quantity = (activeGoal.quantity * 1.25).round();
+    }
+
+    return recommendedGoal;
+  }
+
+  Goal _copyActiveGoal(Goal activeGoal) {
+    return Goal(
+      id: -1,
+      term: activeGoal.term,
+      startDate: activeGoal.startDate,
+      endDate: activeGoal.endDate,
+      quantity: activeGoal.quantity,
+      notes: activeGoal.notes,
+      reward: activeGoal.reward,
+      tags: activeGoal.tags,
+      profileId: activeGoal.profileId,
+      isMainGoal: false,
+    );
+  }
+
+  bool _hasConsecutiveItemsInRange(List<int> items, int itemCount, Range range) {
+
+    int previous = -1;
+    int consecutiveCount = 0;
+
+    for (final item in items) {
+      if (item == previous && range.compareTo(item) == 0) {
+        consecutiveCount++;
+      } else {
+        consecutiveCount = 0;
+      }
+
+      if (consecutiveCount >= itemCount) {
+        return true;
+      }
+
+      previous = item;
+    }
+
+    return false;
   }
 
   /// Elimina una meta de hidratación existente.
