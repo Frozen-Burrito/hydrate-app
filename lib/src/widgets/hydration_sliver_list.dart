@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/models/medical_data.dart';
+import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
 import 'package:hydrate_app/src/services/hydration_record_service.dart';
+import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
 import 'package:hydrate_app/src/widgets/week_totals_chart.dart';
@@ -166,6 +168,8 @@ class _HydrationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final totalWaterIntakeForDay = _getTotalWaterIntakeForDay();
+
     return Card(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -176,10 +180,45 @@ class _HydrationCard extends StatelessWidget {
               style: Theme.of(context).textTheme.headline4?.copyWith(fontWeight: FontWeight.w500),
             ),
             trailing: _DailyProgressText(
-              totalIntake: _getTotalWaterIntakeForDay()
+              totalIntake: totalWaterIntakeForDay,
             ),
             minVerticalPadding: 0,
             visualDensity: VisualDensity.compact,
+          ),
+
+          Consumer<ProfileService>(
+            builder: (context, profileService, __) {
+              return FutureBuilder<UserProfile?>(
+                future: profileService.profile,
+                initialData: null,
+                builder: (context, snapshot) {
+
+                  final profileHasMedicalCondition = snapshot.hasData &&
+                    (snapshot.data!.hasRenalInsufficiency || snapshot.data!.hasNephroticSyndrome);
+                  
+                  if (profileHasMedicalCondition) {
+                    return Consumer<GoalsService>(
+                      builder: (_, goalsService, __) {
+                        return FutureBuilder<Goal?>(
+                          future: goalsService.mainActiveGoal,
+                          builder: (context, snapshot) {
+                            return Container(
+                              margin: const EdgeInsets.symmetric( vertical: 4.0 ),
+                              child: _HydrationStatusChip(
+                                mainTarget: snapshot.data?.quantity ?? 0,
+                                totalWaterIntakeForDay: totalWaterIntakeForDay,
+                              ),
+                            );
+                          }
+                        );
+                      }
+                    );
+                  } else {
+                    return const SizedBox( height: 0.0 );
+                  }
+                }
+              );
+            }
           ),
 
           Container(
@@ -215,6 +254,35 @@ class _HydrationCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HydrationStatusChip extends StatelessWidget {
+
+  const _HydrationStatusChip({
+    Key? key,
+    this.totalWaterIntakeForDay = 0,
+    this.mainTarget = 0,
+  }) : super(key: key);
+
+  final int totalWaterIntakeForDay;
+
+  final int mainTarget;
+
+  @override
+  Widget build(BuildContext context) {
+
+    if (mainTarget == 0 || totalWaterIntakeForDay < mainTarget) {
+      return const SizedBox( height: 0.0 );
+    }
+
+    final hasExceededTarget = totalWaterIntakeForDay + (mainTarget * 0.25) >= mainTarget;
+
+    return Chip(
+      backgroundColor: hasExceededTarget ? Colors.red : Colors.green,
+      //TODO: Agregar i18n.
+      label: Text( hasExceededTarget ? "Exceso de líquidos" : "Líquidos estables"),
     );
   }
 }
