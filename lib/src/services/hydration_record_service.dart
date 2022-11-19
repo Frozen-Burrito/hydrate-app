@@ -148,19 +148,6 @@ class HydrationRecordService extends ChangeNotifier {
   /// Si [hydrationRecord] no pudo ser persistido, este método retorna un 
   /// entero negativo.
   Future<int> saveHydrationRecord(HydrationRecord hydrationRecord, { refreshImmediately = true }) async {
-
-    final latestDate = latestHydrationRecord?.date;
-    final latestAmount = latestHydrationRecord?.amount;
-
-    final bool hasSameDate = latestDate != null && latestDate.isAtSameMomentAs(hydrationRecord.date);
-    final bool hasSameAmount = latestAmount != null && latestAmount == hydrationRecord.amount;
-
-    if (hasSameDate && hasSameAmount) 
-    {
-      debugPrint("A repeated hydration record would have been saved.");
-      return latestHydrationRecord!.id;
-    }
-
     // Asegurar que el nuevo registro de hidratación sea asociado con el 
     // perfil de usuario activo.
     hydrationRecord.profileId = _profileId;
@@ -191,7 +178,7 @@ class HydrationRecordService extends ChangeNotifier {
       try {
         await DataApi.instance.updateData<HydrationRecord>(
           data: _hydrationRecordsPendingSync,
-          mapper: (hydrationRecord, mapOptions) => hydrationRecord.toMap(options: mapOptions),
+          mapper: (hydrationRecord, _) => hydrationRecord.toJson(),
         );
 
         _hydrationRecordsPendingSync.clear();
@@ -214,13 +201,13 @@ class HydrationRecordService extends ChangeNotifier {
 
     try {
       // Formar el WHERE para el query.
-      final where = WhereClause(HydrationRecord.profileIdFieldName, _profileId.toString());
+      final where = WhereClause(HydrationRecord.profileIdAttribute, _profileId.toString());
 
       // Query a la BD.
       final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
         HydrationRecord.fromMap, 
         HydrationRecord.tableName, 
-        orderByColumn: HydrationRecord.dateFieldName,
+        orderByColumn: HydrationRecord.dateAttribute,
         orderByAsc: false,
         where: [ where ],
       );
@@ -373,7 +360,7 @@ class HydrationRecordService extends ChangeNotifier {
         // Existen registros de hidratación para el día. 
         // Obtener las cantidades de los registros de hidratacion y agregarlas. 
         int totalMililiters = hydrationRecords[previousDay]!
-            .map((registroHidratacion) => registroHidratacion.amount)
+            .map((registroHidratacion) => registroHidratacion.volumeInMl)
             .reduce((total, cantidadConsumida) => total += cantidadConsumida);
 
         // Asignar el consumo total para el día i.

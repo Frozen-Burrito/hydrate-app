@@ -152,7 +152,7 @@ class _HydrationCard extends StatelessWidget {
   int _getTotalWaterIntakeForDay() {
     if (hydrationRecords.isNotEmpty) {
       return hydrationRecords
-        .map((e) => e.amount)
+        .map((e) => e.volumeInMl)
         .reduce((total, v) => total + v);
 
     } else {
@@ -162,7 +162,7 @@ class _HydrationCard extends StatelessWidget {
 
   String _getHydrationRecordLabel(HydrationRecord hydrationRecord) {
     final timeAsString = hydrationRecord.date.toString().substring(11,16);
-    return "$timeAsString - ${hydrationRecord.amount} ml";
+    return "$timeAsString - ${hydrationRecord.volumeInMl} ml";
   }
 
   @override

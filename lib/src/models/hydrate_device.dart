@@ -94,10 +94,10 @@ class HydrateDevice {
   static const String _deviceTimeCharUUID = "00002b90-0000-1000-8000-00805f9b34fb";
 
   static const Map<String, String> recordUUIDsToAttributes = {
-    _mlAmountCharUUID: HydrationRecord.amountFieldName,
-    _temperatureCharUUID: HydrationRecord.temperatureFieldName,
-    _timestampCharUUID: HydrationRecord.dateFieldName,
-    _batteryChargeCharUUID: HydrationRecord.batteryLvlFieldName,
+    _mlAmountCharUUID: HydrationRecord.amountAttribute,
+    _temperatureCharUUID: HydrationRecord.temperatureAttribute,
+    _timestampCharUUID: HydrationRecord.dateAttribute,
+    _batteryChargeCharUUID: HydrationRecord.batteryChargeAttribute,
   };
 
   static final Map<String, BytesToValueMapper> _hydrationSvcAttributeMappers = {
@@ -517,7 +517,7 @@ class HydrateDevice {
 
     debugPrint("About to sync a new record: $record");
 
-    if (record != null) {
+    if (record != null && record.id < 0) {
       _hydrationRecordsController.sink.add(record);
     }
   }
