@@ -33,7 +33,7 @@ class ProfileService extends ChangeNotifier {
   /// Crea una instancia de [ProfileService] que es inicializada con el 
   /// [UserProfile] por defecto.
   ProfileService() 
-    : _profileId = UserProfile.defaultProfileId,
+    : _profileId = UserProfile.defaultProfile.id,
       _authToken = "",
       _onProfileChanged = null;
 
@@ -48,7 +48,7 @@ class ProfileService extends ChangeNotifier {
   /// [linkedAccountId] obtenidos desde SharedPreferences.
   /// 
   /// Si no existen keys para el [profileId] o el [linkedAccountId] en Shared 
-  /// Preferences, usa sus valores por defecto ([UserProfile.defaultProfileId] 
+  /// Preferences, usa sus valores por defecto ([UserProfile.defaultProfile.id] 
   /// y un [String] vacío, respectivamente).
   factory ProfileService.fromSharedPrefs({ 
     bool createDefaultProfile = false,
@@ -68,7 +68,7 @@ class ProfileService extends ChangeNotifier {
       currentProfileId = getProfileIdFromJwt(prefsAuthToken);
 
     } else {
-      currentProfileId = UserProfile.defaultProfileId;
+      currentProfileId = UserProfile.defaultProfile.id;
     }
 
     return ProfileService.withProfile(
@@ -82,22 +82,22 @@ class ProfileService extends ChangeNotifier {
   /// [UserProfile]. 
   /// 
   /// Si [profileId] se omite, el [UserProfile] inicial será aquel identificado
-  /// con [UserProfile.defaultProfileId].
+  /// con [UserProfile.defaultProfile.id].
   /// 
   /// Si se incluye un [authToken] que no esté vacío y sea válido, el [UserProfile]
   /// inicial deberá tener un [UserProfile.userAccountId] igual al ID de cuenta 
   /// incluido en el token. 
   ProfileService.withProfile({ 
-    int profileId = UserProfile.defaultProfileId, 
+    int? profileId, 
     String authToken = "", 
     OnProfileChanged? onProfileChanged,
-  }): _profileId = profileId,
+  }): _profileId = profileId ?? UserProfile.defaultProfile.id,
       _authToken = authToken,
       _onProfileChanged = onProfileChanged;
 
   /// Contiene todas las modificaciones sin "confirmar" en el perfil de usuario
   /// actual. Esta instancia de [UserProfile] es modificable.
-  UserProfile _profileChanges = UserProfile.modifiableCopyOf(UserProfile.defaultProfile);
+  UserProfile _profileChanges = UserProfile.of(UserProfile.defaultProfile);
 
   /// Un contenedor para el [UserProfile] del usuario actual.
   late final CacheState<UserProfile?> _profileCache = CacheState(
@@ -106,7 +106,7 @@ class ProfileService extends ChangeNotifier {
       // Actualizar el modelo de cambios a perfil. Si el perfil activo no es nulo,
       // los cambios de perfil son una copia del perfil original. Si no, los 
       // cambios de perfil son inicializados para un perfil por default.
-      _profileChanges = UserProfile.modifiableCopyOf(profile ?? UserProfile.defaultProfile);
+      _profileChanges = UserProfile.of(profile ?? UserProfile.defaultProfile);
 
       if (_onProfileChanged != null) _onProfileChanged!(profile, _authToken);
 
@@ -135,7 +135,7 @@ class ProfileService extends ChangeNotifier {
 
     final currentProfile = _profileCache.cachedData;
 
-    final bool isDefaultProfile = currentProfile?.id == UserProfile.defaultProfileId;
+    final bool isDefaultProfile = currentProfile?.id == UserProfile.defaultProfile.id;
     final bool isNotAuthenticated = !_isAuthenticated();
     final bool isProfileLinkedToAccount = currentProfile?.isLinkedToAccount ?? false;
 
@@ -156,7 +156,7 @@ class ProfileService extends ChangeNotifier {
   bool get hasEnvironmentsData => _environmentsCache.hasData;
   Future<List<Environment>?> get environments => _environmentsCache.data;
 
-  Future<void> signOut() => _changeProfile(UserProfile.defaultProfileId, authToken: "");
+  Future<void> signOut() => _changeProfile(UserProfile.defaultProfile.id, authToken: "");
 
   bool _isAuthenticated() => _authToken.isNotEmpty && !isTokenExpired(_authToken);
 
@@ -173,7 +173,7 @@ class ProfileService extends ChangeNotifier {
   /// Retorna [false] en caso contrario. 
   Future<bool> _changeProfile(int newProfileId, { String authToken = "" }) async {
 
-    final bool isNewProfileIdValid = newProfileId >= UserProfile.defaultProfileId;
+    final bool isNewProfileIdValid = newProfileId >= UserProfile.defaultProfile.id;
     final bool isNewAuthTokenValid = authToken.isEmpty || !isTokenExpired(authToken);
     final bool didCredentialsChange = (newProfileId != _profileId || authToken != _authToken);
 
@@ -214,7 +214,7 @@ class ProfileService extends ChangeNotifier {
       unions.add("AND");
     }
 
-    final isDefaultProfile = _profileId == UserProfile.defaultProfileId;
+    final isDefaultProfile = _profileId == UserProfile.defaultProfile.id;
 
     UserProfile? profile;
 
@@ -286,7 +286,7 @@ class ProfileService extends ChangeNotifier {
     final String userAccountId = getAccountIdFromJwt(authToken);
 
     final int existingLinkedProfileId = await findProfileLinkedToAccount(userAccountId); 
-    final localProfileExists = existingLinkedProfileId >= UserProfile.defaultProfileId;
+    final localProfileExists = existingLinkedProfileId >= UserProfile.defaultProfile.id;
 
     final allLocalCountries = await _fetchCountries();
     final allLocalEnvironments = await _fetchAllEnvironments();
@@ -302,7 +302,7 @@ class ProfileService extends ChangeNotifier {
 
     _authApi.dispose();
 
-    _profileChanges = UserProfile.modifiableCopyOf(profileFromAuthService);
+    _profileChanges = UserProfile.of(profileFromAuthService);
     _profileChanges.userAccountID = userAccountId;
 
     final bool canLinkDefaultProfileToAccount;
@@ -328,12 +328,11 @@ class ProfileService extends ChangeNotifier {
 
       if (isDefaultProfileAlreadyLinked) {
         // Crear un nuevo perfil local, asociado con la cuenta de usuario.
-        _profileChanges.id = -1;
-        final newLocalProfile = _profileChanges;
+        final newLocalProfile = UserProfile.of(_profileChanges);
 
         final newLocalProfileId = await SQLiteDB.instance.insert(newLocalProfile);
 
-        final wasProfileCreated = newLocalProfileId > UserProfile.defaultProfileId;
+        final wasProfileCreated = newLocalProfileId > UserProfile.defaultProfile.id;
 
         if (wasProfileCreated) {
           await _changeProfile(newLocalProfileId, authToken: authToken);
@@ -369,13 +368,15 @@ class ProfileService extends ChangeNotifier {
 
     assert(defaultLocalProfile != null, "Se esperaba que el perfil local por defecto fuera no-nulo, pero no lo es.");
 
+    final updatedLocalProfile = UserProfile.of(defaultLocalProfile!);
+
     final String userAccountId = getAccountIdFromJwt(authToken);
-    defaultLocalProfile!.userAccountID = userAccountId;
+    updatedLocalProfile.userAccountID = userAccountId;
 
     const int expectedAlteredRows = 1;
-    final int alteredRows = await SQLiteDB.instance.update(defaultLocalProfile);
+    final int alteredRows = await SQLiteDB.instance.update(updatedLocalProfile);
 
-    if (alteredRows <= 0 || alteredRows > 1) {
+    if (alteredRows != expectedAlteredRows) {
       throw Exception("Esperaba modificar $expectedAlteredRows fila(s), pero $alteredRows fueron alteradas.");
     }
   }
@@ -464,7 +465,7 @@ class ProfileService extends ChangeNotifier {
     // Persistir el nuevo perfil en la base de datos
     final resultId = await SQLiteDB.instance.insert(newProfile);
 
-    final wasProfileCreated = resultId >= UserProfile.defaultProfileId;
+    final wasProfileCreated = resultId >= UserProfile.defaultProfile.id;
 
     if (wasProfileCreated) {
       // Update the active profile to the newly created one.
@@ -507,7 +508,7 @@ class ProfileService extends ChangeNotifier {
         if (_profileChanges.modificationCount >= maxYearlyProfileModifications) {
           // El perfil ya alcanzó el límite de modificaciones restringidas.
           // Reestablecer los cambios al perfil.
-          _profileChanges = UserProfile.modifiableCopyOf(_profileCache.cachedData!);
+          _profileChanges = UserProfile.of(_profileCache.cachedData!);
           // El perfil no debe ser modificado.
           return SaveProfileResult.reachedChangeLimit;
         }
@@ -546,11 +547,17 @@ class ProfileService extends ChangeNotifier {
   /// obtenido. En caso contrario, usa los datos encontrados en [fetchedProfile]. 
   Future<SaveProfileResult> syncLocalProfile({ UserProfile? fetchedProfile }) async {
 
-    final _authApi = AuthApi();
-    
-    final updatedProfile = fetchedProfile ?? await _authApi.fetchProfileForAccount(authToken);
+    final UserProfile updatedProfile;
 
-    _authApi.dispose();
+    if (fetchedProfile == null) {
+      final _authApi = AuthApi();
+
+      updatedProfile = await _authApi.fetchProfileForAccount(authToken);
+
+      _authApi.dispose();
+    } else {
+      updatedProfile = fetchedProfile;
+    }
 
     final currentLocalProfile = await _profileCache.data;
 
@@ -620,7 +627,7 @@ class ProfileService extends ChangeNotifier {
 
 Future<UserProfile?> getDefaultLocalProfile() async {
 
-  final whereQuery = [ WhereClause(UserProfile.idFieldName, UserProfile.defaultProfileId.toString()), ];
+  final whereQuery = [ WhereClause(UserProfile.idFieldName, UserProfile.defaultProfile.id.toString()), ];
 
   final queryResults = await SQLiteDB.instance.select<UserProfile>(
     UserProfile.fromMap,

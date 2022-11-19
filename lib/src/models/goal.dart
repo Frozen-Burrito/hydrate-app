@@ -169,7 +169,7 @@ class Goal extends SQLiteModel {
 
     final int profileId = map.getIntegerOrDefault(
       attributeName: attributeNames[profileIdFieldName]!, 
-      defaultValue: UserProfile.defaultProfileId
+      defaultValue: UserProfile.defaultProfile.id
     );
 
     final goal = Goal(

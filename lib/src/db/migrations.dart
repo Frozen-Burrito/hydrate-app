@@ -99,7 +99,7 @@ class SQLiteMigrator {
       '''INSERT INTO ${Environment.tableName} VALUES (1, "1", 0);''',
       '''INSERT INTO ${Environment.tableName} VALUES (2, "2", 250);''',
     ],
-    20: [
+    21: [
       '${SQLiteKeywords.dropTableIfExists} ${Country.tableName}',
 
       Country.createTableQuery,

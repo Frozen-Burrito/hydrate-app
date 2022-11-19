@@ -3,6 +3,7 @@ import "package:flutter_gen/gen_l10n/app_localizations.dart";
 
 import "package:hydrate_app/src/models/enums/error_types.dart";
 import "package:hydrate_app/src/models/validators/activity_validator.dart";
+import 'package:hydrate_app/src/models/validators/profile_validator.dart';
 
 import "package:hydrate_app/src/utils/auth_validators.dart";
 
@@ -36,6 +37,17 @@ class ValidationMessageBuilder {
     "durationExceedsRange": "La duración debe ser menor a ${ActivityValidator.durationInMinutesRange.max ~/ 60} horas",
     "kCalIsNegative": "Las cantidad de kCal debe ser mayor a ${ActivityValidator.kcalPerActivityRange.min}",
     "kCalExceedsRange": "La cantidad de kilocalorías debe ser menore a ${ActivityValidator.kcalPerActivityRange.max}",
+  });
+
+  static final Map<String, String> profileMessages = Map.unmodifiable({
+    "firstNameTooLong": "El nombre debe tener menos de ${ProfileValidator.firstNameLengthRange.max} caracteres",
+    "lastNameTooLong": "Los apellidos deben tener menos de ${ProfileValidator.lastNameLengthRange.max} caracteres",
+    "heightIsNaN": "La estatura debe ser un número",
+    "heightIsTooSmall": "La estatura debe ser mayor a ${ProfileValidator.heightRange.min} metros",
+    "heightIsTooLarge": "La estatura debe ser menor a ${ProfileValidator.heightRange.max} metros",
+    "weightIsNaN": "El peso debe ser un número",
+    "weightIsTooSmall": "El peso debe ser mayor a ${ProfileValidator.heightRange.min} kilogramos",
+    "weightIsTooLarge": "El peso debe ser mayor a ${ProfileValidator.heightRange.max} kilogramos",
   });
 
   String? messageForUsername(UsernameError usernameError) {
@@ -107,6 +119,56 @@ class ValidationMessageBuilder {
       case NumericInputError.inputIsAfterRange: return activityMessages["kCalExceedsRange"];
       default:
         print("Unhandled activity record kCal validation message for error: $kCalsError");
+        return null;
+    }
+  }
+
+  String? forFirstName(TextLengthError firstNameError) {
+    switch (firstNameError) {
+      case TextLengthError.none: 
+      case TextLengthError.textIsEmptyError:
+        return null;
+      case TextLengthError.textExceedsCharLimit:
+        return profileMessages["firstNameTooLong"];
+      default:
+        print("Unhandled profile first name validation message for error: $firstNameError");
+        return null;
+    }
+  }
+
+  String? forLastName(TextLengthError lastNameError) {
+    switch (lastNameError) {
+      case TextLengthError.none: 
+      case TextLengthError.textIsEmptyError:
+        return null;
+      case TextLengthError.textExceedsCharLimit:
+        return profileMessages["lastNameTooLong"];
+      default:
+        print("Unhandled profile last name validation message for error: $lastNameError");
+        return null;
+    }
+  }
+
+  String? forHeight(NumericInputError heightError) {
+    switch (heightError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return profileMessages["heightIsNaN"];
+      case NumericInputError.inputIsBeforeRange: return profileMessages["heightIsTooSmall"];
+      case NumericInputError.inputIsAfterRange: return profileMessages["heightIsTooLarge"];
+      default:
+        print("Unhandled profile height validation message for error: $heightError");
+        return null;
+    }
+  }
+
+  String? forWeight(NumericInputError weightError) {
+    switch (weightError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return profileMessages["weightIsNaN"];
+      case NumericInputError.inputIsBeforeRange: return profileMessages["weightIsTooSmall"];
+      case NumericInputError.inputIsAfterRange: return profileMessages["weightIsTooLarge"];
+      default:
+        print("Unhandled profile weight validation message for error: $weightError");
         return null;
     }
   }

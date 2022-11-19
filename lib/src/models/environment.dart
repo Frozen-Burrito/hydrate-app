@@ -4,11 +4,13 @@ import 'package:hydrate_app/src/models/map_options.dart';
 
 class Environment extends SQLiteModel {
 
+  @override
   final int id;
+  
   final String imagePath;
   final int price;
 
-  Environment({
+  const Environment({
     required this.id, 
     required this.imagePath, 
     required this.price
@@ -27,7 +29,7 @@ class Environment extends SQLiteModel {
   static const String _dryEnvAssetPathEnding = "seco";
   static const String _moistEnvAssetPathEnding = "humedo";
 
-  Environment.firstUnlocked() : this(
+  const Environment.firstUnlocked() : this(
     id: firstUnlockedId,
     imagePath: "1",
     price: 0,

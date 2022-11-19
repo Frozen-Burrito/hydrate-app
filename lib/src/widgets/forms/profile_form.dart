@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hydrate_app/src/models/validators/profile_validator.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
@@ -103,12 +105,23 @@ class _ProfileFormState extends State<ProfileForm> {
     );
   }
 
+  String? _validateHeight(ValidationMessageBuilder messageBuilder, String? input) {
+    final heightError = UserProfile.validator.validateHeight(input);
+    return messageBuilder.forHeight(heightError);
+  }
+
+  String? _validateWeight(ValidationMessageBuilder messageBuilder, String? input) {
+    final weightError = UserProfile.validator.validateWeight(input);
+    return messageBuilder.forWeight(weightError);
+  }
+
   @override
   Widget build(BuildContext context) {
 
     final profileProvider = Provider.of<ProfileService>(context);
 
     final localizations = AppLocalizations.of(context)!;
+    final validationMessageBuilder = ValidationMessageBuilder.of(context);
 
     final profileChanges = profileProvider.profileChanges;
     
@@ -125,10 +138,10 @@ class _ProfileFormState extends State<ProfileForm> {
             ? const SizedBox( height: 0)
             : FullNameInput.vertical(
               isEnabled: widget.isFormModifiable, 
-              firstNameValidator: UserProfile.validateFirstName,
-              lastNameValidator: UserProfile.validateLastName,
-              maxFirstNameLength: UserProfile.maxFirstNameLength,
-              maxLastNameLength: UserProfile.maxLastNameLength,
+              firstNameValidator: UserProfile.validator.validateFirstName,
+              lastNameValidator: UserProfile.validator.validateLastName,
+              maxFirstNameLength: ProfileValidator.firstNameLengthRange.max.toInt(),
+              maxLastNameLength: ProfileValidator.lastNameLengthRange.min.toInt(),
               initialFirstName: profileChanges.firstName,
               initialLastName: profileChanges.lastName,
               onFirstNameChanged: (value) => profileChanges.firstName = value, 
@@ -197,14 +210,14 @@ class _ProfileFormState extends State<ProfileForm> {
                   enabled: widget.isFormModifiable,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
-                    labelText: '${localizations.height} (m)',
-                    hintText: '1.70',
-                    helperText: ' ',
+                    labelText: "${localizations.height} (m)",
+                    hintText: "1.70",
+                    helperText: " ",
                     suffixIcon: const Icon(Icons.height),
                   ),
                   initialValue: profileChanges.height.toStringAsFixed(2),
-                  onChanged: (value) => profileChanges.height = double.tryParse(value) ?? 0,
-                  validator: (value) => UserProfile.validateHeight(value),
+                  onChanged: (value) => profileChanges.height = double.tryParse(value) ?? 0.0,
+                  validator: (value) => _validateHeight(validationMessageBuilder, value),
                 ),
               ),
 
@@ -217,14 +230,14 @@ class _ProfileFormState extends State<ProfileForm> {
                   enabled: widget.isFormModifiable,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
-                    labelText: '${localizations.weight} (kg)',
-                    hintText: '60.0',
-                    helperText: ' ',
+                    labelText: "${localizations.weight} (kg)",
+                    hintText: "60.0",
+                    helperText: " ",
                     suffixIcon: const Icon(Icons.monitor_weight_outlined)
                   ),
                   initialValue: profileChanges.weight.toString(),
                   onChanged: (value) => profileChanges.weight = double.tryParse(value) ?? 0,
-                  validator: (value) => UserProfile.validateWeight(value),
+                  validator: (value) => _validateWeight(validationMessageBuilder, value),
                 ),
               ),
             ],

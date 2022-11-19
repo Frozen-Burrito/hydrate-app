@@ -397,7 +397,7 @@ class GoogleFitService {
     if (newUser == null) {
       _underlyingAuthClient = null;
       _fitnessApi = null;
-      _hydrateProfileId = UserProfile.defaultProfileId;
+      _hydrateProfileId = UserProfile.defaultProfile.id;
       return;
     }
 

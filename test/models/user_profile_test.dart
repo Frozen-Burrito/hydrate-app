@@ -5,43 +5,23 @@ import 'package:hydrate_app/src/models/models.dart';
 import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/enums/user_sex.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
+import 'package:hydrate_app/src/models/validators/profile_validator.dart';
 
 void main() {
   group("Test UserProfile's constructors", () {
-    test("Using UserProfile.unmodifiable() creates a profile with isReadonly = true", () {
+
+    test("UserProfile.of(other) creates a new profile with the values of other", () {
       // Arrange
-      final profile = UserProfile.unmodifiable();
+      final original = UserProfile( id: 2, firstName: "John", createdAt: DateTime(2000, 10, 10));
 
       // Act
-      final isTheProfileReadonly = profile.isReadonly;
-
-      // Assert
-      expect(isTheProfileReadonly, isTrue);
-    });
-
-    test("UserProfile.modifiableCopyOf(other) creates a non-readonly profile", () {
-      // Arrange
-      final original = UserProfile.unmodifiable();
-
-      // Act
-      final copy = UserProfile.modifiableCopyOf(original);
-
-      // Assert
-      expect(copy.isReadonly, isFalse);
-    });
-
-    test("UserProfile.modifiableCopyOf(other) creates a modifiable profile with the values of other", () {
-      // Arrange
-      final original = UserProfile.unmodifiable();
-
-      // Act
-      final copy = UserProfile.modifiableCopyOf(original);
+      final copy = UserProfile.of(original);
 
       // Assert
       expect(copy, original);
     });
 
-    test("UserProfile.uncommited() creates an unmodifiable profile with id = -1", () {
+    test("UserProfile.uncommited() creates a profile with id = -1", () {
       // Arrange
       const int expectedId = -1;
 
@@ -49,7 +29,6 @@ void main() {
       final profile = UserProfile.uncommitted();
 
       // Assert
-      expect(profile.isReadonly, isTrue);
       expect(profile.id, expectedId);
     });
   });
@@ -57,7 +36,7 @@ void main() {
   group("Test the Behavior of UserProfile", () {
     test("selectedEnvironment returns the firstUnlocked env for a default profile", () {
       // Arrange
-      final expectedEnvironment = Environment.firstUnlocked();
+      const expectedEnvironment = Environment.firstUnlocked();
       final profile = UserProfile.uncommitted();
       
       // Act
@@ -80,8 +59,10 @@ void main() {
 
     test("hasUnlockedEnv() returns false if the profile does not have an env with the id in its unlockedEnvironments", () {
       // Arrange
-      final profile = UserProfile.unmodifiable(
-        unlockedEnvironments: [
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
+        unlockedEnvironments: const <Environment>[
           Environment.firstUnlocked(),
           Environment(
             id: 2,
@@ -101,8 +82,10 @@ void main() {
     test("hasUnlockedEnv() returns true if the profile has unlocked the environment with the given id", () {
       // Arrange
       const int unlockedEnvId = 2;
-      final profile = UserProfile.unmodifiable(
-        unlockedEnvironments: [
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
+        unlockedEnvironments: const <Environment>[
           Environment.firstUnlocked(),
           Environment(
             id: unlockedEnvId,
@@ -121,8 +104,10 @@ void main() {
 
     test("hasRenalInsufficiency retorna false si el perfil no tiene MedicalCondition.renalInsufficiency como medicalCondition", () {
       // Arrange
-      final profile = UserProfile.unmodifiable( 
-        medicalCondition: MedicalCondition.other, 
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
+        medicalCondition: MedicalCondition.other
       );
 
       // Act
@@ -134,7 +119,9 @@ void main() {
 
     test("hasNephroticSyndrome retorna false si el perfil no tiene MedicalCondition.nephroticSyndrome como medicalCondition", () {
       // Arrange
-      final profile = UserProfile.unmodifiable( 
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10), 
         medicalCondition: MedicalCondition.other, 
       );
 
@@ -152,7 +139,9 @@ void main() {
 
       const String expectedFullName = "$firstName $lastName";
 
-      final profile = UserProfile.unmodifiable( 
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         firstName: firstName, 
         lastName: lastName 
       );
@@ -169,7 +158,9 @@ void main() {
       const String firstName = "John Marcus";
       const String lastName = "Doe Johnson";
 
-      final profile = UserProfile.unmodifiable( 
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         firstName: firstName, 
         lastName: lastName 
       );
@@ -185,7 +176,9 @@ void main() {
 
     test("initials returns two dashes, if both first and last name are empty", () {
       // Arrange
-      final profile = UserProfile.unmodifiable( 
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10), 
         firstName: "", 
         lastName: "" 
       );
@@ -205,7 +198,9 @@ void main() {
       const int amount = 200;
       const int expectedCoinCount = initialCoins + amount;
 
-      final profile = UserProfile.unmodifiable(
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         coins: initialCoins,
       );
 
@@ -220,10 +215,12 @@ void main() {
     test("addCoins limits the coin count to maxCoins if the amount would surpass the limit", () {
       // Arrange
       const int amount = 1;
-      const int expectedCoinCount = UserProfile.maxCoins;
+      final int expectedCoinCount = ProfileValidator.coinAmountRange.max.toInt();
 
-      final profile = UserProfile.unmodifiable(
-        coins: UserProfile.maxCoins,
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
+        coins: ProfileValidator.coinAmountRange.max.toInt(),
       );
 
       // Act
@@ -241,7 +238,9 @@ void main() {
       const int amount = -9;
       const int expectedCoinCount = 0;
 
-      final profile = UserProfile.unmodifiable(
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         coins: initialCoinAmount,
       );
 
@@ -255,11 +254,13 @@ void main() {
 
     test("spendCoins(amounts) decreases coins by amount", () {
       // Arrange
-      const int initialCoinAmount = UserProfile.maxCoins;
-      const int amount = UserProfile.maxCoins;
+      final int initialCoinAmount = ProfileValidator.coinAmountRange.max.toInt();
+      final int amount = ProfileValidator.coinAmountRange.max.toInt();
       const int expectedCoinCount = 0;
 
-      final profile = UserProfile.unmodifiable(
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         coins: initialCoinAmount,
       );
 
@@ -276,7 +277,9 @@ void main() {
       const int initialCoinAmount = 0;
       const int amount = 1;
 
-      final profile = UserProfile.unmodifiable(
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         coins: initialCoinAmount,
       );
 
@@ -293,7 +296,9 @@ void main() {
       const int initialModificationCount = 1;
       const int expectedModificationCount = 2;
 
-      final profile = UserProfile.unmodifiable(
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
         modificationCount: initialModificationCount,
       );
 
@@ -311,7 +316,10 @@ void main() {
     test("UserProfile implements SQLiteModel", () {
       // Arrange
       // Act
-      final profile = UserProfile.unmodifiable();
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
+      );
 
       // Assert
       expect(profile, isA<SQLiteModel>());
@@ -340,8 +348,8 @@ void main() {
           "codigo": "NZ",
         }, 
         "entornos": [
-          Environment.firstUnlocked().toMap(),
-          Environment(
+          const Environment.firstUnlocked().toMap(),
+          const Environment(
             id: 2,
             imagePath: "/img",
             price: 0,
@@ -349,7 +357,7 @@ void main() {
         ],
       };
 
-      final expectedProfile = UserProfile.unmodifiable(
+      final expectedProfile = UserProfile(
         id: 2,
         firstName: "John",
         lastName: "Doe",
@@ -360,15 +368,16 @@ void main() {
         medicalCondition: MedicalCondition.renalInsufficiency,
         occupation: Occupation.student,
         userAccountID: "459861be-f603-4cf0-89a9-e3bd248cb491",
-        selectedEnvironment: Environment(
+        selectedEnvironment: const Environment(
           id: 2,
           imagePath: "/img",
           price: 0,
         ),
         coins: 256,
         modificationCount: 1,
-        country: Country(id: 2, code: "NZ"),
-        unlockedEnvironments: [ Environment.firstUnlocked() ],
+        country: const Country(id: 2, code: "NZ"),
+        unlockedEnvironments: [ const Environment.firstUnlocked() ],
+        createdAt: DateTime(2000, 10, 10),
       );
 
       // Act
@@ -401,11 +410,11 @@ void main() {
           "codigo": "NZ",
         }, 
         "entornos": [
-          Environment.firstUnlocked().toMap(),
+          const Environment.firstUnlocked().toMap(),
         ],
       };
 
-      final sourceProfile = UserProfile.unmodifiable(
+      final sourceProfile = UserProfile(
         id: 2,
         firstName: "John",
         lastName: "Doe",
@@ -416,11 +425,12 @@ void main() {
         medicalCondition: MedicalCondition.renalInsufficiency,
         occupation: Occupation.student,
         userAccountID: "459861be-f603-4cf0-89a9-e3bd248cb491",
-        selectedEnvironment: Environment.firstUnlocked(),
+        selectedEnvironment: const Environment.firstUnlocked(),
         coins: 256,
         modificationCount: 1,
-        country: Country(id: 2, code: "NZ"),
-        unlockedEnvironments: [ Environment.firstUnlocked() ],
+        country: const Country(id: 2, code: "NZ"),
+        unlockedEnvironments: [ const Environment.firstUnlocked() ],
+        createdAt: DateTime(2000, 10, 10),
       );
 
       // Act
@@ -454,9 +464,9 @@ void main() {
         'entorno_sel': 0,
         'monedas': 256,
         "num_modificaciones": 1,
-        "pais": Country( id: 2, code: "NZ" ).toMap( options: mapOptions ),
+        "pais": const Country( id: 2, code: "NZ" ).toMap( options: mapOptions ),
         "entornos": [
-          Environment.firstUnlocked().toMap( options: mapOptions ),
+          const Environment.firstUnlocked().toMap( options: mapOptions ),
         ],
       };
 
@@ -470,7 +480,10 @@ void main() {
 
     test("UserProfile's table name is consistent between tableName and table", () {
       // Arrange
-      final profile = UserProfile.unmodifiable();
+      final profile = UserProfile(
+        id: -1, 
+        createdAt: DateTime(2000, 10, 10),
+      );
 
       // Act
       const staticTableName = UserProfile.tableName;

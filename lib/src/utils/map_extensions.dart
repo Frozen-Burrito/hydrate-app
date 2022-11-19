@@ -44,12 +44,12 @@ extension MapExtensions on Map<String, Object?> {
     return entity;
   }
 
-  Iterable<SQLiteModel> getEntityCollection({
+  Iterable<T> getEntityCollection<T extends SQLiteModel>({
     required String attribute,
-    SQLiteModel Function(Map<String, Object?>, { MapOptions? options })? mapper,
-    List<SQLiteModel> existingEntities = const <SQLiteModel>[],
+    T Function(Map<String, Object?>, { MapOptions? options })? mapper,
+    List<T>? existingEntities,
   }) {
-    final List<SQLiteModel> entityCollection = <SQLiteModel>[];
+    final List<T> entityCollection = <T>[];
     final Object? entitiesFromMap = this[attribute];
 
     print("Mapped entity collection type <${entitiesFromMap.runtimeType}>");
@@ -58,12 +58,11 @@ extension MapExtensions on Map<String, Object?> {
       entityCollection.addAll(
         entitiesFromMap.map((entity) => mapper(entity))
       );
+    } else if (entitiesFromMap is List<dynamic> && existingEntities != null) {
+      entityCollection.addAll(
+        existingEntities.where((entity) => entitiesFromMap.contains(entity.id))
+      );
     }
-    // } else if (entitiesFromMap is List<dynamic>) {
-    //   unlockedEnvironments.addAll(
-    //     existingEntities.where((environment) => unlockedEnvironmentsFromMap.contains(environment.id))
-    //   );
-    // }
 
     return entityCollection;
   }

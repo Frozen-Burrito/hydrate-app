@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/services/activity_service.dart';
-import 'package:hydrate_app/src/services/goals_service.dart';
-import 'package:hydrate_app/src/services/hydration_record_service.dart';
-import 'package:hydrate_app/src/utils/datetime_extensions.dart';
-import 'package:hydrate_app/src/utils/water_intake_calculator.dart';
-import 'package:hydrate_app/src/widgets/count_text.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/enums/occupation_type.dart';
 import 'package:hydrate_app/src/models/models.dart';
+import 'package:hydrate_app/src/models/validators/profile_validator.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/goals_service.dart';
+import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
+import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/utils/dropdown_labels.dart';
+import 'package:hydrate_app/src/utils/water_intake_calculator.dart';
 import 'package:hydrate_app/src/widgets/asset_fade_in_image.dart';
 import 'package:hydrate_app/src/widgets/activity_time_brief.dart';
 import 'package:hydrate_app/src/widgets/coin_display.dart';
@@ -133,17 +133,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 }
               }
             ),
-
-            IconButton(
-              onPressed: () async {
-
-                  profileProvider.profileChanges.addCoins(100);
-                  await profileProvider.saveProfileChanges();
-              },
-              icon: const Icon(Icons.add),
-            )
-
-            // const AuthOptionsMenu()
+            const AuthOptionsMenu()
           ],
         ),
   
@@ -325,10 +315,10 @@ class _FullnameDisplay extends StatelessWidget {
                   children: <Widget>[
                     FullNameInput.horizontal(
                       isEnabled: isEditing, 
-                      firstNameValidator: UserProfile.validateFirstName,
-                      lastNameValidator: UserProfile.validateLastName,
-                      maxFirstNameLength: UserProfile.maxFirstNameLength,
-                      maxLastNameLength: UserProfile.maxLastNameLength,
+                      firstNameValidator: UserProfile.validator.validateFirstName,
+                      lastNameValidator: UserProfile.validator.validateLastName,
+                      maxFirstNameLength: ProfileValidator.firstNameLengthRange.max.toInt(),
+                      maxLastNameLength: ProfileValidator.lastNameLengthRange.max.toInt(),
                       initialFirstName: profileChanges.firstName,
                       initialLastName: profileChanges.lastName,
                       onFirstNameChanged: (value) => profileChanges.firstName = value, 

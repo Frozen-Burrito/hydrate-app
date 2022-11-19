@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/models/enums/error_types.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 
 class FullNameInput extends StatefulWidget {
 
@@ -45,9 +47,9 @@ class FullNameInput extends StatefulWidget {
 
   final void Function(String) onLastNameChanged;
 
-  final String? Function(String?)? firstNameValidator;
+  final TextLengthError Function(String? input)? firstNameValidator;
 
-  final String? Function(String?)? lastNameValidator;
+  final TextLengthError Function(String? input)? lastNameValidator;
 
   @override
   State<FullNameInput> createState() => _FullNameInputState();
@@ -75,10 +77,29 @@ class _FullNameInputState extends State<FullNameInput> {
     return strBuf.toString();
   }
 
+  String? _validateFirstName(ValidationMessageBuilder messageBuilder, String? input) {
+    if (widget.firstNameValidator != null) {
+      final firstNameError = widget.firstNameValidator!(input);
+      return messageBuilder.forFirstName(firstNameError);
+    } else {
+      return null;
+    }
+  }
+
+  String? _validateLastName(ValidationMessageBuilder messageBuilder, String? input) {
+    if (widget.lastNameValidator != null) {
+      final lastNameError = widget.lastNameValidator!(input);
+      return messageBuilder.forLastName(lastNameError);
+    } else {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     
     final localizations = AppLocalizations.of(context)!;
+    final validationMessageBuilder = ValidationMessageBuilder.of(context);
 
     final List<Widget> fields = [
       SizedBox(
@@ -106,9 +127,7 @@ class _FullNameInputState extends State<FullNameInput> {
               firstName = value;
             });
           },
-          validator: widget.firstNameValidator != null 
-            ? (value) => widget.firstNameValidator!(value)
-            : null,
+          validator: (inputValue) => _validateFirstName(validationMessageBuilder, inputValue),
         ),
       ),
 
@@ -142,9 +161,7 @@ class _FullNameInputState extends State<FullNameInput> {
               lastName = value;
             });
           },
-          validator: widget.lastNameValidator != null 
-            ? (value) => widget.lastNameValidator!(value)
-            : null,
+          validator: (inputValue) => _validateLastName(validationMessageBuilder, inputValue),
         ),
       ),
     ];
