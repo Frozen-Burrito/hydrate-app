@@ -156,7 +156,7 @@ class _ActivityCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.max,
                     children: [
 
-                      (activity.isRoutine && activityRecord.routine != null)
+                      (activityRecord.routine != null)
                       ? Container(
                           width: 24.0,
                           margin: const EdgeInsets.only(right: 4.0),

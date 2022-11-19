@@ -168,7 +168,7 @@ class ActivityService extends ChangeNotifier {
 
     for (final activitiesForDay in activityRecords) {
       final similarRecordsInDay = activitiesForDay
-        .where((record) => !record.activity.isRoutine && activityRecord.isSimilarTo(record.activity))
+        .where((record) => record.activity.routine == null && activityRecord.isSimilarTo(record.activity))
         .map((similarRecord) => similarRecord.activity); 
 
       similarActivities.addAll(similarRecordsInDay);
@@ -255,7 +255,7 @@ class ActivityService extends ChangeNotifier {
       try {
         await DataApi.instance.updateData<ActivityRecord>(
           data: _activityRecordsPendingSync,
-          mapper: (activityRecord, mapOptions) => activityRecord.toMap(options: mapOptions),
+          mapper: (activityRecord, _) => activityRecord.toJson(),
         );
 
         _activityRecordsPendingSync.clear();

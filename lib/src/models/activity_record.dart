@@ -1,12 +1,11 @@
 import "package:hydrate_app/src/db/sqlite_keywords.dart";
 import "package:hydrate_app/src/db/sqlite_model.dart";
 
-import "package:hydrate_app/src/models/activity_type.dart";
 import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/models.dart';
-import "package:hydrate_app/src/models/user_profile.dart";
 import 'package:hydrate_app/src/models/validators/activity_validator.dart';
+import 'package:hydrate_app/src/utils/map_extensions.dart';
 
 class ActivityRecord extends SQLiteModel {
 
@@ -17,7 +16,7 @@ class ActivityRecord extends SQLiteModel {
   double distance;
   int kiloCaloriesBurned;
   bool doneOutdoors;
-  bool isRoutine;
+  Routine? routine;
   ActivityType activityType;
   int profileId;
 
@@ -31,7 +30,7 @@ class ActivityRecord extends SQLiteModel {
     this.distance = 0.0,
     this.kiloCaloriesBurned = 0,
     this.doneOutdoors = true,
-    this.isRoutine = false,
+    this.routine,
     required this.activityType,
     required this.profileId
   });
@@ -56,7 +55,7 @@ class ActivityRecord extends SQLiteModel {
   static const String distancePropName = "distancia";
   static const String kcalPropName = "kilocalorias_quemadas";
   static const String outdoorsPropName = "al_aire_libre";
-  static const String isRoutinePropName = "es_rutina";
+  static const String routineAttributeName = "rutina";
   static const String actTypeIdPropName = "id_${ActivityType.tableName}";
   static const String profileIdPropName = "id_${UserProfile.tableName}";
 
@@ -71,10 +70,23 @@ class ActivityRecord extends SQLiteModel {
     distancePropName,
     kcalPropName,
     outdoorsPropName,
-    isRoutinePropName,
+    routineAttributeName,
     profileIdPropName,
     actTypeIdPropName,
   ];
+
+  static const Map<String, String> jsonAttributes = <String, String>{
+    idPropName: "id",
+    titlePropName: "titulo",
+    datePropName: "fecha",
+    durationPropName: "duracion",
+    distancePropName: "distancia",
+    kcalPropName: "kcalQuemadas",
+    outdoorsPropName: "fueAlAireLibre",
+    routineAttributeName: "rutina",
+    profileIdPropName: "idPerfil",
+    actTypeIdPropName: "idTipoDeActividad"
+  };
 
   /// El nombre de la tabla, usado en SQLite.
   @override
@@ -89,7 +101,6 @@ class ActivityRecord extends SQLiteModel {
       $distancePropName ${SQLiteKeywords.realType} ${SQLiteKeywords.notNullType},
       $kcalPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       $outdoorsPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
-      $isRoutinePropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
 
       $actTypeIdPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
       $profileIdPropName ${SQLiteKeywords.integerType} ${SQLiteKeywords.notNullType},
@@ -112,20 +123,51 @@ class ActivityRecord extends SQLiteModel {
   /// interpretado. 
   static ActivityRecord fromMap(
     Map<String, Object?> map, 
-    { MapOptions options = const MapOptions(), }
+    { MapOptions options = const MapOptions(), List<ActivityType> activityTypes = const <ActivityType>[] }
   ) {
+    final attributeNames = options.mapAttributeNames(
+      baseAttributeNames,
+      specificAttributeMappings: options.useCamelCasePropNames 
+        ? const {
+          kcalPropName: "kcalQuemadas",
+          outdoorsPropName: "fueAlAireLibre",
+          actTypeIdPropName: "idTipoDeActividad",
+          routineAttributeName: "rutina",
+        } 
+        : const {
+          profileIdPropName: profileIdPropName,
+        },
+    );
 
-    // Asignar nombres para entradas de entidades anidadas, revisando si [map]
-    // contiene la entidad completa o solo su ID.
-    final actTypePropName = options.subEntityMappingType != EntityMappingType.idOnly 
-      ? actTypeIdPropName.replaceFirst("id_", "")
-      : actTypeIdPropName;
+    assert(attributeNames.length == baseAttributeNames.length);
 
     // Obtener datos de entidades anidadas desde [map].
-    final type = ActivityType.fromMap(
-      (map[actTypePropName] is Map<String, Object?>) 
-        ? map[actTypePropName] as Map<String, Object?> 
-        : { "id": map[actTypePropName] }
+    final ActivityType type;
+    switch(options.subEntityMappingType) {
+      case EntityMappingType.noMapping:
+        type = (map[attributeNames[actTypeIdPropName]!] as ActivityType?) ?? ActivityType.uncommited();
+        break;
+      case EntityMappingType.asMap:
+        if ((map[attributeNames[actTypeIdPropName]!] is Map<String, Object?>)) {
+          type = ActivityType.fromMap(map[attributeNames[actTypeIdPropName]!] as Map<String, Object?>);
+        } else {
+          type = ActivityType.uncommited();
+        }
+        break;
+      case EntityMappingType.idOnly:
+        final int actTypeId = int.tryParse(map[attributeNames[actTypeIdPropName]!].toString()) ?? -1;
+        final actTypeWithId = activityTypes.where((activityType) => activityType.id == actTypeId);
+        type = actTypeWithId.isNotEmpty ? actTypeWithId.first : ActivityType.uncommited();
+        break;
+      case EntityMappingType.notIncluded:
+      default:
+        type = ActivityType.uncommited();
+        break;
+    }
+
+    final Routine? linkedRoutine = map.getMappedEntityOrDefault<Routine>(
+      attribute: routineAttributeName, 
+      mapper: Routine.fromMap,
     );
 
     return ActivityRecord(
@@ -136,7 +178,7 @@ class ActivityRecord extends SQLiteModel {
       distance: double.tryParse(map[distancePropName].toString()) ?? 0.0,
       kiloCaloriesBurned: int.tryParse(map[kcalPropName].toString()) ?? 0,
       doneOutdoors: (int.tryParse(map[outdoorsPropName].toString()) ?? 0) != 0,
-      isRoutine: (int.tryParse(map[isRoutinePropName].toString()) ?? 0) != 0,
+      routine: linkedRoutine,
       activityType: type,
       profileId: int.tryParse(map[profileIdPropName].toString()) ?? -1,
     );
@@ -159,71 +201,86 @@ class ActivityRecord extends SQLiteModel {
   /// por defecto de un bool son usados ("true" y "false") .
   @override
   Map<String, Object?> toMap({ MapOptions options = const MapOptions(), }) {
-
-    // Modificar los nombres de los atributos para el Map resultante, segun 
-    // [options].
-    final attributeNames = options.mapAttributeNames(
-      baseAttributeNames,
-      specificAttributeMappings: options.useCamelCasePropNames 
-        ? const {
-          kcalPropName: "kcalQuemadas",
-          outdoorsPropName: "fueAlAireLibre",
-          actTypeIdPropName: "idTipoDeActividad",
-          isRoutinePropName: "rutina",
-        } 
-        : const {
-          profileIdPropName: profileIdPropName,
-        },
-    );
-
-    // Comprobar que hay una entrada por cada atributo de ActivityRecord.
-    assert(attributeNames.length == baseAttributeNames.length);
-
     // Se asume que el mapa de attributeNames contiene entradas para todos los 
     // atributos de baseAttributeNames, y que acceder con los atributos de 
     // baseAttributeNames nunca producirá null.
     final Map<String, Object?> map = {};
 
     // Solo incluir el ID de la entidad si es una entidad existente.
-    if (id >= 0) map[attributeNames[idPropName]!] = id;
+    if (id >= 0) map[idPropName] = id;
 
-    map.addAll({attributeNames[titlePropName]!: title, 
-      attributeNames[datePropName]!: date.toIso8601String(),
-      attributeNames[durationPropName]!: duration,
-      attributeNames[distancePropName]!: distance,
-      attributeNames[kcalPropName]!: kiloCaloriesBurned,
+    map.addAll({
+      titlePropName: title, 
+      datePropName: date.toIso8601String(),
+      durationPropName: duration,
+      distancePropName: distance,
+      kcalPropName: kiloCaloriesBurned,
     });
 
     if (options.useIntBooleanValues) {
       // Los valores booleanos del mapa deben ser representados usando ints.
-      map[attributeNames[outdoorsPropName]!] = doneOutdoors ? 1 : 0;
-      map[attributeNames[isRoutinePropName]!] = isRoutine ? 1 : 0;
+      map[outdoorsPropName] = doneOutdoors ? 1 : 0;
     } else {
       // Los valores booleanos del mapa pueden usar bool.
-      map[attributeNames[outdoorsPropName]!] = doneOutdoors;
-      map[attributeNames[isRoutinePropName]!] = isRoutine;
+      map[outdoorsPropName] = doneOutdoors;
     }
 
     //TODO: arreglar este metodo
     switch (options.subEntityMappingType) {
       case EntityMappingType.noMapping:
-        map[attributeNames[actTypeIdPropName]!] = activityType;
+        map[actTypeIdPropName] = activityType;
         break;
       case EntityMappingType.asMap:
-        map[attributeNames[actTypeIdPropName]!] = activityType.toMap(options: options);
-        if (options.useCamelCasePropNames) {
-          map[attributeNames[actTypeIdPropName]!] = activityType.id;
-          map[attributeNames[isRoutinePropName]!] = null;
-        } 
+        map[actTypeIdPropName] = activityType.toMap(options: options);
         break;
       case EntityMappingType.idOnly:
-        map[attributeNames[actTypeIdPropName]!] = activityType.id;
+        map[actTypeIdPropName] = activityType.id;
         break;
       case EntityMappingType.notIncluded:
         break;
     }
 
-    map.addAll({attributeNames[profileIdPropName]!: profileId, });
+    map[profileIdPropName] = profileId;
+
+    return map;
+  }
+
+  ActivityRecord.fromJson(Map<String, dynamic> json, { List<ActivityType> activityTypes = const <ActivityType>[] })
+    : id = json[idPropName],
+      title = json[titlePropName],
+      date = DateTime.tryParse(json[datePropName].toString()) ?? DateTime.now(), 
+      duration = json[durationPropName],
+      distance = json[jsonAttributes[distancePropName]!],
+      kiloCaloriesBurned = json[jsonAttributes[kcalPropName]!],
+      doneOutdoors = json[jsonAttributes[outdoorsPropName]!],
+      routine = json[jsonAttributes[routineAttributeName]!] != null ? Routine.fromMap(json[jsonAttributes[routineAttributeName]!]) : null,
+      activityType = activityTypes.singleWhere((actType) => actType.id == json[jsonAttributes[actTypeIdPropName]!]),
+      profileId = json[jsonAttributes[profileIdPropName]];
+
+  Map<String, Object?> toJson({ List<String>? attributes }) {
+
+    final Map<String, Object?> map = {};
+
+    if (id >= 0) map[jsonAttributes[idPropName]!] = id;
+
+    map.addAll({
+      jsonAttributes[titlePropName]!: title,
+      jsonAttributes[datePropName]!: date.toIso8601String(),
+      jsonAttributes[durationPropName]!: duration,
+      jsonAttributes[distancePropName]!: distance,
+      jsonAttributes[kcalPropName]!: kiloCaloriesBurned,
+      jsonAttributes[actTypeIdPropName]!: activityType.id,
+      jsonAttributes[outdoorsPropName]!: doneOutdoors,
+      jsonAttributes[routineAttributeName]!: routine,
+      jsonAttributes[profileIdPropName]!: profileId,
+    });
+
+    if (attributes != null && attributes.isNotEmpty) {
+      map.removeWhere((attributeName, _) => !(attributes.contains(attributeName)));
+    }
+
+    assert(map.length <= jsonAttributes.length);
+    assert(map.isNotEmpty);
 
     return Map.unmodifiable(map);
   }
@@ -389,7 +446,7 @@ class ActivityRecord extends SQLiteModel {
     distance,
     kiloCaloriesBurned,
     doneOutdoors,
-    isRoutine,
+    routine,
     activityType,
     profileId,
   ]);

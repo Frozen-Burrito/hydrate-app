@@ -128,7 +128,7 @@ class RoutineActivities {
       // Si existe una rutina para la actividad, 
       if (routineForActivity != null && routineForActivity.hasWeekdays) {
 
-        activity.isRoutine = true;
+        activity.routine = routineForActivity;
         final routineRecords = <RoutineOccurrence>[];
 
         DateTime nextDate = routineForActivity.getNextOccurrence(activity.date);

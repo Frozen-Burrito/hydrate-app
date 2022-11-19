@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
@@ -146,6 +147,125 @@ void main() {
       expect(actualMap.containsValue(ActivityRecord.uncommited()), isFalse);
       
       expect(actualMap["id_tipo_actividad"] is int, isTrue);
+    });
+  });
+
+  group("ActivityRecord serialization to JSON", () {
+    test("ActivityRecord.fromJson() correctly maps a JSON representation to an instance", () {
+      // Arrange
+      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      final expected = ActivityRecord(
+        id: 5, 
+        title: "Correr en la mañana",
+        date: DateTime.parse("2022-10-03T08:22:00.0000000"),
+        duration: 28,
+        distance: 3.7,
+        kiloCaloriesBurned: 0,
+        doneOutdoors: false,
+        profileId: 1,
+        activityType: testActType,
+      );
+
+      final jsonAttributes = ActivityRecord.jsonAttributes.values;
+      final testJsonValues = <Object?>[ 
+        expected.id, expected.title, expected.date.toIso8601String(), expected.duration, 
+        expected.distance, expected.kiloCaloriesBurned, expected.doneOutdoors, expected.routine, 
+        expected.profileId, expected.activityType.id
+      ];
+
+      final originalJson = Map.fromIterables(jsonAttributes, testJsonValues);
+
+      // Act 
+      final parsedActivityRecord = ActivityRecord.fromJson(originalJson, activityTypes: [ testActType ]);
+
+      // Assert
+      expect(parsedActivityRecord, expected);
+    });
+
+
+    test("ActivityRecord.toJson() produces a correct JSON representation of the object", () {
+      // Arrange
+      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      final activityRecord = ActivityRecord(
+        id: 5, 
+        title: "Correr en la mañana",
+        date: DateTime.parse("2022-10-03T08:22:00.0000000"),
+        duration: 28,
+        distance: 3.7,
+        kiloCaloriesBurned: 0,
+        doneOutdoors: false,
+        profileId: 1,
+        activityType: testActType,
+      );
+
+      final jsonAttributes = ActivityRecord.jsonAttributes.values;
+      final testJsonValues = <Object?>[ 
+        activityRecord.id, activityRecord.title, activityRecord.date.toIso8601String(), activityRecord.duration, 
+        activityRecord.distance, activityRecord.kiloCaloriesBurned, activityRecord.doneOutdoors, activityRecord.routine, 
+        activityRecord.profileId, activityRecord.activityType.id
+      ];
+
+      final Map<String, Object?> expected = Map.fromIterables(jsonAttributes, testJsonValues);
+
+      // Act 
+      final serializedActivityRecord = activityRecord.toJson();
+
+      // Assert
+      expect(mapEquals(serializedActivityRecord, expected), isTrue);
+    });
+
+    test("ActivityRecord.toJson() only includes the fields specified in attributes, if attributes is not null", () {
+      // Arrange
+      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      final activityRecord = ActivityRecord(
+        id: 5, 
+        title: "Correr en la mañana",
+        date: DateTime.parse("2022-10-03T08:22:00.0000000"),
+        duration: 28,
+        distance: 3.7,
+        kiloCaloriesBurned: 0,
+        doneOutdoors: false,
+        profileId: 1,
+        activityType: testActType,
+      );
+
+      final selectedAttributes = <String>[
+        ActivityRecord.jsonAttributes[ActivityRecord.idPropName]!,
+        ActivityRecord.jsonAttributes[ActivityRecord.actTypeIdPropName]!,
+        ActivityRecord.jsonAttributes[ActivityRecord.datePropName]!,
+      ];
+
+      // Act 
+      final serializedActivityRecord = activityRecord.toJson(attributes: selectedAttributes);
+
+      // Assert
+      expect(serializedActivityRecord.length, selectedAttributes.length);
+      expect(serializedActivityRecord.keys, containsAll(selectedAttributes));
+    });
+
+    test("ActivityRecord.toJson() creates a map with all the fields, if attributes is null or empty", () {
+      // Arrange
+      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      final activityRecord = ActivityRecord(
+        id: 5, 
+        title: "Correr en la mañana",
+        date: DateTime.parse("2022-10-03T08:22:00.0000000"),
+        duration: 28,
+        distance: 3.7,
+        kiloCaloriesBurned: 0,
+        doneOutdoors: false,
+        profileId: 1,
+        activityType: testActType,
+      );
+
+      final expectedAttributes = ActivityRecord.jsonAttributes.values;
+
+      // Act 
+      final serializedActivityRecord = activityRecord.toJson(attributes: List<String>.empty());
+
+      // Assert
+      expect(serializedActivityRecord.length, expectedAttributes.length);
+      expect(serializedActivityRecord.keys, containsAll(expectedAttributes));
     });
   });
 

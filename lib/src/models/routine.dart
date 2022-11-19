@@ -5,6 +5,7 @@ import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
+import 'package:hydrate_app/src/utils/map_extensions.dart';
 
 class Routine extends SQLiteModel {
 
@@ -116,14 +117,14 @@ class Routine extends SQLiteModel {
       }
     );
 
-    final dayBits = map.getIntegerOrDefault(attributeName: attributeNames[daysFieldName]!, defaultValue: 0 );
+    final dayBits = map.getIntegerOrDefault(attribute: attributeNames[daysFieldName]!, defaultValue: 0 );
 
-    final int id = map.getIntegerOrDefault(attributeName: attributeNames[idFieldName]!);
-    final int activityId = map.getIntegerOrDefault(attributeName: attributeNames[activityIdFieldName]!);
-    final int profileId = map.getIntegerOrDefault(attributeName: attributeNames[profileIdFieldName]!);
+    final int id = map.getIntegerOrDefault(attribute: attributeNames[idFieldName]!);
+    final int activityId = map.getIntegerOrDefault(attribute: attributeNames[activityIdFieldName]!);
+    final int profileId = map.getIntegerOrDefault(attribute: attributeNames[profileIdFieldName]!);
 
     final TimeOfDay timeOfDay = map.getTimeOfDayOrDefault(
-      attributeName: attributeNames[timeOfDayFieldName]!,
+      attribute: attributeNames[timeOfDayFieldName]!,
       defaultValue: const TimeOfDay(hour: 0, minute: 0)
     )!;
 
@@ -167,27 +168,5 @@ class Routine extends SQLiteModel {
     assert(nextDate.isAfter(previousDate));
 
     return nextDate;
-  }
-}
-
-extension _RoutineMapExtension on Map<String, Object?> {
-
-  int getIntegerOrDefault({ required String attributeName, int defaultValue = 0 }) {
-    return int.tryParse(this[attributeName].toString()) ?? defaultValue;
-  }
-
-  TimeOfDay? getTimeOfDayOrDefault({
-    required String attributeName, 
-    TimeOfDay? defaultValue,
-  }) {
-
-    final parsedTime = this[attributeName].toString().split(':');
-
-    if (parsedTime.length < 2) return defaultValue;
-
-    final hours = int.tryParse(parsedTime.first) ?? 0;
-    final minutes = int.tryParse(parsedTime.last) ?? 0;
-
-    return TimeOfDay(hour: hours, minute: minutes);
   }
 }
