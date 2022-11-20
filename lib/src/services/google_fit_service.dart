@@ -305,7 +305,7 @@ class GoogleFitService {
     final List<ActivityRecord> activityRecords = sessionData.map((session) { 
 
       final activityType = supportedGoogleFitActTypes[session.activityType] 
-        ?? ActivityType.uncommited(); 
+        ?? const ActivityType.uncommited(); 
 
       return GoogleFitActivityExtension.fromSession(session, activityType, _hydrateProfileId);
     }).toList();
@@ -435,21 +435,6 @@ class GoogleFitService {
     );
 
     return authenticatedClient(http.Client(), credentials);
-  }
-
-  //TODO: encontrar una forma de no repetir este metodo (ya existe en ActivityService).
-  Future<List<ActivityType>> _queryActivityTypes() async {
-    try {
-      final queryResults = await SQLiteDB.instance.select<ActivityType>(
-        ActivityType.fromMap, 
-        ActivityType.tableName, 
-      );
-      
-      return queryResults.toList();
-
-    } on Exception catch (e) {
-      return Future.error(e);
-    }
   }
 
   String _buildDataSetId(DateTime startTime, DateTime endTime) {
