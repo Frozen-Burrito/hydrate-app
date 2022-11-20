@@ -105,6 +105,23 @@ extension MapExtensions on Map<String, Object?> {
     return constrainedValue;
   }
   
+  bool getBoolOrDefault({ required String attribute, bool defaultValue = false}) {
+    final attributeValue = this[attribute];
+    final bool parsedValue;
+
+    if (attributeValue is bool) {
+      parsedValue =  attributeValue;
+    } else if (attributeValue is int) {
+      parsedValue = attributeValue != 0;
+    } else if (attributeValue is String) {
+      parsedValue = (attributeValue == "true");
+    } else {
+      parsedValue = defaultValue;
+    }
+
+    return parsedValue;
+  }
+
   DateTime? getDateTimeOrDefault({ required String attribute, DateTime? defaultValue, }) {
     
     final parsedDateTime = DateTime.tryParse(this[attribute].toString()) 

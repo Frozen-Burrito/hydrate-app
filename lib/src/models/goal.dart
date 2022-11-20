@@ -5,6 +5,8 @@ import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/models/validators/goal_validator.dart';
+import 'package:hydrate_app/src/models/validators/range.dart';
+import 'package:hydrate_app/src/utils/map_extensions.dart';
 import 'package:hydrate_app/src/utils/numbers_common.dart';
 
 class Goal extends SQLiteModel {
@@ -130,50 +132,50 @@ class Goal extends SQLiteModel {
     );
 
     final int hydrationGoalId = map.getIntegerOrDefault(
-      attributeName: attributeNames[idFieldName]!,
+      attribute: attributeNames[idFieldName]!,
       defaultValue: -1
     );
 
-    final startDate = map.getDateTimeOrDefault(
-      attributeName: attributeNames[startDateFieldName]!,
+    final DateTime startDate = map.getDateTimeOrDefault(
+      attribute: attributeNames[startDateFieldName]!,
       defaultValue: DateTime.now()
-    );
+    )!;
 
-    final endDate = map.getDateTimeOrDefault(
-      attributeName: attributeNames[endDateFieldName]!,
+    final DateTime endDate = map.getDateTimeOrDefault(
+      attribute: attributeNames[endDateFieldName]!,
       defaultValue: DateTime.now().add(defaultGoalDuration)
-    );
+    )!;
 
-    final int termIndex = map.getEnumIndex(
-      attributeName: attributeNames[termFieldName]!, 
-      enumValuesLength: TimeTerm.values.length
+    final int termIndex = map.getIntegerInRange(
+      attribute: attributeNames[termFieldName]!, 
+      range: Range( min: 0, max: TimeTerm.values.length ),
     );
     final TimeTerm goalTimeTerm = TimeTerm.values[termIndex];
 
-    final int coinReward = map.getIntegerOrDefault(attributeName: attributeNames[rewardFieldName]!);
-    final int quantity = map.getIntegerOrDefault(attributeName: attributeNames[quantityFieldName]!);
+    final int coinReward = map.getIntegerOrDefault(attribute: attributeNames[rewardFieldName]!);
+    final int quantity = map.getIntegerOrDefault(attribute: attributeNames[quantityFieldName]!);
 
-    final bool isMainGoal = map.getBoolean(attributeNames[isMainGoalFieldName]!);
+    final bool isMainGoal = map.getBoolOrDefault(attribute: attributeNames[isMainGoalFieldName]!);
 
     final String notes = map[attributeNames[notesFieldName]!] != null 
       ? map[attributeNames[notesFieldName]!].toString()
       : "";
 
-    final List<Tag> tagsForHydrationGoal = map.getGoalTags(
-      attributeName: attributeNames[tagsFieldName]!, 
-      mapOptions: options
-    );
+    final List<Tag> tagsForHydrationGoal = map.getEntityCollection<Tag>(
+      attribute: attributeNames[tagsFieldName]!, 
+      mapper: (map, { options }) => Tag.fromMap(map, options: options ?? const MapOptions()),
+    ).toList();
 
     final int profileId = map.getIntegerOrDefault(
-      attributeName: attributeNames[profileIdFieldName]!, 
+      attribute: attributeNames[profileIdFieldName]!, 
       defaultValue: UserProfile.defaultProfile.id
     );
 
     final goal = Goal(
       id: hydrationGoalId,
       term: goalTimeTerm,
-      startDate: startDate!,
-      endDate: endDate!,
+      startDate: startDate,
+      endDate: endDate,
       reward: coinReward,
       quantity: quantity,
       isMainGoal: isMainGoal,
@@ -248,76 +250,5 @@ class Goal extends SQLiteModel {
     }
 
     return map;
-  }
-}
-
-extension _GoalMapExtension on Map<String, Object?> {
-
-  List<Tag> getGoalTags({
-    required String attributeName,
-    required MapOptions mapOptions,
-    List<Tag> availableTags = const <Tag>[],
-  }) {
-    final List<Tag> tagList = <Tag>[];
-    final Object? tagsFromMap = this[attributeName];
-
-    if (tagsFromMap is List<Map<String, Object?>>) {
-      tagList.addAll(tagsFromMap.map((tagAsMap) => Tag.fromMap(tagAsMap, options: mapOptions)));
-
-    } else if (tagsFromMap is List<int>) {
-      final tagsForGoal = availableTags.where((tag) => tagsFromMap.contains(tag.id));
-      tagList.addAll(tagsForGoal);
-    } else if (tagsFromMap is List<Tag>) {
-      tagList.addAll(tagsFromMap);
-    }
-
-    return tagList;
-  }
-
-  int getEnumIndex({
-    required String attributeName,
-    required int enumValuesLength,
-  }) 
-  {
-    final int parsedIndex = int.tryParse(this[attributeName].toString()) ?? 0;
-    final int constrainedIndex = constrain(
-      parsedIndex, 
-      min: 0,
-      max: enumValuesLength - 1,
-    );
-
-    return constrainedIndex;
-  }
-
-  int getIntegerOrDefault({ required String attributeName, int defaultValue = 0 }) {
-    return int.tryParse(this[attributeName].toString()) ?? defaultValue;
-  }
-
-  bool getBoolean(String attributeName) {
-
-    final attributeValue = this[attributeName];
-    final bool parsedValue;
-
-    if (attributeValue is bool) {
-      parsedValue =  attributeValue;
-    } else if (attributeValue is int) {
-      parsedValue = attributeValue != 0;
-    } else if (attributeValue is String) {
-      parsedValue = (attributeValue == "true");
-    } else {
-      parsedValue = false;
-    }
-
-    return parsedValue;
-  }
-
-  DateTime? getDateTimeOrDefault({
-    required String attributeName, 
-    DateTime? defaultValue,
-  }) {
-    final parsedDateTime = DateTime.tryParse(this[attributeName].toString()) 
-        ?? defaultValue;
-
-    return parsedDateTime;
   }
 }
