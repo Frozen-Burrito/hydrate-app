@@ -13,7 +13,9 @@ enum MedicalCondition {
 
 class MedicalData extends SQLiteModel {
   
-  int id;
+  @override
+  final int id;
+
   int profileId;
   double hypervolemia;
   double postDialysisWeight;
@@ -21,8 +23,9 @@ class MedicalData extends SQLiteModel {
   double normovolemia;
   double recommendedGain;
   double actualGain;
+
   DateTime nextAppointment;
-  DateTime createdAt;
+  final DateTime createdAt;
 
   MedicalData({
     required this.id,

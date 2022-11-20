@@ -16,6 +16,7 @@ class HydrationRecord extends SQLiteModel {
     this.profileId = -1
   }) : batteryRecord = BatteryRecord( date, batteryPercentage );
 
+  @override
   int id;
   final int volumeInMl;
   /// Temperatura ambiente registrada, en grados celsius (-40.0°C, 75.0°C).

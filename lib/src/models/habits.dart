@@ -5,7 +5,9 @@ import 'package:hydrate_app/src/models/user_profile.dart';
 
 class Habits extends SQLiteModel {
 
-  int id;
+  @override
+  final int id;
+  
   double hoursOfSleep;
   double hoursOfActivity;
   double hoursOfOccupation;

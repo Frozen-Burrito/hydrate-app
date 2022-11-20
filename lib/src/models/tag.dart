@@ -8,11 +8,12 @@ import 'package:hydrate_app/src/models/user_profile.dart';
 @immutable
 class Tag extends SQLiteModel {
 
+  @override
   final int id;
   final String value;
   final int profileId;
 
-  Tag({
+  const Tag({
     required this.value,
     this.id = -1, 
     this.profileId = -1

@@ -7,7 +7,6 @@ import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:hydrate_app/src/models/validators/range.dart';
 import 'package:hydrate_app/src/utils/map_extensions.dart';
-import 'package:hydrate_app/src/utils/numbers_common.dart';
 
 class Goal extends SQLiteModel {
 

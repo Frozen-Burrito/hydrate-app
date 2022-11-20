@@ -9,7 +9,9 @@ import 'package:hydrate_app/src/utils/map_extensions.dart';
 
 class ActivityRecord extends SQLiteModel {
 
+  @override
   int id;
+
   String title;
   DateTime date;
   int duration;
@@ -42,7 +44,7 @@ class ActivityRecord extends SQLiteModel {
     title: "", 
     date: DateTime.now(), 
     duration: 0, 
-    activityType: ActivityType.uncommited(),
+    activityType: const ActivityType.uncommited(),
     profileId: -1
   );
 
@@ -145,23 +147,23 @@ class ActivityRecord extends SQLiteModel {
     final ActivityType type;
     switch(options.subEntityMappingType) {
       case EntityMappingType.noMapping:
-        type = (map[attributeNames[actTypeIdPropName]!] as ActivityType?) ?? ActivityType.uncommited();
+        type = (map[attributeNames[actTypeIdPropName]!] as ActivityType?) ?? const ActivityType.uncommited();
         break;
       case EntityMappingType.asMap:
         if ((map[attributeNames[actTypeIdPropName]!] is Map<String, Object?>)) {
           type = ActivityType.fromMap(map[attributeNames[actTypeIdPropName]!] as Map<String, Object?>);
         } else {
-          type = ActivityType.uncommited();
+          type = const ActivityType.uncommited();
         }
         break;
       case EntityMappingType.idOnly:
         final int actTypeId = int.tryParse(map[attributeNames[actTypeIdPropName]!].toString()) ?? -1;
         final actTypeWithId = activityTypes.where((activityType) => activityType.id == actTypeId);
-        type = actTypeWithId.isNotEmpty ? actTypeWithId.first : ActivityType.uncommited();
+        type = actTypeWithId.isNotEmpty ? actTypeWithId.first : const ActivityType.uncommited();
         break;
       case EntityMappingType.notIncluded:
       default:
-        type = ActivityType.uncommited();
+        type = const ActivityType.uncommited();
         break;
     }
 

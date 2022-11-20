@@ -5,19 +5,21 @@ import 'package:hydrate_app/src/utils/google_fit_activity_type.dart';
 
 class ActivityType extends SQLiteModel {
 
+  @override
   final int id;
+  
   final double averageSpeedKmH;
   final double mets;
   final int googleFitActivityType;
 
-  ActivityType({
+  const ActivityType({
     this.id = -1,
     this.averageSpeedKmH = 0.0,
     required this.mets,
     required this.googleFitActivityType,
   });
 
-  ActivityType.uncommited() : this(
+  const ActivityType.uncommited() : this(
     id: -1,
     averageSpeedKmH: 0.0,
     mets: 0.0,

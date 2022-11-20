@@ -9,6 +9,7 @@ import 'package:hydrate_app/src/utils/map_extensions.dart';
 
 class Routine extends SQLiteModel {
 
+  @override
   int id;
   int activityId;
   Iterable<int> _daysOfWeek;

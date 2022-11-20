@@ -4,6 +4,7 @@ import 'package:hydrate_app/src/models/map_options.dart';
 
 class Country extends SQLiteModel {
   
+  @override
   final int id;
   final String code;
 

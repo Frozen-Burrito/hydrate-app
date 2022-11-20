@@ -29,7 +29,9 @@ class Article extends SQLiteModel {
     isBookmarked: false,
   );
 
+  @override
   final int id;
+  
   final String title;
   final String? description;
   final Uri? url;
