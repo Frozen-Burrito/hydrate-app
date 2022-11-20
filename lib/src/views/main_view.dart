@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hydrate_app/src/widgets/dialogs/add_data_dialog.dart';
 import 'package:provider/provider.dart';
 
-import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
 import 'package:hydrate_app/src/services/nav_provider.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
@@ -15,7 +14,6 @@ import 'package:hydrate_app/src/widgets/dialogs/guides_dialog.dart';
 import 'package:hydrate_app/src/widgets/dialogs/report_available_dialog.dart';
 import 'package:hydrate_app/src/widgets/bottom_nav_bar.dart';
 import 'package:hydrate_app/src/widgets/tab_page_view.dart';
-import 'package:hydrate_app/src/widgets/speed_dial_fab.dart';
 
 class MainView extends StatelessWidget {
 

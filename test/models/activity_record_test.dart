@@ -15,7 +15,7 @@ void main() {
       final tomorrowWithSmallDiff = DateTime.now()
           .add(const Duration( days: 1, minutes: 9));
 
-      final walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2, googleFitActivityType: GoogleFitActivityType.walking);
+      const walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2, googleFitActivityType: GoogleFitActivityType.walking);
 
       final activityA = ActivityRecord(
         title: '', 
@@ -47,7 +47,7 @@ void main() {
       final differentDate = DateTime.now()
         .subtract(const Duration( days: 3, hours: 8, minutes: 15));
 
-      final walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2, googleFitActivityType: GoogleFitActivityType.walking);
+      const walking =  ActivityType(id: 0, mets: 0.0, averageSpeedKmH: 3.2, googleFitActivityType: GoogleFitActivityType.walking);
 
       final activityA = ActivityRecord(
         title: '', 
@@ -92,7 +92,7 @@ void main() {
         "kilocalorias_quemadas": 0,
         "al_aire_libre": true,
         "es_rutina": false,
-        "tipo_actividad": ActivityType.uncommited(),
+        "tipo_actividad": const ActivityType.uncommited(),
         "id_perfil": -1,
       });
 
@@ -120,7 +120,7 @@ void main() {
         "kilocaloriasQuemadas": 0,
         "alAireLibre": true,
         "esRutina": false,
-        "tipoActividad": ActivityType.uncommited(),
+        "tipoActividad": const ActivityType.uncommited(),
         "idPerfil": -1,
       });
 
@@ -153,7 +153,7 @@ void main() {
   group("ActivityRecord serialization to JSON", () {
     test("ActivityRecord.fromJson() correctly maps a JSON representation to an instance", () {
       // Arrange
-      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      const testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
       final expected = ActivityRecord(
         id: 5, 
         title: "Correr en la mañana",
@@ -185,7 +185,7 @@ void main() {
 
     test("ActivityRecord.toJson() produces a correct JSON representation of the object", () {
       // Arrange
-      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      const testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
       final activityRecord = ActivityRecord(
         id: 5, 
         title: "Correr en la mañana",
@@ -216,7 +216,7 @@ void main() {
 
     test("ActivityRecord.toJson() only includes the fields specified in attributes, if attributes is not null", () {
       // Arrange
-      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      const testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
       final activityRecord = ActivityRecord(
         id: 5, 
         title: "Correr en la mañana",
@@ -245,7 +245,7 @@ void main() {
 
     test("ActivityRecord.toJson() creates a map with all the fields, if attributes is null or empty", () {
       // Arrange
-      final testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
+      const testActType = ActivityType(id: 1, mets: 0.0, googleFitActivityType: 0);
       final activityRecord = ActivityRecord(
         id: 5, 
         title: "Correr en la mañana",

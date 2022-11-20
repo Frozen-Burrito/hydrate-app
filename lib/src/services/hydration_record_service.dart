@@ -34,9 +34,6 @@ class HydrationRecordService extends ChangeNotifier {
 
   final List<HydrationRecord> _hydrationRecordsPendingSync = <HydrationRecord>[];
 
-  //TODO: Arreglar el problema bien, en vez de usar este workaround.
-  final HydrationRecord? latestHydrationRecord = null;
-
   bool get hasHydrationData => _hydrationRecordsCache.hasData;
 
   Future<List<HydrationRecord>?> get allRecords => _hydrationRecordsCache.data;

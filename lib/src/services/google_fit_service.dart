@@ -7,7 +7,6 @@ import 'package:googleapis/fitness/v1.dart';
 import 'package:googleapis_auth/googleapis_auth.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:hydrate_app/src/db/sqlite_db.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import 'package:hydrate_app/src/models/activity_type.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';

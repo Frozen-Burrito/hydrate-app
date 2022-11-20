@@ -38,7 +38,6 @@ class ProfileValidator extends Validator {
   }
 
   /// Verifica que [inputName] sea un string con longitud en el rango [firstNameLengthRange].
-  ///TODO: Localizar mensaje previo "El nombre debe tener menos de 50 caracteres."
   TextLengthError validateFirstName(String? inputName) {
 
     final isFirstNameRequired = isFieldRequired(UserProfile.firstNameFieldName);
@@ -59,7 +58,6 @@ class ProfileValidator extends Validator {
   }
 
   /// Verifica que [inputName] sea un string con longitud menor a 50.
-  ///TODO: Localizar mensaje "El apellido debe tener menos de 50 caracteres.".
   TextLengthError validateLastName(String? inputValue) {
 
     TextLengthError lastNameError = TextLengthError.none;
@@ -82,7 +80,6 @@ class ProfileValidator extends Validator {
 
   /// Verifica que [inputHeight] pueda convertirse a número decimal y esté en el
   /// rango requerido.
-  //TODO: Localizar mensaje "La estatura debe estar entre 0.5m y 3.5m".
   NumericInputError validateHeight(Object? inputValue) {
 
     NumericInputError heightError = NumericInputError.none;
@@ -107,7 +104,6 @@ class ProfileValidator extends Validator {
 
   /// Verifica que [inputWeight] pueda convertirse a número decimal y esté en el
   /// rango requerido.
-  //TODO: Localizar mensaje "El peso debe estar entre 20 kg y 200 kg".
   NumericInputError validateWeight(Object? inputValue) {
     
     NumericInputError weightError = NumericInputError.none;

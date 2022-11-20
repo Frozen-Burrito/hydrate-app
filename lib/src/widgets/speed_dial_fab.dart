@@ -34,8 +34,6 @@ class _SpeedDialFABState extends State<SpeedDialFAB>
 
   late final AnimationController _controller;
 
-  late final Animation<double> _iconAnimation;
-
   late final Animation<double> _expandAnimation;
 
   bool _isExpanded = false;
@@ -52,8 +50,6 @@ class _SpeedDialFABState extends State<SpeedDialFAB>
     _controller.addListener(() {
       setState(() { });
     });
-
-    _iconAnimation = Tween<double>( begin: 0.0, end: 1.0 ).animate(_controller);
 
     _expandAnimation = Tween<double>(
       begin: 150.0,
