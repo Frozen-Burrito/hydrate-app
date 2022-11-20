@@ -1,17 +1,17 @@
-import 'package:flutter/widgets.dart';
-
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
-import 'package:hydrate_app/src/models/validators/range.dart';
+import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:hydrate_app/src/utils/numbers_common.dart';
 
 class Goal extends SQLiteModel {
 
+  @override
   int id;
+
   int profileId;
   TimeTerm term;
   DateTime startDate;
@@ -48,13 +48,10 @@ class Goal extends SQLiteModel {
     tags: <Tag>[]
   );
 
+  static const GoalValidator validator = GoalValidator();
+
   static const int maxSimultaneousGoals = 3;
-
   static const Duration defaultGoalDuration = Duration(days: 7);
-
-  static const int maxTagCount = 3;
-  static const int maxNotesLength = 100;
-  static const Range waterQuantityMlRange = Range(min: 1, max: 1000);
 
   static const String tableName = "meta";
 
@@ -251,85 +248,6 @@ class Goal extends SQLiteModel {
     }
 
     return map;
-  }
-
-  static String? validateTerm(int? termIndex) {
-
-    if (termIndex == null) return 'Selecciona un plazo para la meta.';
-
-    return (termIndex >= 0 && termIndex < TimeTerm.values.length) 
-        ? null
-        : 'Plazo para meta no válido';
-  }
-
-  static String? validateEndDate(DateTime? startDateValue, String? endDateInput) {
-    
-    if (endDateInput != null) {
-      DateTime? endDateValue = DateTime.tryParse(endDateInput);
-
-      if (endDateValue != null && startDateValue != null)
-      {
-        if (endDateValue.isBefore(startDateValue) || endDateValue.isAtSameMomentAs(startDateValue)) {
-          return 'La fecha de termino debe ocurrir después que la fecha de inicio.';
-        }
-      }
-    }
-
-    return null;
-  }
-
-  static String? validateWaterQuantity(String? inputValue) {
-    if (inputValue == null) return 'Escribe una cantidad';
-
-    int? waterQuantity = int.tryParse(inputValue);
-    
-    if (waterQuantity != null) {
-      if (waterQuantityMlRange.compareTo(waterQuantity) != 0) {
-        return 'La cantidad debe ser entre 1 y 1000 ml.';
-      }
-    }
-
-    return null;
-  }
-
-  static String? validateReward(String? inputValue) {
-
-    int? reward = int.tryParse(inputValue ?? '0');
-    
-    if (reward != null) {
-      if (reward < 0 || reward > 1000) {
-        return 'La recompensa debe estar entre 0 y 1000.';
-      }
-    }
-
-    return null;
-  }
-
-  static String? validateTags(String? inputValue) {
-
-    if (inputValue != null) {
-      final strTags = inputValue.split(',');
-      int totalLength = 0;
-
-      for (var element in strTags) { 
-        element.trim(); 
-        totalLength += element.length;
-      }
-
-      if (totalLength > 30) return 'Exceso de caracteres para etiquetas.';
-
-      if (strTags.length > maxTagCount && strTags.last.isNotEmpty) {
-        return 'Una meta debe tener 3 etiquetas o menos.';
-      }
-    }
-
-    return null;
-  } 
-
-  static String? validateNotes(String? inputValue) {
-    return (inputValue != null && inputValue.characters.length > maxNotesLength)
-        ? "Las notas deben tener menos de $maxNotesLength caracteres"
-        : null;
   }
 }
 

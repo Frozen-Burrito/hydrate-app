@@ -1,17 +1,18 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
-import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
 import 'package:hydrate_app/src/models/goal.dart';
+import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
 import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/utils/datetime_extensions.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
+import 'package:hydrate_app/src/widgets/dialogs/replace_goal_dialog.dart';
 import 'package:hydrate_app/src/widgets/shapes.dart';
 
 class GoalSliverList extends StatelessWidget {
@@ -195,7 +196,7 @@ class _GoalCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               children: [
                 SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.6,
+                  width: MediaQuery.of(context).size.width * 0.55,
                   child: Text(
                     _getGoalTitle(context), 
                     style: Theme.of(context).textTheme.headline6,
@@ -358,8 +359,11 @@ class _GoalProgressBar extends StatelessWidget {
           future: hydrationProvider.getGoalProgressInMl(goal),
           initialData: 0,
           builder: (context, snapshot) {
+
+            final int minWaterVolume = GoalValidator.waterVolumeRange.min.toInt();
+            final int maxWaterVolume = GoalValidator.waterVolumeRange.max.toInt();
             
-            final goalQuantityMl = min(max(goal.quantity, Goal.waterQuantityMlRange.min), Goal.waterQuantityMlRange.max);
+            final goalQuantityMl = min(max(goal.quantity, minWaterVolume), maxWaterVolume);
             final progressInMl = max(min(snapshot.data!, goalQuantityMl), 0);
 
             final adjustedProgress = progressInMl / goalQuantityMl.toDouble();

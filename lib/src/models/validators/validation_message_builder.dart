@@ -3,6 +3,7 @@ import "package:flutter_gen/gen_l10n/app_localizations.dart";
 
 import "package:hydrate_app/src/models/enums/error_types.dart";
 import "package:hydrate_app/src/models/validators/activity_validator.dart";
+import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:hydrate_app/src/models/validators/profile_validator.dart';
 
 import "package:hydrate_app/src/utils/auth_validators.dart";
@@ -48,6 +49,32 @@ class ValidationMessageBuilder {
     "weightIsNaN": "El peso debe ser un número",
     "weightIsTooSmall": "El peso debe ser mayor a ${ProfileValidator.heightRange.min} kilogramos",
     "weightIsTooLarge": "El peso debe ser mayor a ${ProfileValidator.heightRange.max} kilogramos",
+  });
+
+  static final Map<String, String> goalMessages = Map.unmodifiable({
+    "termIsNaN": "Selecciona un plazo válido",
+    "termIsEmpty": "El plazo es obligatorio",
+    "termIsTooSmall": "",
+    "termIsTooLarge": "",
+    "endDateBadFormat": "La fecha de término no tiene el formato correcto",
+    "endDateRequired": "La fecha de término es necesaria",
+    "endDateBeforeStart": "La fecha de término no debe suceder antes que la fecha de inicio",
+    "endDateTooLarge": "La fecha de término es demasiado lejana",
+    "waterAmountIsNaN": "La cantidad de agua debe ser un número",
+    "waterAmountIsRequired": "La cantidad de agua es necesaria",
+    "waterAmountTooSmall": "La cantidad de agua debe ser mayor a ${GoalValidator.waterVolumeRange.min} ml",
+    "waterAmountTooLarge": "La cantidad de agua debe ser menor a ${GoalValidator.waterVolumeRange.max} ml",
+    "rewardIsNaN": "La recompensa debe ser un número",
+    "rewardIsRequired": "La recomensa es necesaria",
+    "rewardTooSmall": "La recompensa debe ser mayor a ${GoalValidator.coinRewardRange.min} monedas",
+    "rewardTooLarge": "La recompensa debe ser menor a ${GoalValidator.coinRewardRange.max} monedas",
+    "tagCountIsNaN": "El número de etiquetas debe ser un número",
+    "tagCountIsRequired": "El número de etiquetas es necesario",
+    "tagCountTooSmall": "El número de etiquetas debe ser mayor a ${GoalValidator.tagCountRange.max}",
+    "tagCountTooLarge": "El número de etiquetas debe ser menor a ${GoalValidator.tagCountRange.max}",
+    "notesAreRequired": "Las notas son obligatorias",
+    "notesTooShort": "Las notas deben tener más de ${GoalValidator.notesLengthRange.min} caracteres",
+    "notesTooLong": "Las notas deben tener menos de ${GoalValidator.notesLengthRange.max} caracteres",
   });
 
   String? messageForUsername(UsernameError usernameError) {
@@ -169,6 +196,85 @@ class ValidationMessageBuilder {
       case NumericInputError.inputIsAfterRange: return profileMessages["weightIsTooLarge"];
       default:
         print("Unhandled profile weight validation message for error: $weightError");
+        return null;
+    }
+  }
+
+  String? forGoalTerm(NumericInputError termError) {
+    switch (termError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return goalMessages["termIsNaN"];
+      case NumericInputError.isEmptyWhenRequired: return goalMessages["termIsEmpty"];
+      case NumericInputError.inputIsBeforeRange: return goalMessages["termIsTooSmall"];
+      case NumericInputError.inputIsAfterRange: return goalMessages["termIsTooLarge"];
+      default:
+        print("Unhandled goal term validation message for error: $termError");
+        return null;
+    }
+  }
+
+  String? forGoalEndDate(NumericInputError endDateError) {
+    switch (endDateError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return goalMessages["endDateBadFormat"];
+      case NumericInputError.isEmptyWhenRequired: return goalMessages["endDateRequired"];
+      case NumericInputError.inputIsBeforeRange: return goalMessages["endDateBeforeStart"];
+      case NumericInputError.inputIsAfterRange: return goalMessages["endDateTooLarge"];
+      default:
+        print("Unhandled goal end date validation message for error: $endDateError");
+        return null;
+    }
+  }
+
+  String? forGoalWaterVolume(NumericInputError waterVolumeError) {
+    switch (waterVolumeError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return goalMessages["waterAmountIsNaN"];
+      case NumericInputError.isEmptyWhenRequired: return goalMessages["waterAmountIsRequired"];
+      case NumericInputError.inputIsBeforeRange: return goalMessages["waterAmountTooSmall"];
+      case NumericInputError.inputIsAfterRange: return goalMessages["waterAmountTooLarge"];
+      default:
+        print("Unhandled goal water volume validation message for error: $waterVolumeError");
+        return null;
+    }
+  }
+
+  String? forGoalReward(NumericInputError rewardError) {
+    switch (rewardError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return goalMessages["rewardIsNaN"];
+      case NumericInputError.isEmptyWhenRequired: return goalMessages["rewardIsRequired"];
+      case NumericInputError.inputIsBeforeRange: return goalMessages["rewardTooSmall"];
+      case NumericInputError.inputIsAfterRange: return goalMessages["rewardTooLarge"];
+      default:
+        print("Unhandled goal reward validation message for error: $rewardError");
+        return null;
+    }
+  }
+
+  String? forGoalTagCount(NumericInputError tagCountError) {
+    switch (tagCountError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return goalMessages["tagCountIsNaN"];
+      case NumericInputError.isEmptyWhenRequired: return goalMessages["tagCountIsRequired"];
+      case NumericInputError.inputIsBeforeRange: return goalMessages["tagCountTooSmall"];
+      case NumericInputError.inputIsAfterRange: return goalMessages["tagCountTooLarge"];
+      default:
+        print("Unhandled goal tags count validation message for error: $tagCountError");
+        return null;
+    }
+  }
+
+  String? forGoalNotes(TextLengthError notesError) {
+    switch (notesError) {
+      case TextLengthError.none: 
+        return null;
+      case TextLengthError.textIsEmptyError:
+        return goalMessages["notesAreRequired"];
+      case TextLengthError.textExceedsCharLimit:
+        return goalMessages["notesTooLong"];
+      default:
+        print("Unhandled goal notes validation message for error: $notesError");
         return null;
     }
   }

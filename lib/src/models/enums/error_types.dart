@@ -7,6 +7,7 @@ enum TextLengthError {
 enum NumericInputError {
   none,
   isNaN,
+  isEmptyWhenRequired,
   isNotCompatible,
   inputIsBeforeRange,
   inputIsAfterRange,

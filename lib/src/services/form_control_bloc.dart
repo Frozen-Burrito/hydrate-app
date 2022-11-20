@@ -111,15 +111,16 @@ class FormControlBloc {
     if (validateOnChange) {
       bool isFormIncomplete = false;
 
-      for (final field in _formFields.entries) {
+      //TODO: Registrar cuando el usuario cambia el valor, no usar valores por default.
+      // for (final field in _formFields.entries) {
 
-        final bool isFieldRequired = _requiredFields.contains(field.key);
-        final bool fieldIsUnchanged = _defaultFieldValues[field.key] == field.value;
+      //   final bool isFieldRequired = _requiredFields.contains(field.key);
+      //   final bool fieldIsUnchanged = _defaultFieldValues[field.key] == field.value;
 
-        isFormIncomplete = isFieldRequired && fieldIsUnchanged;
+      //   isFormIncomplete = isFieldRequired && fieldIsUnchanged;
 
-        if (isFormIncomplete) break;
-      }
+      //   if (isFormIncomplete) break;
+      // }
 
       if (isFormIncomplete) {
         // Faltan campos obligatorios

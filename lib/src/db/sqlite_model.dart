@@ -5,6 +5,10 @@ import 'package:hydrate_app/src/models/map_options.dart';
 /// Utilizada como clase base de las entidades.
 abstract class SQLiteModel {
 
+  const SQLiteModel();
+
+  int get id;
+
   /// Retorna el nombre de la tabla del modelo en SQLite.
   String get table => 'default';
 

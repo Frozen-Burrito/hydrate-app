@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
@@ -6,6 +8,7 @@ import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/services/form_control_bloc.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
@@ -147,8 +150,36 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     );
   }
 
+  String? _validateGoalTerm(ValidationMessageBuilder messageBuilder, int? termIndex) {
+    final termError = Goal.validator.validateTerm(termIndex);
+    return messageBuilder.forGoalTerm(termError);
+  }
+
+  String? _validateEndDate(ValidationMessageBuilder messageBuilder, DateTime? startDate, String? endDate) {
+    final endDateError = Goal.validator.validateEndDate(startDate, endDate);
+    return messageBuilder.forGoalEndDate(endDateError);
+  }
+
+  String? _validateReward(ValidationMessageBuilder messageBuilder, String? inputValue) {
+    final rewardError = Goal.validator.validateReward(inputValue);
+    return messageBuilder.forGoalReward(rewardError);
+  }
+
+  String? _validateWaterVolume(ValidationMessageBuilder messageBuilder, String? inputValue) {
+    final waterVolumeError = Goal.validator.validateWaterQuantity(inputValue);
+    return messageBuilder.forGoalWaterVolume(waterVolumeError);
+  }
+
+  String? _validateNotes(ValidationMessageBuilder messageBuilder, String? notes) {
+    final notesError = Goal.validator.validateNotes(notes);
+    return messageBuilder.forGoalNotes(notesError);
+  }
+
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+    final validationMessageBuilder = ValidationMessageBuilder.of(context);
 
     return Form(
       key: formControl.formKey,
@@ -170,7 +201,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                 ),
                 items: _termDropdownItems,
                 value: snapshot.data?.index ?? 0,
-                validator: (int? value) => Goal.validateTerm(value),
+                validator: (int? value) => _validateGoalTerm(validationMessageBuilder, value),
                 onChanged: (int? newValue) => formControl.changeFieldValue(
                   Goal.termFieldName, 
                   TimeTerm.values[newValue ?? 0]
@@ -227,7 +258,11 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                         helperText: ' ',
                         suffixIcon: Icon(Icons.event_rounded)
                       ),
-                      validator: (value) => Goal.validateEndDate(snapshot.data, value),
+                      validator: (value) => _validateEndDate(
+                        validationMessageBuilder,
+                        snapshot.data,
+                        value,
+                      ),
                       onTap: () async {
                         DateTime? endDate = await showDatePicker(
                           context: context, 
@@ -269,7 +304,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                     Goal.rewardFieldName, 
                     int.tryParse(value) ?? 0
                   ),
-                  validator: (value) => Goal.validateReward(value),
+                  validator: (value) => _validateReward(validationMessageBuilder, value),
                 ),
               ),
 
@@ -290,7 +325,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                     Goal.quantityFieldName, 
                     int.tryParse(value) ?? 0,
                   ),
-                  validator: (value) => Goal.validateWaterQuantity(value),
+                  validator: (value) => _validateWaterVolume(validationMessageBuilder, value),
                 ),
               ),
             ]
@@ -322,7 +357,7 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
               
               return TextFormField(
                 keyboardType: TextInputType.text,
-                maxLength: Goal.maxNotesLength,
+                maxLength: GoalValidator.notesLengthRange.max.toInt(),
                 maxLines: 1,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
@@ -330,10 +365,10 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   labelText: "Anotaciones",
                   hintText: "Debo recordar tomar agua antes de...",
                   helperText: " ",
-                  counterText: "${notes.characters.length.toString()}/${Goal.maxNotesLength}"
+                  counterText: "${notes.characters.length.toString()}/${GoalValidator.notesLengthRange.max.toInt()}"
                 ),
                 onChanged: (value) => formControl.changeFieldValue(Goal.notesFieldName, value,),
-                validator: (value) => Goal.validateNotes(value),
+                validator: (value) => _validateNotes(validationMessageBuilder, value),
               );
             }
           ),
@@ -473,7 +508,7 @@ class _TagFormFieldState extends State<_TagFormField> {
 
     if (modifiedTags.contains(selectedTag)) return;
 
-    if (modifiedTags.length >= Goal.maxTagCount) {
+    if (modifiedTags.length >= GoalValidator.tagCountRange.max.toInt()) {
       modifiedTags.removeLast();
     }
     modifiedTags.add(selectedTag);
@@ -486,8 +521,16 @@ class _TagFormFieldState extends State<_TagFormField> {
     _autocompleteTextController.clear();
   }
 
+  String? _validateTagCount(ValidationMessageBuilder messageBuilder, List<Tag> inputValue) {
+    final tagCountError = Goal.validator.validateTags(inputValue);
+    return messageBuilder.forGoalTagCount(tagCountError);
+  }
+
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+    final validationMessageBuilder = ValidationMessageBuilder.of(context);
 
     return StreamBuilder<List<dynamic>>(
       stream: widget.formControl.getFieldValueStream<List<dynamic>>(Goal.tagsFieldName),
@@ -522,6 +565,7 @@ class _TagFormFieldState extends State<_TagFormField> {
                         //TODO: agregar i18n
                         labelText: "Etiquetas",
                       ),
+                      validator: (_) => _validateTagCount(validationMessageBuilder, addedTags),
                     );
                   },
                 );
@@ -543,7 +587,7 @@ class _TagFormFieldState extends State<_TagFormField> {
                   ),
                   
                   Text(
-                    "${addedTags.length.toString()}/${Goal.maxTagCount}",
+                    "${addedTags.length.toString()}/${GoalValidator.tagCountRange.max.toInt()}",
                     style: Theme.of(context).textTheme.bodyText2?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 12.0,
