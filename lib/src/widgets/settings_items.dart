@@ -1,21 +1,18 @@
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/api/api_client.dart';
-import 'package:hydrate_app/src/models/activity_record.dart';
-import 'package:hydrate_app/src/models/activity_type.dart';
-import 'package:hydrate_app/src/services/activity_service.dart';
-import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
-import 'package:hydrate_app/src/utils/launch_url.dart';
+import 'package:hydrate_app/src/widgets/dialogs/notification_select_dialog.dart';
+import 'package:hydrate_app/src/widgets/sync_google_fit_button.dart';
+import 'package:hydrate_app/src/widgets/url_list_tile.dart';
 
 class SettingsItems extends StatelessWidget {
 
@@ -191,7 +188,7 @@ class SettingsItems extends StatelessWidget {
                       ? () async {
                         final enabledNotifSources = await showDialog<Set<NotificationSource>>(
                           context: context, 
-                          builder: (_) => _NotificationSelectDialog(
+                          builder: (_) => NotificationSelectDialog(
                             enabledNotificationSources: snapshot.data!,
                           ),
                         );
@@ -308,7 +305,7 @@ class SettingsItems extends StatelessWidget {
                           )
                         ),
               
-                        _SyncGoogleFitButton(
+                        SyncGoogleFitButton(
                           tooltip: localizations.fetchGoogleFit,
                           shouldPersistGoogleFitData: true,
                         ),
@@ -321,14 +318,14 @@ class SettingsItems extends StatelessWidget {
           ),
 
           const Divider( height: 1.0, ),
-          _UrlListTile(
+          UrlListTile(
             title: localizations.sendComments, 
             leadingIcon: Icons.question_answer,
             uriToLaunch: ApiClient.urlForPage("comentarios"),
           ),
     
           const Divider( height: 1.0, ),
-          _UrlListTile(
+          UrlListTile(
             title: localizations.userGuides, 
             leadingIcon: Icons.lightbulb,
             uriToLaunch: ApiClient.urlForPage("guias"),
@@ -362,251 +359,6 @@ class SettingsItems extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _SyncGoogleFitButton extends StatelessWidget {
-
-  const _SyncGoogleFitButton({
-    this.tooltip = "Sync Google Fit",
-    this.shouldPersistGoogleFitData = false,
-    Key? key,
-  }) : super(key: key);
-
-  final String tooltip;
-
-  final bool shouldPersistGoogleFitData;
-
-  Future<bool> _syncProfileWithGoogleFit({
-    DateTime? latestSyncWithGoogleFit,
-    Map<int, ActivityType> supportedActivityTypes = const {},
-    required Future Function(Iterable<ActivityRecord>) persistActivityRecords,
-    required Future<bool> Function() updateDateOfLatestSyncWithGoogleFit,
-  }) async {
-
-    final fetchedActivityRecords = await GoogleFitService.instance.syncActivitySessions(
-      startTime: latestSyncWithGoogleFit,
-      endTime: DateTime.now(),
-      supportedGoogleFitActTypes: supportedActivityTypes,
-    );
-
-    updateDateOfLatestSyncWithGoogleFit();
-
-    final persistenceResults = await persistActivityRecords(fetchedActivityRecords);
-    final wereAllActivityRecordsSaved = persistenceResults.length == fetchedActivityRecords.length;
-
-    return fetchedActivityRecords.isNotEmpty && wereAllActivityRecordsSaved;
-  }
-
-  Future<void> _manuallySyncGoogleFit(
-    BuildContext context, 
-    Future<bool> Function() updateDateOfLatestSyncWithGoogleFit,
-    DateTime? latestSyncWithGoogleFit
-  ) async {
-
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final activityService = Provider.of<ActivityService>(context, listen: false);
-    final localizations = AppLocalizations.of(context)!;
-
-    final activityTypes = (await activityService.activityTypes) ?? const <ActivityType>[];
-
-    final syncedNewData = await _syncProfileWithGoogleFit(
-      latestSyncWithGoogleFit: latestSyncWithGoogleFit,
-      supportedActivityTypes: Map.fromEntries(activityTypes.map((activityType) => MapEntry(activityType.googleFitActivityType, activityType))),
-      persistActivityRecords: activityService.saveActivityRecords,
-      updateDateOfLatestSyncWithGoogleFit: updateDateOfLatestSyncWithGoogleFit,
-    );
-                      
-    scaffoldMessenger.clearSnackBars();
-    scaffoldMessenger.showSnackBar(SnackBar(
-      content: Text(syncedNewData 
-        ? localizations.googleFitUpdated
-        : localizations.googleFitAlreadyUpToDate
-      ),
-      duration: const Duration( seconds: 2 ),
-    ));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Consumer<ProfileService>(
-        builder: (context, profileService, _) {
-          return FutureBuilder<UserProfile?>(
-            future: profileService.profile,
-            builder: (context, snapshot) {
-
-              final profile = snapshot.data;
-
-              return IconButton(
-                onPressed: snapshot.hasData 
-                  ? () => _manuallySyncGoogleFit(
-                    context, 
-                    profileService.updateGoogleFitSyncDate, 
-                    profile!.latestSyncWithGoogleFit
-                  ) 
-                  : null, 
-                icon: const Icon(Icons.sync_alt),
-              );
-            }
-          );
-        }
-      ),
-    );
-  }
-}
-
-//TODO: mover a su propio file.
-class _UrlListTile extends StatelessWidget {
-
-  const _UrlListTile({ 
-    Key? key, 
-    required this.title,
-    this.leadingIcon = Icons.question_answer,
-    required this.uriToLaunch, 
-  }) : super(key: key);
-
-  final String title;
-
-  final IconData leadingIcon;
-
-  final Uri uriToLaunch;
-
-  @override
-  Widget build(BuildContext context) {
-
-    return ListTile(
-      minVerticalPadding: 24.0,
-      leading: Icon(
-        leadingIcon, 
-        size: 24.0, 
-      ),
-      title: Text(title),
-      contentPadding: const EdgeInsets.all( 16.0, ),
-      trailing: const Icon(
-        Icons.arrow_forward,
-        size: 24.0,
-      ),
-      onTap: () => UrlLauncher.launchUrlInBrowser(uriToLaunch),
-    );
-  }
-}
-
-//TODO: mover a su propio file.
-class _NotificationSelectDialog extends StatefulWidget {
-
-  _NotificationSelectDialog({
-    Key? key,
-    required Set<NotificationSource> enabledNotificationSources,
-  }) : currentNotificationSources = UnmodifiableSetView(enabledNotificationSources),
-       super(key: key);
-
-  final Set<NotificationSource> currentNotificationSources;
-
-  @override
-  State<_NotificationSelectDialog> createState() => _NotificationSelectDialogState();
-}
-
-class _NotificationSelectDialogState extends State<_NotificationSelectDialog> {
-
-  late final Set<NotificationSource> changedNotificationSources = Set.of(widget.currentNotificationSources);
-
-  bool _isNotificationSourceEnabled(NotificationSource notificationSource,) {
-    return changedNotificationSources.contains(notificationSource);
-  }
-
-  void _toggleNotificationSource(NotificationSource notificationSource, bool isEnabled) {
-    // Determinar si la fuente de notificaciones fue activada o desactivada.
-    if (isEnabled) {
-      if (notificationSource == NotificationSource.disabled) {
-        changedNotificationSources.clear();
-        changedNotificationSources.add(NotificationSource.disabled);
-
-      } else if (notificationSource == NotificationSource.all) {
-        changedNotificationSources.remove(NotificationSource.disabled);
-        changedNotificationSources.addAll([
-          NotificationSource.goals,
-          NotificationSource.battery,
-          NotificationSource.activity,
-          NotificationSource.rest,
-          NotificationSource.all,
-        ]);
-      } else {
-        changedNotificationSources.remove(NotificationSource.disabled);
-        changedNotificationSources.add(notificationSource);
-
-        if (changedNotificationSources.length == NotificationSource.values.length - 2) {
-          changedNotificationSources.add(NotificationSource.all);
-        }
-      }
-    } else {
-      if (notificationSource != NotificationSource.all) {
-        changedNotificationSources.remove(NotificationSource.all);
-      }
-
-      changedNotificationSources.remove(notificationSource);
-    }
-
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-
-    final localizations = AppLocalizations.of(context)!;
-    
-    final List<String> notifLabels = [
-      localizations.notifOptNone,
-      localizations.notifOptGoals,
-      localizations.notifOptBattery,
-      localizations.notifOptActivity,
-      localizations.notifyRest,
-      localizations.notifOptAll,
-    ];
-
-    return AlertDialog(
-      title: Text(localizations.notifications),
-      content: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.5,
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(localizations.setupNotifyDetails),
-
-            const SizedBox(height: 8.0,),
-
-            Expanded(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemBuilder: (context, i) {                
-                  return CheckboxListTile(
-                    value: _isNotificationSourceEnabled(NotificationSource.values[i],),
-                    onChanged: (isEnabled) => _toggleNotificationSource(
-                      NotificationSource.values[i], 
-                      isEnabled ?? false
-                    ),
-                    title: Text(notifLabels[i]),
-                  );
-                },
-                itemCount: NotificationSource.values.length,
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.pop(context, null), 
-          child: Text(localizations.cancel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, changedNotificationSources), 
-          child: Text(localizations.confirmAction),
-        ),
-      ],
     );
   }
 }
