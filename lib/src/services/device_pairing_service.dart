@@ -3,22 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:hydrate_app/src/models/hydrate_device.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 typedef HydrationRecordCallback = void Function(HydrationRecord);
 
 class DevicePairingService extends ChangeNotifier {
 
   DevicePairingService({ this.autoConnectToBondedDevice = false }) {
-    _refreshScanResultsController.stream.listen((refreshRequest) {
-      if (refreshRequest) {
-        _scanForDevices();
-      } else {
-        _stopScan();
-      }
-    });
+    _refreshScanResultsController.stream.listen(_handleScanRefreshRequest);
 
     _selectedDeviceController.onListen = () {
       _selectedDeviceController.add(_pairedDevice);
@@ -27,37 +22,11 @@ class DevicePairingService extends ChangeNotifier {
     final connectedDevicesStream = Stream.periodic(const Duration( seconds: 3 ))
       .asyncMap((_) => FlutterBlue.instance.connectedDevices);
 
-    connectedDevicesStream.listen((connectedDevices) { 
-      if (connectedDevices.isNotEmpty && _pairedDevice == null) {
-        debugPrint("Paired device updated from connectedDevices list");
-        final hydrateDevice = HydrateDevice.fromBleDevice(
-          connectedDevices.first, 
-          isAlreadyConnected: true
-        );
+    connectedDevicesStream.listen(_handleConnectedDevicesChange);
 
-        setSelectedDevice(hydrateDevice);
-      } else if (connectedDevices.isEmpty && _pairedDevice != null && _pairedDevice!.isDisconnected) {
-        debugPrint("No devices connected, selectedDevice set to null");
-        setSelectedDevice(null);
-      }
-    });
+    scanResults.listen(_handleScanResultsChange);
 
-    scanResults.listen((scanResults) async {
-      final bondedDeviceId = getBondedDeviceId();
-      // El dispositivo asociado ya está emparejado.
-      if (bondedDeviceId == _pairedDevice?.deviceId || _hasManuallyDisconnectedFromBondedDevice) {
-        return;
-      }
-
-      final scanResultsMatchingBondedDevice = scanResults
-          .where((scanResult) => scanResult.device.id == bondedDeviceId,);
-
-      if (scanResultsMatchingBondedDevice.length == 1) {
-        debugPrint("Found a scan result that can be paired, based on user preferences");
-        final hydrateDevice = HydrateDevice.fromBleDevice(scanResultsMatchingBondedDevice.first.device);
-        await setSelectedDevice(hydrateDevice);
-      }
-    });
+    _schedulePeriodicScans();
   }
 
   Stream<BluetoothState> get state => FlutterBlue.instance.state;
@@ -122,8 +91,13 @@ class DevicePairingService extends ChangeNotifier {
 
       await _pairedDevice?.disconnect();
 
-      if (newDevice != null && newDevice.isDisconnected) {
-        await newDevice.connect();
+      if (newDevice != null) {
+        if (newDevice.isDisconnected) {
+          await newDevice.connect();
+          _stopPeriodicScans();
+        }
+      } else {
+        _schedulePeriodicScans();
       }
 
       _pairedDevice = newDevice;
@@ -175,8 +149,10 @@ class DevicePairingService extends ChangeNotifier {
 
   HydrateDevice? _pairedDevice;
 
-  static const Duration _automaticScanInterval = Duration(seconds: 10);
+  Timer? _autoScanTimer;
+
   static const Duration _scanDuration = Duration(seconds: 4);
+  static const Duration _automaticScanInterval = Duration(seconds: 10);
 
   Future<void> _scanForDevices() async {
     await FlutterBlue.instance.stopScan();
@@ -214,6 +190,64 @@ class DevicePairingService extends ChangeNotifier {
   }
 
   Future<bool> clearBondedDeviceId() => setBondedDeviceId(const DeviceIdentifier(""));
+
+  void _schedulePeriodicScans() {
+    if (_autoScanTimer == null) {
+      _autoScanTimer = Timer.periodic(_automaticScanInterval, (timer) {
+        _scanForDevices();
+      });
+
+      debugPrint("Starting periodic scans");
+    }
+  }
+
+  void _stopPeriodicScans() {
+    _autoScanTimer?.cancel();
+    _autoScanTimer = null;
+    debugPrint("Stopping periodic scans");
+  }
+
+  void _handleScanResultsChange(List<ScanResult> scanResults) async {
+    final bondedDeviceId = getBondedDeviceId();
+    final bool isBondedDeviceAlreadyPaired = bondedDeviceId == _pairedDevice?.deviceId || 
+      _hasManuallyDisconnectedFromBondedDevice;
+
+    if (isBondedDeviceAlreadyPaired) {
+      return;
+    }
+
+    final scanResultsMatchingBondedDevice = scanResults
+        .where((scanResult) => scanResult.device.id == bondedDeviceId,);
+
+    if (scanResultsMatchingBondedDevice.length == 1) {
+      debugPrint("Found a scan result that can be paired, based on user preferences");
+      final hydrateDevice = HydrateDevice.fromBleDevice(scanResultsMatchingBondedDevice.first.device);
+      await setSelectedDevice(hydrateDevice);
+    }
+  }
+
+  void _handleConnectedDevicesChange(List<BluetoothDevice> connectedDevices) {
+    if (connectedDevices.isNotEmpty && _pairedDevice == null) {
+      debugPrint("Paired device updated from connectedDevices list");
+      final hydrateDevice = HydrateDevice.fromBleDevice(
+        connectedDevices.first, 
+        isAlreadyConnected: true
+      );
+
+      setSelectedDevice(hydrateDevice);
+    } else if (connectedDevices.isEmpty && _pairedDevice != null && _pairedDevice!.isDisconnected) {
+      debugPrint("No devices connected, selectedDevice set to null");
+      setSelectedDevice(null);
+    }
+  }
+
+  void _handleScanRefreshRequest(bool refreshRequest) {
+    if (refreshRequest) {
+      _scanForDevices();
+    } else {
+      _stopScan();
+    }
+  }
 
   @override
   bool operator==(covariant DevicePairingService other) {
