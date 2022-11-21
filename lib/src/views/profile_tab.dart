@@ -68,18 +68,18 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   void _showSaveResultSnackbar(BuildContext context, SaveProfileResult result) {
-    //TODO: agregar i18 a los mensajes de snackbar para cambios de perfil
-    String message = "Something went wrong with message display.";
+    final localizations = AppLocalizations.of(context)!;
+    String message = "This should be a useful message.";
 
     switch(result) {
       case SaveProfileResult.changesSaved:
-        message = "Profile changes saved.";
+        message = localizations.changesSaved;
         break;
       case SaveProfileResult.reachedChangeLimit:
-        message = "You have reached the limit of yearly profile modifications";
+        message = localizations.modificationLimitReached;
         break;
       default: 
-        message = "An error occurred while saving changes. Please try again.";
+        message = "${localizations.errorWhileSaving}. ${localizations.tryAgain}.";
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -93,14 +93,14 @@ class _ProfileTabState extends State<ProfileTab> {
   @override
   Widget build(BuildContext context) {
 
+    final localizations = AppLocalizations.of(context)!;
     final profileProvider = Provider.of<ProfileService>(context);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: <Widget>[
         CustomSliverAppBar(
-          //TODO: agregar i18n.
-          title: 'Perfil',
+          title: localizations.profile,
           leading: const <Widget>[
             CoinDisplay(),
           ],
@@ -109,14 +109,13 @@ class _ProfileTabState extends State<ProfileTab> {
             Builder(
               builder: (context) {
                 if (isSaving) {
-                  return const Center(
+                  return Center(
                     child: SizedBox(
                       height: 16.0,
                       width: 16.0,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.0,
-                        //TODO: agregar i18n
-                        semanticsLabel: 'Saving profile changes',
+                        semanticsLabel: localizations.savingProfile,
                       ),
                     ),
                   );
@@ -350,7 +349,7 @@ class _FullnameDisplay extends StatelessWidget {
                     Text(
                       (profile.fullName.trim().isNotEmpty) 
                         ? profile.fullName
-                        : 'Perfil Anónimo',
+                        : localizations.anonymousProfile,
                       style: Theme.of(context).textTheme.headline4,
                     ),
 

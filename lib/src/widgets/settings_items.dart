@@ -137,10 +137,9 @@ class SettingsItems extends StatelessWidget {
               final userAccountId = snapshot.data?.userAccountID ?? ""; 
 
               return Tooltip(
-                //TODO: Agregar i18n.
                 message: userAccountId.isNotEmpty 
-                  ? "Envía datos estadísticos semanalmente"
-                  : "Necesitas una cuenta de usuario para aportar datos",
+                  ? localizations.contributeDataTooltipSignedIn
+                  : localizations.contributeDataTooltipSignedOut,
                 child: StreamBuilder<bool>(
                   stream: _editSettings.shouldContributeData,
                   initialData: currentSettings.shouldContributeData,
@@ -202,7 +201,7 @@ class SettingsItems extends StatelessWidget {
                         }
                       }
                       : null, 
-                    child: Text("$enabledCount activadas"),
+                    child: Text("$enabledCount ${localizations.notifCountActive}"),
                   ),
                 );
               }
@@ -248,10 +247,9 @@ class SettingsItems extends StatelessWidget {
                     Icons.fitness_center, 
                     size: 24.0, 
                   ),
-                  //TODO: agregar i18n.
-                  title: Text("Conectar apps de salud"),
+                  title: Text(localizations.integrateHealthApps),
                   textColor: Theme.of(context).colorScheme.onBackground,
-                  subtitle: Text("Integra Hydrate con Google Fit"),
+                  subtitle: Text(localizations.integrateGoogleFit),
                   initiallyExpanded: isGoogleFitIntegrationEnabled,
                   maintainState: true,
                   onExpansionChanged: _onGoogleFitIntegratedChanged,
@@ -292,7 +290,7 @@ class SettingsItems extends StatelessWidget {
                             const SizedBox( width: 8.0, ),
               
                             Tooltip(
-                              message: "Cerrar sesión de la cuenta de Google",
+                              message: localizations.signOutWithGoogle,
                               child: IconButton(
                                 onPressed: () {
                                   GoogleFitService.instance.signOut();
@@ -306,13 +304,12 @@ class SettingsItems extends StatelessWidget {
                             onPressed: () {
                               GoogleFitService.instance.signInWithGoogle();
                             },
-                            //TODO: agregar i18n.
-                            child: const Text("Inicia Sesión con Google"), 
+                            child: Text(localizations.signInWithGoogle), 
                           )
                         ),
               
-                        const _SyncGoogleFitButton(
-                          tooltip: "Actualizar datos de Google Fit",
+                        _SyncGoogleFitButton(
+                          tooltip: localizations.fetchGoogleFit,
                           shouldPersistGoogleFitData: true,
                         ),
                       ],
@@ -410,6 +407,7 @@ class _SyncGoogleFitButton extends StatelessWidget {
 
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final activityService = Provider.of<ActivityService>(context, listen: false);
+    final localizations = AppLocalizations.of(context)!;
 
     final activityTypes = (await activityService.activityTypes) ?? const <ActivityType>[];
 
@@ -422,7 +420,10 @@ class _SyncGoogleFitButton extends StatelessWidget {
                       
     scaffoldMessenger.clearSnackBars();
     scaffoldMessenger.showSnackBar(SnackBar(
-      content: Text(syncedNewData ? "Google Fit sincronizado" : "Hydrate ya está al día con Google Fit"),
+      content: Text(syncedNewData 
+        ? localizations.googleFitUpdated
+        : localizations.googleFitAlreadyUpToDate
+      ),
       duration: const Duration( seconds: 2 ),
     ));
   }
@@ -457,6 +458,7 @@ class _SyncGoogleFitButton extends StatelessWidget {
   }
 }
 
+//TODO: mover a su propio file.
 class _UrlListTile extends StatelessWidget {
 
   const _UrlListTile({ 
@@ -492,6 +494,7 @@ class _UrlListTile extends StatelessWidget {
   }
 }
 
+//TODO: mover a su propio file.
 class _NotificationSelectDialog extends StatefulWidget {
 
   _NotificationSelectDialog({
@@ -559,20 +562,19 @@ class _NotificationSelectDialogState extends State<_NotificationSelectDialog> {
       localizations.notifOptGoals,
       localizations.notifOptBattery,
       localizations.notifOptActivity,
-      "Descanso",
+      localizations.notifyRest,
       localizations.notifOptAll,
     ];
 
     return AlertDialog(
-      title: const Text("Notificaciones"),
+      title: Text(localizations.notifications),
       content: SizedBox(
         height: MediaQuery.of(context).size.height * 0.5,
         width: double.maxFinite,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            //TODO: agregar i18n.
-            const Text("Selecciona los tipos de notificaciones que deseas recibir:"),
+            Text(localizations.setupNotifyDetails),
 
             const SizedBox(height: 8.0,),
 
@@ -598,11 +600,11 @@ class _NotificationSelectDialogState extends State<_NotificationSelectDialog> {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context, null), 
-          child: const Text("Cancelar"),
+          child: Text(localizations.cancel),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, changedNotificationSources), 
-          child: const Text("Confirmar"),
+          child: Text(localizations.confirmAction),
         ),
       ],
     );

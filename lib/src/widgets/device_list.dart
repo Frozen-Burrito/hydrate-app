@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+
 import 'package:hydrate_app/src/models/hydrate_device.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:hydrate_app/src/widgets/data_placeholder.dart';
-
 import 'package:hydrate_app/src/widgets/scan_result_tile.dart';
-import 'package:provider/provider.dart';
 
 /// Un widget con una lista de dispositivos conectados y otra de dispositivos 
 /// descubiertos.
@@ -40,24 +40,27 @@ class BleDeviceList extends StatelessWidget {
 
   Future<SnackBar> _handleDeviceConnectTap(BuildContext context, HydrateDevice device) async {
 
+    final localizations = AppLocalizations.of(context)!;
+
     final deviceWasConnected = await _handleConnectToDevice(context, device);
 
     final String confirmationMsg = deviceWasConnected
-      ? "Dispositivo conectado"
-      : "No se pudo conectar el dispositivo";
+      ? localizations.connectedDevice
+      : localizations.cannotConnectDevice;
 
     return SnackBar(content: Text(confirmationMsg));
   }
 
   Future<SnackBar> _handleScanResultTap(BuildContext context, ScanResult scanResult) async {
 
+    final localizations = AppLocalizations.of(context)!;
     final hydrateDevice = HydrateDevice.fromBleDevice(scanResult.device);
 
     final deviceWasConnected = await _handleConnectToDevice(context, hydrateDevice);
 
     final String confirmationMsg = deviceWasConnected
-      ? "Dispositivo conectado"
-      : "No se pudo conectar el dispositivo";
+      ? localizations.connectedDevice
+      : localizations.cannotConnectDevice;
 
     return SnackBar(content: Text(confirmationMsg));
   }
@@ -117,9 +120,9 @@ class BleDeviceList extends StatelessWidget {
                         },
                       );
                     } else {
-                      return const Center(
+                      return Center(
                         child: DataPlaceholder(
-                          message: "No has emparejado una extensión Hydrate. Revisa la lista inferior para descubrir dispositivos cercanos.",
+                          message: "${localizations.noPairedDeviceYet}. ${localizations.checkDeviceList}.",
                           icon: Icons.link_off,
                         ),
                       );
@@ -185,6 +188,9 @@ class _DeviceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return ListTile(
       title: Text(device.name),
       subtitle: Text(device.deviceId.toString()),
@@ -204,7 +210,7 @@ class _DeviceTile extends StatelessWidget {
 
                   if (bondedDeviceIsThisDevice) {
                     return Tooltip(
-                      message: "Olvidar dispositivo",
+                      message: localizations.forgetDevice,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           primary: Colors.orangeAccent.shade400,
@@ -215,7 +221,7 @@ class _DeviceTile extends StatelessWidget {
                     );
                   } else {
                     return Tooltip(
-                      message: "Activar conexión automática",
+                      message: localizations.setupAutoconnect,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           primary: Colors.green.shade400,
@@ -259,18 +265,23 @@ class _ConnectDisconnectButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //TODO: Agregar i18n
+
+    final localizations = AppLocalizations.of(context)!;
+    
     if (deviceState == BluetoothDeviceState.connected) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          primary: Colors.red.shade400
+      return Tooltip(
+        message: localizations.disconnectDevice,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            primary: Colors.red.shade400
+          ),
+          child: const Icon(Icons.phonelink_erase),
+          onPressed: onDisconnect, 
         ),
-        child: const Icon(Icons.phonelink_erase),
-        onPressed: onDisconnect, 
       );
     } else if (deviceState == BluetoothDeviceState.disconnected) {
       return Tooltip(
-        message: "Reconectar dispositivo",
+        message: localizations.tryReconnect,
         child: ElevatedButton(
           child: const Icon(Icons.phonelink_ring),
           onPressed: onConnect, 
@@ -288,22 +299,24 @@ class _PromptAutoconnectDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //TODO: Agregar i18n.
+
+    final localizations = AppLocalizations.of(context)!;
+
     return AlertDialog(
-      title: const Text("¿Configurar conexión automática?"),
-      content: const Text("El dispositivo ha sido emparejado. ¿Deseas que la app intente conectarse a él de manera automática en el futuro?"),
+      title: Text(localizations.askSetupAutoconnect),
+      content: Text("${localizations.deviceWasPaired}. ${localizations.askSetupAutoconnectDetails}"),
       actions: [
         TextButton(
           onPressed: () {
             Navigator.of(context).pop(false);
           },
-          child: const Text("No"),
+          child: Text(localizations.continueWithoutAutoconnect),
         ),
         TextButton(
           onPressed: () {
             Navigator.of(context).pop(true);
           },
-          child: const Text("Sí"),
+          child: Text("${localizations.yes}, ${localizations.setupAutoconnect.toLowerCase()}"),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -95,8 +96,25 @@ class _BarChart extends StatelessWidget {
   final double? maxY;
   final String yUnitsLabel;
 
-  //TODO: Agregar i18n para abreviaciones de dias.
-  static const weekdayLabels = ["lun.", "mar.", "mie.", "jue.", "vie.", "sab.", "dom."];
+  List<String> _getWeekdayLabels(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+    final List<String> weekdays = <String>[
+      localizations.monday,
+      localizations.tuesday,
+      localizations.wednesday,
+      localizations.thursday,
+      localizations.friday,
+      localizations.saturday,
+      localizations.sunday,
+    ];
+
+    final List<String> abbreviations = weekdays.map((day) => day.substring(0, 3)).toList();
+
+    assert(abbreviations.length == 7);
+
+    return abbreviations;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +129,7 @@ class _BarChart extends StatelessWidget {
 
     final consumptionAverage = dataPoints.reduce((total, value) => total + value) / 7;
 
-    print("Average: ${consumptionAverage.toInt()}");
+    final weekdayLabels = _getWeekdayLabels(context);
 
     return BarChart(
       BarChartData(

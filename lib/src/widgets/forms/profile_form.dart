@@ -96,11 +96,11 @@ class _ProfileFormState extends State<ProfileForm> {
   }
 
   void _showProfileErrorSnackbar(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        //TODO: agregar i18n para error creando perfil inicial.
-        content: Text("Tu perfil no pudo ser creado"),
-        duration: Duration(seconds: 3),
+      SnackBar(
+        content: Text("${localizations.profileCreationError}."),
+        duration: const Duration(seconds: 3),
       )
     );
   }
@@ -125,7 +125,7 @@ class _ProfileFormState extends State<ProfileForm> {
 
     final profileChanges = profileProvider.profileChanges;
     
-    birthDateController.text = profileChanges.dateOfBirth?.toLocalizedDate ?? '';
+    birthDateController.text = profileChanges.dateOfBirth?.toLocalizedDate(context) ?? "";
 
     return Form(
       key: _formKey,
@@ -158,7 +158,7 @@ class _ProfileFormState extends State<ProfileForm> {
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
               labelText: localizations.dateOfBirth,
-              helperText: ' ', // Para evitar cambios en la altura del widget
+              helperText: " ", // Para evitar cambios en la altura del widget
               suffixIcon: const Icon(Icons.event_rounded)
             ),
             onTap: () => _pickBirthDate(context),
@@ -174,7 +174,7 @@ class _ProfileFormState extends State<ProfileForm> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: localizations.gender,
-                    helperText: ' ',
+                    helperText: " ",
                     hintText: localizations.select
                   ),
                   isExpanded: true,
@@ -210,8 +210,8 @@ class _ProfileFormState extends State<ProfileForm> {
                   enabled: widget.isFormModifiable,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
-                    labelText: "${localizations.height} (m)",
-                    hintText: "1.70",
+                    labelText: "${localizations.height} (${localizations.metersAbbreviated})",
+                    hintText: localizations.heightHint,
                     helperText: " ",
                     suffixIcon: const Icon(Icons.height),
                   ),
@@ -230,8 +230,8 @@ class _ProfileFormState extends State<ProfileForm> {
                   enabled: widget.isFormModifiable,
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
-                    labelText: "${localizations.weight} (kg)",
-                    hintText: "60.0",
+                    labelText: "${localizations.weight} (${localizations.kilogramsAbbreviated})",
+                    hintText: localizations.weightHint,
                     helperText: " ",
                     suffixIcon: const Icon(Icons.monitor_weight_outlined)
                   ),
@@ -245,23 +245,21 @@ class _ProfileFormState extends State<ProfileForm> {
         
           const SizedBox( height: 16.0, ),
 
-          (widget.isModifyingExistingProfile
-            ? const SizedBox( height: 0.0, )
-            : DropdownButtonFormField(
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                labelText: localizations.occupation,
-                helperText: ' ',
-                hintText: localizations.select
-              ),
-              items: DropdownLabels.occupationDropdownItems(context),
-              value: profileChanges.occupation.index,
-              onChanged: (widget.isFormModifiable) 
-                ? (int? newValue) {
-                    profileChanges.occupation = Occupation.values[newValue ?? 0];
-                  }
-                : null,
-            )
+          if (!widget.isModifyingExistingProfile)
+          DropdownButtonFormField(
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.occupation,
+              helperText: " ",
+              hintText: localizations.select
+            ),
+            items: DropdownLabels.occupationDropdownItems(context),
+            value: profileChanges.occupation.index,
+            onChanged: (widget.isFormModifiable) 
+              ? (int? newValue) {
+                  profileChanges.occupation = Occupation.values[newValue ?? 0];
+                }
+              : null,
           ),
 
           const SizedBox( height: 16.0, ),
@@ -270,7 +268,7 @@ class _ProfileFormState extends State<ProfileForm> {
             decoration: InputDecoration(
               border: const OutlineInputBorder(),
               labelText: localizations.medicalCondition,
-              helperText: ' ',
+              helperText: " ",
             ),
             items: DropdownLabels.conditionDropdownItems(context),
             value: profileChanges.medicalCondition.index,

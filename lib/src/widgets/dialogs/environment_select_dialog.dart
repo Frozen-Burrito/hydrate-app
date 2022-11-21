@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/environment.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
@@ -11,11 +12,11 @@ class EnvironmentSelectDialog extends StatelessWidget {
 
   const EnvironmentSelectDialog({Key? key}) : super(key: key);
 
-  //TODO: Agregar localizaciones.
   @override
   Widget build(BuildContext context) {
 
     final profileProvider = Provider.of<ProfileService>(context);
+    final localizations = AppLocalizations.of(context)!;
     
     return FutureBuilder<UserProfile?>(
       future: profileProvider.profile,
@@ -26,7 +27,10 @@ class EnvironmentSelectDialog extends StatelessWidget {
           final activeProfile = snapshot.data!;
 
           return AlertDialog(
-            title: const Text('Selecciona un Entorno', textAlign: TextAlign.center,),
+            title: Text(
+              localizations.chooseEnvironment, 
+              textAlign: TextAlign.center,
+            ),
             titleTextStyle: Theme.of(context).textTheme.headline4,
             content: _EnvGridView(
               activeProfile: activeProfile,
@@ -38,7 +42,7 @@ class EnvironmentSelectDialog extends StatelessWidget {
             actionsPadding: const EdgeInsets.symmetric( horizontal: 16.0 ),
             actions: [
               ElevatedButton(
-                child: const Text('Cancelar'),
+                child: Text(localizations.cancel),
                 style: ElevatedButton.styleFrom(
                   primary: Colors.grey.shade700,
                 ),
@@ -56,7 +60,10 @@ class EnvironmentSelectDialog extends StatelessWidget {
         }
 
         return AlertDialog(
-          title: const Text('Cargando Entornos', textAlign: TextAlign.center,),
+          title: Text(
+            localizations.loadingEnvironments, 
+            textAlign: TextAlign.center,
+          ),
           titleTextStyle: Theme.of(context).textTheme.headline4,
           content: SizedBox(
             height: MediaQuery.of(context).size.height * 0.1,
@@ -85,17 +92,18 @@ class _ConfirmOrPurchaseButton extends StatelessWidget {
     bool hasUnlockedEnv, 
     bool canPurchaseEnv,
   ) {
+    final localizations = AppLocalizations.of(context)!;
 
     if (isEnvDifferentFromCurrent) {
       if (!hasUnlockedEnv) {
         if (canPurchaseEnv) {
-          return "Puedes comprar este entorno para desbloquearlo";
+          return localizations.canPurchaseEnvTooltip;
         } else {
-          return "No tienes monedas suficientes";
+          return localizations.notEnoughCoins;
         }
       } 
     } else {
-      return "No puedes seleccionar el mismo entorno";
+      return localizations.cannotChooseSameEnv;
     }
 
     return "";
@@ -119,6 +127,8 @@ class _ConfirmOrPurchaseButton extends StatelessWidget {
 
     final bool isEnabled = isSelectedDifferentFromCurrent && (hasUnlockedEnvironment || canPurchaseEnv);
 
+    final localizations = AppLocalizations.of(context)!;
+
     return Tooltip(
       message: _getTooltipMessage(
         context, 
@@ -139,11 +149,11 @@ class _ConfirmOrPurchaseButton extends StatelessWidget {
         : null,
         
         child: hasUnlockedEnvironment
-          ? const Text("Confirmar")
+          ? Text(localizations.confirmAction)
           : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Comprar por ${environmentPrice.toString()}"),
+              Text("${localizations.purchaseFor} ${environmentPrice.toString()}"),
               
               const Padding(
                 padding: EdgeInsets.all(4.0),

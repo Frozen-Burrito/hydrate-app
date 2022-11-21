@@ -177,7 +177,6 @@ class _ArticleCard extends StatelessWidget {
 
     if (article.id == Article.invalidArticleId) {
       return DataPlaceholder(
-        //TODO: revisar y actualizar i18n si es necesario.
         message: source == ArticleSource.bookmarks
           ? localizations.noBookmarks
           : localizations.resourcesUnavailable,
@@ -204,7 +203,7 @@ class _ArticleCard extends StatelessWidget {
             subtitle: Container(
               margin: const EdgeInsets.only(top: 8.0),
               child: Text(
-                '${localizations.published}: $articleDateStr',
+                "${localizations.published}: $articleDateStr",
                 style: Theme.of(context).textTheme.bodyText1?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface
                 )
@@ -228,7 +227,7 @@ class _ArticleCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only( left: 16.0, right: 16.0, bottom: 16.0),
             child: Text(
-              article.description ?? '', 
+              article.description ?? "", 
               style: Theme.of(context).textTheme.bodyText2,
               textAlign: TextAlign.start,
               overflow: TextOverflow.ellipsis, 

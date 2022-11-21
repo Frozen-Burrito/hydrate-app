@@ -3,90 +3,48 @@ import "package:flutter_gen/gen_l10n/app_localizations.dart";
 
 import "package:hydrate_app/src/models/enums/error_types.dart";
 import "package:hydrate_app/src/models/validators/activity_validator.dart";
+import 'package:hydrate_app/src/models/validators/auth_validator.dart';
 import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:hydrate_app/src/models/validators/profile_validator.dart';
-
-import "package:hydrate_app/src/utils/auth_validators.dart";
 
 class ValidationMessageBuilder {
 
   ValidationMessageBuilder.of(BuildContext context) 
     : _localizations = AppLocalizations.of(context)!;
 
-  //TODO: Implement i18n validation messages.
   final AppLocalizations _localizations;
 
-  static const String usernameIsRequiredMsg = "El nombre de usuario es obligatorio";
-  static const String usernameTooShortMsg = "El usuario debe tener más de 4 letras o números";
-  static const String usernameTooLongMsg = "El usuario debe tener menos de 20 letras o números";
-  static const String emailIsRequiredMsg = "El correo electrónico es obligatorio";
-  static const String incorrectEmailFormatMsg = "El correo no tiene un formato válido";
-  static const String incorrectUsernameFormatMsg = "El usuario no tiene un formato válido";
+  String _buildAmountError(String message, num amount, { String? units }) {
+    final strBuf = StringBuffer(message);
 
-  static const String passwordIsRequiredMsg = "La contraseña es obligatoria";
-  static const String passwordTooShortMsg = "La contraseña debe tener más de 8 caracteres";
-  static const String passwordTooLongMsg = "La contraseña debe tener menos de 40 caracteres";
-  static const String passwordRequiresSymbolsMsg = "La contraseña debe tener un número y una mayúscula";
-  static const String passwordConfirmIsRequiredMsg = "La confirmación de contraseña es obligatoria";
-  static const String passwordConfirmDoesNotMatchMsg = "La confirmación de contraseña no coincide";
+    strBuf.writeAll([ " ", amount ]);
+    if (units != null) {
+      strBuf.writeAll([ " ", units ]);
+    }
 
-  static final Map<String, String> activityMessages = Map.unmodifiable({
-    "titleTooLong": "El título debe tener menos de ${ActivityValidator.titleLengthRange.max} caracteres",
-    "distanceIsNegative": "La distancia debe ser mayor a ${ActivityValidator.distanceInMetersRange.min} m",
-    "distanceExceedsRange": "La distancia debe ser menor a ${ActivityValidator.distanceInMetersRange.max} m",
-    "durationIsNegative": "La duración debe ser mayor a ${ActivityValidator.durationInMinutesRange.min} minutos",
-    "durationExceedsRange": "La duración debe ser menor a ${ActivityValidator.durationInMinutesRange.max ~/ 60} horas",
-    "kCalIsNegative": "Las cantidad de kCal debe ser mayor a ${ActivityValidator.kcalPerActivityRange.min}",
-    "kCalExceedsRange": "La cantidad de kilocalorías debe ser menore a ${ActivityValidator.kcalPerActivityRange.max}",
-  });
-
-  static final Map<String, String> profileMessages = Map.unmodifiable({
-    "firstNameTooLong": "El nombre debe tener menos de ${ProfileValidator.firstNameLengthRange.max} caracteres",
-    "lastNameTooLong": "Los apellidos deben tener menos de ${ProfileValidator.lastNameLengthRange.max} caracteres",
-    "heightIsNaN": "La estatura debe ser un número",
-    "heightIsTooSmall": "La estatura debe ser mayor a ${ProfileValidator.heightRange.min} metros",
-    "heightIsTooLarge": "La estatura debe ser menor a ${ProfileValidator.heightRange.max} metros",
-    "weightIsNaN": "El peso debe ser un número",
-    "weightIsTooSmall": "El peso debe ser mayor a ${ProfileValidator.heightRange.min} kilogramos",
-    "weightIsTooLarge": "El peso debe ser mayor a ${ProfileValidator.heightRange.max} kilogramos",
-  });
-
-  static final Map<String, String> goalMessages = Map.unmodifiable({
-    "termIsNaN": "Selecciona un plazo válido",
-    "termIsEmpty": "El plazo es obligatorio",
-    "termIsTooSmall": "",
-    "termIsTooLarge": "",
-    "endDateBadFormat": "La fecha de término no tiene el formato correcto",
-    "endDateRequired": "La fecha de término es necesaria",
-    "endDateBeforeStart": "La fecha de término no debe suceder antes que la fecha de inicio",
-    "endDateTooLarge": "La fecha de término es demasiado lejana",
-    "waterAmountIsNaN": "La cantidad de agua debe ser un número",
-    "waterAmountIsRequired": "La cantidad de agua es necesaria",
-    "waterAmountTooSmall": "La cantidad de agua debe ser mayor a ${GoalValidator.waterVolumeRange.min} ml",
-    "waterAmountTooLarge": "La cantidad de agua debe ser menor a ${GoalValidator.waterVolumeRange.max} ml",
-    "rewardIsNaN": "La recompensa debe ser un número",
-    "rewardIsRequired": "La recomensa es necesaria",
-    "rewardTooSmall": "La recompensa debe ser mayor a ${GoalValidator.coinRewardRange.min} monedas",
-    "rewardTooLarge": "La recompensa debe ser menor a ${GoalValidator.coinRewardRange.max} monedas",
-    "tagCountIsNaN": "El número de etiquetas debe ser un número",
-    "tagCountIsRequired": "El número de etiquetas es necesario",
-    "tagCountTooSmall": "El número de etiquetas debe ser mayor a ${GoalValidator.tagCountRange.max}",
-    "tagCountTooLarge": "El número de etiquetas debe ser menor a ${GoalValidator.tagCountRange.max}",
-    "notesAreRequired": "Las notas son obligatorias",
-    "notesTooShort": "Las notas deben tener más de ${GoalValidator.notesLengthRange.min} caracteres",
-    "notesTooLong": "Las notas deben tener menos de ${GoalValidator.notesLengthRange.max} caracteres",
-  });
+    return strBuf.toString();
+  }
 
   String? messageForUsername(UsernameError usernameError) {
 
     switch(usernameError) {
       case UsernameError.none: return null;
-      case UsernameError.noUsernameProvided: return usernameIsRequiredMsg;
-      case UsernameError.noEmailProvided: return emailIsRequiredMsg;
-      case UsernameError.incorrectEmailFormat: return incorrectEmailFormatMsg;
-      case UsernameError.usernameTooShort: return usernameTooShortMsg;
-      case UsernameError.usernameTooLong: return usernameTooLongMsg;
-      case UsernameError.incorrectUsernameFormat: return incorrectUsernameFormatMsg;
+      case UsernameError.noUsernameProvided: return _localizations.usernameIsRequiredError;
+      case UsernameError.noEmailProvided: return _localizations.emailIsRequiredError;
+      case UsernameError.incorrectEmailFormat: return _localizations.emailFormatError;
+      case UsernameError.usernameTooShort: 
+        return _buildAmountError(
+          _localizations.usernameTooShortError,
+          AuthValidator.usernameLengthRange.min.toInt(),
+          units: _localizations.characters,
+        );
+      case UsernameError.usernameTooLong:
+        return _buildAmountError(
+          _localizations.usernameTooLongError,
+          AuthValidator.usernameLengthRange.max.toInt(),
+          units: _localizations.characters,
+        );
+      case UsernameError.incorrectUsernameFormat: return _localizations.usernameFormatError;
       default: 
         print("Unhandled username/email validation message for error: $usernameError");
         return "unkown error";
@@ -97,12 +55,22 @@ class ValidationMessageBuilder {
     
     switch(passwordError) {
       case PasswordError.none: return null;
-      case PasswordError.noPasswordProvided: return passwordIsRequiredMsg;
-      case PasswordError.passwordTooShort: return passwordTooShortMsg;
-      case PasswordError.passwordTooLong: return passwordTooLongMsg;
-      case PasswordError.requiresSymbols: return passwordRequiresSymbolsMsg;
-      case PasswordError.noPasswordConfirm: return passwordConfirmIsRequiredMsg;
-      case PasswordError.passwordsDoNotMatch: return passwordConfirmDoesNotMatchMsg;
+      case PasswordError.noPasswordProvided: return _localizations.passwordIsRequiredError;
+      case PasswordError.passwordTooShort: 
+        return _buildAmountError(
+          _localizations.passwordTooShortError,
+          AuthValidator.passwordLengthRange.min.toInt(),
+          units: _localizations.characters,
+        );
+      case PasswordError.passwordTooLong:
+        return _buildAmountError(
+          _localizations.passwordTooLongMsg,
+          AuthValidator.passwordLengthRange.max.toInt(),
+          units: _localizations.characters,
+        );
+      case PasswordError.requiresSymbols: return _localizations.passwordRequiresSymbolsMsg;
+      case PasswordError.noPasswordConfirm: return _localizations.passwordConfirmIsRequiredMsg;
+      case PasswordError.passwordsDoNotMatch: return _localizations.passwordConfirmDoesNotMatchMsg;
       default: 
         print("Unhandled password validation message for error: $passwordError");
         return "unkown error";
@@ -112,7 +80,11 @@ class ValidationMessageBuilder {
   String? forActivityTitle(TextLengthError titleError) {
     switch (titleError) {
       case TextLengthError.textExceedsCharLimit:
-        return activityMessages["titleTooLong"];
+        return _buildAmountError(
+          _localizations.activityTitleTooLong,
+          ActivityValidator.titleLengthRange.max.toInt(),
+          units: _localizations.characters,
+        );
       default: return null;
     }
   }
@@ -120,8 +92,18 @@ class ValidationMessageBuilder {
   String? forActivityDuration(NumericInputError durationError) {
     switch (durationError) {
       case NumericInputError.none: return null;
-      case NumericInputError.inputIsBeforeRange: return activityMessages["durationIsNegative"];
-      case NumericInputError.inputIsAfterRange: return activityMessages["durationExceedsRange"];
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.activityDurationIsTooSmall, 
+          ActivityValidator.durationInMinutesRange.min.toInt(),
+          units: _localizations.minutes
+        );
+      case NumericInputError.inputIsAfterRange: 
+        return _buildAmountError(
+          _localizations.activityDurationExceedsRange,
+          ActivityValidator.durationInMinutesRange.max.toInt(),
+          units: _localizations.minutes
+        );
       default:
         print("Unhandled activity record duration validation message for error: $durationError");
         return null;
@@ -131,8 +113,18 @@ class ValidationMessageBuilder {
   String? forActivityDistance(NumericInputError distanceError) {
     switch (distanceError) {
       case NumericInputError.none: return null;
-      case NumericInputError.inputIsBeforeRange: return activityMessages["distanceIsNegative"];
-      case NumericInputError.inputIsAfterRange: return activityMessages["distanceExceedsRange"];
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.activityDistanceIsTooSmall,
+          ActivityValidator.distanceInMetersRange.min.toInt(),
+          units: _localizations.meters,
+        );
+      case NumericInputError.inputIsAfterRange: 
+        return _buildAmountError(
+          _localizations.activityDistanceExceedsRange,
+          ActivityValidator.distanceInMetersRange.max.toInt(),
+          units: _localizations.meters,
+        );
       default:
         print("Unhandled activity record distance validation message for error: $distanceError");
         return null;
@@ -142,8 +134,18 @@ class ValidationMessageBuilder {
   String? forActivityKcals(NumericInputError kCalsError) {
     switch (kCalsError) {
       case NumericInputError.none: return null;
-      case NumericInputError.inputIsBeforeRange: return activityMessages["kCalIsNegative"];
-      case NumericInputError.inputIsAfterRange: return activityMessages["kCalExceedsRange"];
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.activityCaloriesIsTooSmall,
+          ActivityValidator.distanceInMetersRange.min.toInt(),
+          units: _localizations.kilocalories,
+        );
+      case NumericInputError.inputIsAfterRange: 
+        return _buildAmountError(
+          _localizations.activityCaloriesExceedsRange,
+          ActivityValidator.distanceInMetersRange.max.toInt(),
+          units: _localizations.kilocalories,
+        );
       default:
         print("Unhandled activity record kCal validation message for error: $kCalsError");
         return null;
@@ -156,7 +158,11 @@ class ValidationMessageBuilder {
       case TextLengthError.textIsEmptyError:
         return null;
       case TextLengthError.textExceedsCharLimit:
-        return profileMessages["firstNameTooLong"];
+        return _buildAmountError(
+          _localizations.firstNameTooLong,
+          ProfileValidator.firstNameLengthRange.max.toInt(),
+          units: _localizations.characters,
+        );
       default:
         print("Unhandled profile first name validation message for error: $firstNameError");
         return null;
@@ -169,7 +175,11 @@ class ValidationMessageBuilder {
       case TextLengthError.textIsEmptyError:
         return null;
       case TextLengthError.textExceedsCharLimit:
-        return profileMessages["lastNameTooLong"];
+        return _buildAmountError(
+          _localizations.lastNameTooLong,
+          ProfileValidator.lastNameLengthRange.max.toInt(),
+          units: _localizations.characters,
+        );
       default:
         print("Unhandled profile last name validation message for error: $lastNameError");
         return null;
@@ -179,9 +189,19 @@ class ValidationMessageBuilder {
   String? forHeight(NumericInputError heightError) {
     switch (heightError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return profileMessages["heightIsNaN"];
-      case NumericInputError.inputIsBeforeRange: return profileMessages["heightIsTooSmall"];
-      case NumericInputError.inputIsAfterRange: return profileMessages["heightIsTooLarge"];
+      case NumericInputError.isNaN: return _localizations.heightIsNaN;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.heightIsTooSmall, 
+          ProfileValidator.heightRange.min.toInt(),
+          units: _localizations.meters
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.heightIsTooLarge, 
+          ProfileValidator.heightRange.max.toInt(),
+          units: _localizations.meters
+        );
       default:
         print("Unhandled profile height validation message for error: $heightError");
         return null;
@@ -191,9 +211,19 @@ class ValidationMessageBuilder {
   String? forWeight(NumericInputError weightError) {
     switch (weightError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return profileMessages["weightIsNaN"];
-      case NumericInputError.inputIsBeforeRange: return profileMessages["weightIsTooSmall"];
-      case NumericInputError.inputIsAfterRange: return profileMessages["weightIsTooLarge"];
+      case NumericInputError.isNaN: return _localizations.weightIsNaN;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.weightIsTooSmall, 
+          ProfileValidator.weightRange.min.toInt(),
+          units: _localizations.kilograms
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.weightIsTooLarge, 
+          ProfileValidator.weightRange.max.toInt(),
+          units: _localizations.kilograms
+        );
       default:
         print("Unhandled profile weight validation message for error: $weightError");
         return null;
@@ -203,10 +233,10 @@ class ValidationMessageBuilder {
   String? forGoalTerm(NumericInputError termError) {
     switch (termError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return goalMessages["termIsNaN"];
-      case NumericInputError.isEmptyWhenRequired: return goalMessages["termIsEmpty"];
-      case NumericInputError.inputIsBeforeRange: return goalMessages["termIsTooSmall"];
-      case NumericInputError.inputIsAfterRange: return goalMessages["termIsTooLarge"];
+      case NumericInputError.isNaN: return _localizations.termIsNaN;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.termIsEmpty;
+      case NumericInputError.inputIsBeforeRange: return _localizations.termIsNaN;
+      case NumericInputError.inputIsAfterRange: return _localizations.termIsNaN;
       default:
         print("Unhandled goal term validation message for error: $termError");
         return null;
@@ -216,10 +246,10 @@ class ValidationMessageBuilder {
   String? forGoalEndDate(NumericInputError endDateError) {
     switch (endDateError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return goalMessages["endDateBadFormat"];
-      case NumericInputError.isEmptyWhenRequired: return goalMessages["endDateRequired"];
-      case NumericInputError.inputIsBeforeRange: return goalMessages["endDateBeforeStart"];
-      case NumericInputError.inputIsAfterRange: return goalMessages["endDateTooLarge"];
+      case NumericInputError.isNaN: return _localizations.endDateBadFormat;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.endDateRequired;
+      case NumericInputError.inputIsBeforeRange: return _localizations.endDateBeforeStart;
+      case NumericInputError.inputIsAfterRange: return _localizations.endDateTooLarge;
       default:
         print("Unhandled goal end date validation message for error: $endDateError");
         return null;
@@ -229,10 +259,20 @@ class ValidationMessageBuilder {
   String? forGoalWaterVolume(NumericInputError waterVolumeError) {
     switch (waterVolumeError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return goalMessages["waterAmountIsNaN"];
-      case NumericInputError.isEmptyWhenRequired: return goalMessages["waterAmountIsRequired"];
-      case NumericInputError.inputIsBeforeRange: return goalMessages["waterAmountTooSmall"];
-      case NumericInputError.inputIsAfterRange: return goalMessages["waterAmountTooLarge"];
+      case NumericInputError.isNaN: return _localizations.waterAmountIsNaN;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.waterAmountIsRequired;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.waterAmountTooSmall, 
+          GoalValidator.waterVolumeRange.min.toInt(),
+          units: _localizations.mililiters
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.waterAmountTooLarge, 
+          GoalValidator.waterVolumeRange.max.toInt(),
+          units: _localizations.mililiters
+        );
       default:
         print("Unhandled goal water volume validation message for error: $waterVolumeError");
         return null;
@@ -242,10 +282,20 @@ class ValidationMessageBuilder {
   String? forGoalReward(NumericInputError rewardError) {
     switch (rewardError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return goalMessages["rewardIsNaN"];
-      case NumericInputError.isEmptyWhenRequired: return goalMessages["rewardIsRequired"];
-      case NumericInputError.inputIsBeforeRange: return goalMessages["rewardTooSmall"];
-      case NumericInputError.inputIsAfterRange: return goalMessages["rewardTooLarge"];
+      case NumericInputError.isNaN: return _localizations.rewardIsNaN;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.rewardIsRequired;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.rewardTooSmall, 
+          GoalValidator.coinRewardRange.min.toInt(),
+          units: _localizations.coins
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.rewardTooLarge, 
+          GoalValidator.coinRewardRange.max.toInt(),
+          units: _localizations.coins
+        );
       default:
         print("Unhandled goal reward validation message for error: $rewardError");
         return null;
@@ -255,10 +305,18 @@ class ValidationMessageBuilder {
   String? forGoalTagCount(NumericInputError tagCountError) {
     switch (tagCountError) {
       case NumericInputError.none: return null;
-      case NumericInputError.isNaN: return goalMessages["tagCountIsNaN"];
-      case NumericInputError.isEmptyWhenRequired: return goalMessages["tagCountIsRequired"];
-      case NumericInputError.inputIsBeforeRange: return goalMessages["tagCountTooSmall"];
-      case NumericInputError.inputIsAfterRange: return goalMessages["tagCountTooLarge"];
+      case NumericInputError.isNaN: return _localizations.tagCountIsNaN;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.tagCountIsRequired;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.tagCountTooSmall, 
+          GoalValidator.tagCountRange.min.toInt(),
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.tagCountTooLarge, 
+          GoalValidator.tagCountRange.max.toInt(),
+        );
       default:
         print("Unhandled goal tags count validation message for error: $tagCountError");
         return null;
@@ -270,9 +328,13 @@ class ValidationMessageBuilder {
       case TextLengthError.none: 
         return null;
       case TextLengthError.textIsEmptyError:
-        return goalMessages["notesAreRequired"];
+        return _localizations.notesAreRequired;
       case TextLengthError.textExceedsCharLimit:
-        return goalMessages["notesTooLong"];
+        return _buildAmountError(
+          _localizations.notesTooLong, 
+          GoalValidator.notesLengthRange.max.toInt(),
+          units: _localizations.characters,
+        );
       default:
         print("Unhandled goal notes validation message for error: $notesError");
         return null;

@@ -156,8 +156,7 @@ class NewActivityForm extends StatelessWidget {
                       color: Colors.yellow.shade500,
                     ),
                     label: Text(
-                      //TODO: Agregar i18n.
-                      'Actividad extenuante reciente',
+                      localizations.recentIntenseActvity,
                       style: Theme.of(context).textTheme.bodyText2?.copyWith(
                         color: Colors.yellow.shade500
                       ),
@@ -173,8 +172,7 @@ class NewActivityForm extends StatelessWidget {
           );
         } else if (snapshot.hasError) {
           return Center(
-            //TODO: Actualizar este texto, son registros, no tipos, de actividad.
-            child: Text(localizations.noActTypes),
+            child: Text(localizations.errorFetchingActivity),
           );
         }
 
@@ -258,7 +256,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
         newActivityTime.minute,
       );
 
-      dateController.text = newActivityRecord.date.toLocalizedDateTime;
+      dateController.text = newActivityRecord.date.toLocalizedDateTime(context);
     }
   }
 
@@ -286,6 +284,13 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
       .validateKcalConsumed(input, includesUnits: input?.split(" ").length == 2);
 
     return messageBuilder.forActivityKcals(kCalsError);
+  }
+
+  String _buildTitleCountText(int titleLength) {
+    final titleLengthStr = titleLength.toString();
+    final maxTitleLengthStr = ActivityValidator.titleLengthRange.max.toInt().toString();
+
+    return "$titleLengthStr/$maxTitleLengthStr";
   }
 
   @override
@@ -326,9 +331,9 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                     border: const OutlineInputBorder(),
                     labelText: localizations.activityTitle,
                     hintText: localizations.activityTitleHint,
-                    helperText: ' ',
+                    helperText: " ",
                     suffixIcon: const Icon(Icons.text_fields),
-                    counterText: '${titleLength.toString()}/${ActivityValidator.titleLengthRange.max}'
+                    counterText: _buildTitleCountText(titleLength),
                   ),
                   validator: (value) => _validateTitle(validationMsgBuilder, value),
                   onChanged: (value) => setState(() {
@@ -345,7 +350,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     labelText: localizations.date,
-                    helperText: ' ', // Para evitar cambios en la altura del widget
+                    helperText: " ",
                     suffixIcon: const Icon(Icons.event_rounded)
                   ),
                   onTap: _onTapDateField,
@@ -362,10 +367,9 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: const OutlineInputBorder(),
-                          //TODO: agregar i18n
-                          labelText: '${localizations.duration} (minutos)',
-                          hintText: '20 min.',
-                          helperText: ' ',
+                          labelText: "${localizations.duration} (${localizations.minutes})",
+                          hintText: localizations.durationHint,
+                          helperText: " ",
                           suffixIcon: const Icon(Icons.timer_rounded)
                         ),
                         onChanged: (value) {
@@ -393,18 +397,15 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                         decoration: InputDecoration(
                           border: const OutlineInputBorder(),
                           labelText: localizations.distance,
-                          hintText: '1.2 km',
-                          helperText: ' ',
+                          hintText: localizations.distanceHint,
+                          helperText: " ",
                         ),
                         onChanged: (value) {
-          
                           setState(() {
                             newActivityRecord.distance = double.tryParse(value.split(" ").first) ?? 0.0;
 
                             newActivityRecord.userModifiedDistance();
-                          });
-          
-                          // distanceController.text = newActivityRecord.formattedDistance; 
+                          });          
                         },
                         validator: (value) => _validateDistance(validationMsgBuilder, value),
                       ),
@@ -425,8 +426,8 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                         decoration: InputDecoration(
                           border: const OutlineInputBorder(),
                           labelText: localizations.kcalBurned,
-                          hintText: '300 kCal',
-                          helperText: ' ',
+                          hintText: localizations.kcalHint,
+                          helperText: " ",
                           suffixIcon: const Icon(Icons.bolt),
                         ),
                         onChanged: (value) {
@@ -434,9 +435,7 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
                             newActivityRecord.kiloCaloriesBurned = int.tryParse(value.split(" ").first) ?? 0;
 
                             newActivityRecord.userModifiedKcal();
-                          });
-          
-                          // kCalController.text = newActivityRecord.formattedKcal; 
+                          });          
                         },
                         validator: (value) => _validateKilocalories(validationMsgBuilder, value),
                       ),
@@ -502,9 +501,8 @@ class _NewActivityFormFieldsState extends State<_NewActivityFormFields> {
             ),
           );
         } else {
-          return const Center(
-            //TODO: agregar i18n
-            child: Text('No hay un perfil de usuario activo.'),
+          return Center(
+            child: Text("${localizations.noProfileSelected}."),
           );
         }
       }
@@ -578,12 +576,11 @@ class _ActivityTypeDropdown extends StatelessWidget {
         }
 
         return DropdownButtonFormField(
-          //TODO: Agregar a localizations un disabledHint para dropdown de tipos de act.
-          disabledHint: const Text("No se encontraron actividades"),
+          disabledHint: Text(localizations.noActTypes),
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             labelText: localizations.whatType,
-            helperText: ' ',
+            helperText: " ",
             hintText: localizations.select
           ),
           items: dropdownItems,

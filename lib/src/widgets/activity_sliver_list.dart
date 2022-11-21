@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/routine_occurrence.dart';
 import 'package:hydrate_app/src/services/activity_service.dart';
@@ -41,6 +42,9 @@ class ActivitySliverList extends StatelessWidget {
                     sliver: FutureBuilder(
                       future: provider.routineActivities,
                       builder: (context, AsyncSnapshot<RoutineActivities> snapshot) {
+
+                        final localizations = AppLocalizations.of(context)!;
+
                         // Revisar si hay datos en el snapshot del future.
                         if (snapshot.hasData ) {
 
@@ -67,21 +71,19 @@ class ActivitySliverList extends StatelessWidget {
                             );
                           } else {
                             // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-                            return const SliverToBoxAdapter(
+                            return SliverToBoxAdapter(
                               child: DataPlaceholder(
-                                //TODO: agregar i18n
-                                message: 'Aún no hay actividad física registrada.',
+                                message: localizations.noActivityRecords,
                                 icon: Icons.fact_check_rounded,
                               ),
                             );  
                           }
                         } else if (snapshot.hasError) {
                           // Retornar un placeholder, indicando que hubo un error.
-                          return const SliverToBoxAdapter(
+                          return SliverToBoxAdapter(
                             child: DataPlaceholder(
                               isLoading: false,
-                              //TODO: agregar i18n
-                              message: 'Hubo un error obteniendo tus registros de actividad.',
+                              message: localizations.errorFetchingActivity,
                               icon: Icons.error,
                             ),
                           ); 
@@ -196,7 +198,7 @@ class _ActivityCard extends StatelessWidget {
             const SizedBox( height: 8.0 ),
 
             Text(
-              activityRecord.date.toLocalizedDateTime,
+              activityRecord.date.toLocalizedDateTime(context),
               style: Theme.of(context).textTheme.bodyText2?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),

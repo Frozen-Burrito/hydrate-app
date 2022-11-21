@@ -10,11 +10,10 @@ class LinkAccountDialog extends StatelessWidget {
 
     final localizations = AppLocalizations.of(context)!;
 
-    //TODO: agregar i18n.
-    final dialogTitle = "¿Asociar cuenta con el perfil local de usuario?";
-    final content = "Tu perfil de usuario local no tiene una cuenta asociada. Asociar una cuenta te permite acceder a tu perfil desde varios dispositivos.";
-    final String cancelButtonText = "Continuar sin asociar";
-    final String acceptButtonText = "Asociar perfil";
+    final String dialogTitle = localizations.askAccountLink;
+    final String content = "${localizations.profileHasNoLinkedAccount}. ${localizations.accountLinkBenefits}.";
+    final String cancelButtonText = localizations.continueWithoutLink;
+    final String acceptButtonText = localizations.linkProfileToAccount;
 
     return AlertDialog(
       title: Text(dialogTitle),

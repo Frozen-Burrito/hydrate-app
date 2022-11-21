@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:hydrate_app/src/services/activity_service.dart';
-import 'package:hydrate_app/src/services/device_pairing_service.dart';
+import 'package:hydrate_app/src/models/validators/auth_validator.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/api/auth_api.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/enums/auth_action_type.dart';
+import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/user_credentials.dart';
+import 'package:hydrate_app/src/services/activity_service.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
-import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
 
 /// Un componente BLoC que puede recibir los valores de cada campo de un 
@@ -28,6 +29,8 @@ class AuthFormBloc {
   final _authApi = AuthApi();
 
   final AuthActionType _authAction;
+
+  final AuthValidator _authValidator;
 
   String _username= "";
   String _email= "";
@@ -129,7 +132,9 @@ class AuthFormBloc {
   AuthFormBloc._internal({ 
     required AuthActionType authAction,
     required Set<String> requiredFields,
-  }) : _authAction = authAction, _requiredFields = requiredFields {
+  }) : _authAction = authAction, 
+       _requiredFields = requiredFields, 
+      _authValidator = AuthValidator(authAction) {
     // Send current value to each new subscription on listen.
     _authResultController.onListen = () {
       _authResultController.add(_formState);
@@ -277,9 +282,11 @@ class AuthFormBloc {
 
   void _handleUsernameChange(String inputUsername) {
 
-    _usernameError = UserCredentials.canUseUsernameAsEmail(_authAction, inputUsername)
-      ? AuthValidators.emailValidator(inputUsername, true)
-      : AuthValidators.usernameValidator(inputUsername);
+    if (_authValidator.canUsernameBeTreatedAsEmail(inputUsername)) {
+      _usernameError = _authValidator.validateEmail(inputUsername);
+    } else {
+      _usernameError = _authValidator.validateEmail(inputUsername);
+    }
 
     _usernameErrorController.add(_usernameError);
 
@@ -292,7 +299,7 @@ class AuthFormBloc {
 
   void _handleEmailChange(String inputEmail) {
 
-    _emailError = AuthValidators.emailValidator(inputEmail, true);
+    _emailError = _authValidator.validateEmail(inputEmail);
 
     _emailErrorController.add(_emailError);
 
@@ -305,7 +312,7 @@ class AuthFormBloc {
 
   void _handlePasswordChange(String inputPassword) {
 
-    _passwordError = AuthValidators.passwordValidator(inputPassword, true);
+    _passwordError = _authValidator.validatePassword(inputPassword);
 
     _passwordErrorController.add(_passwordError);
 
@@ -318,7 +325,7 @@ class AuthFormBloc {
 
   void _handlePasswordConfirmChange(String inputPasswordConfirm) {
 
-    _passwordConfirmError = AuthValidators.validatePasswordConfirm(_password, inputPasswordConfirm);
+    _passwordConfirmError = _authValidator.validatePasswordConfirm(_password, inputPasswordConfirm);
 
     _passwordConfirmErrorController.add(_passwordConfirmError);
 

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 
 extension DateTimeExtensions on DateTime {
@@ -52,20 +53,27 @@ extension DateTimeExtensions on DateTime {
 
   /// Produce un string legible por humanos, localizado a la región y zona horaria
   /// del usuario.
-  String get toLocalizedDateTime {
+  String toLocalizedDateTime(BuildContext context) {
 
-    String dateStr = '$day de ${meses[month -1]} de $year';
-    String minuteStr = minute < 10 ? '0$minute' : minute.toString();
-    String hourStr = 'a la ${hour > 1 ? 's' : ''} $hour:$minuteStr';
+    final String dateStr = toLocalizedDate(context);
 
-    return '$dateStr, $hourStr';
+    final String minuteStr = minute < 10 ? '0$minute' : minute.toString();
+    final String hourStr = "$hour:$minuteStr";
+
+    return "$dateStr, $hourStr";
   }
 
   /// Produce un string legible por humanos, localizado a la región y zona horaria
   /// del usuario, sin incluir la hora.
-  String get toLocalizedDate {
+  String toLocalizedDate(BuildContext context) {
 
-    String dateStr = '$day de ${meses[month -1]} de $year';
+    final String locale = Localizations.localeOf(context).languageCode;
+    
+    final String dayOfWeek = DateFormat.EEEE(locale).format(this);
+    final String month = DateFormat.MMMMd(locale).format(this);
+    final String year = DateFormat.y(locale).format(this);
+
+    String dateStr = "$dayOfWeek/$month/$year";
 
     return dateStr;
   }

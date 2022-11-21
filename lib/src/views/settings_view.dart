@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/models/hydrate_device.dart';
-import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/models/hydrate_device.dart';
 import 'package:hydrate_app/src/models/hydration_record.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:hydrate_app/src/services/hydration_record_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
@@ -68,8 +68,8 @@ class SettingsView extends StatelessWidget {
                             return StreamBuilder<HydrateDevice?>(
                               stream: devicePairingService.selectedDevice,
                               builder: (context, snapshot) {
-                                //TODO: agregar i18n
-                                final deviceName = snapshot.data?.name ?? "Desconectado";
+
+                                final deviceName = snapshot.data?.name ?? localizations.disconnected;
 
                                 return Text(
                                   deviceName,
@@ -98,20 +98,22 @@ class SettingsView extends StatelessWidget {
                   initialData: const [],
                   builder: (context, snapshot) {
 
-                    String lastBatteryUpdate = 'Nunca'; //TODO: Agregar i18n de 'nunca'
+                    final String lastBatteryUpdate;
 
                     if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                       // Determinar actualización más reciente de nivel de batería.
                       lastBatteryUpdate = snapshot.data!.first.date
                           .toString()
                           .substring(0,16);
-                    } 
+                    } else {
+                      lastBatteryUpdate = localizations.noDate;
+                    }
 
                     return SliverToBoxAdapter(
                       child: Container(
                         margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
                         child: Text(
-                          '${localizations.lastUpdate}: $lastBatteryUpdate', 
+                          "${localizations.lastUpdate}: $lastBatteryUpdate", 
                           style: Theme.of(context).textTheme.bodyText2,
                         ),
                       ),

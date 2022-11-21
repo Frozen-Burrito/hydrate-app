@@ -12,3 +12,34 @@ enum NumericInputError {
   inputIsBeforeRange,
   inputIsAfterRange,
 }
+
+enum AuthResult {
+  none,
+  authenticated,
+  newProfileCreated,
+  canSendAuthRequest,
+  canLinkProfileToAccount,
+  canFetchProfileSettings,
+  credentialsError,
+  serviceUnavailable,
+}
+
+enum UsernameError { 
+  none,
+  noUsernameProvided,
+  noEmailProvided,
+  incorrectEmailFormat,
+  usernameTooShort,
+  usernameTooLong,
+  incorrectUsernameFormat,
+}
+
+enum PasswordError { 
+  none,
+  noPasswordProvided,
+  passwordTooShort,
+  passwordTooLong,
+  requiresSymbols,
+  noPasswordConfirm,
+  passwordsDoNotMatch,
+}

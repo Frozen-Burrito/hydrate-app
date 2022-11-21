@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
-import 'package:hydrate_app/src/utils/auth_validators.dart';
+import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
@@ -56,8 +56,7 @@ class SignupForm extends StatelessWidget {
 
     switch (authResult) {
       case AuthResult.credentialsError:
-        //TODO: Add i18n
-        message = "El email o usuario no está disponible";
+        message = localizations.errUserExists;
         break;
       case AuthResult.serviceUnavailable:
         message = localizations.errCheckInternetConn;
@@ -245,7 +244,7 @@ class _SignUpFormFields extends StatelessWidget {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.person),
                     labelText: localizations.username,
-                    helperText: ' ',
+                    helperText: " ",
                     errorText: validationMsgBuilder.messageForUsername(snapshot.data!),
                   ),
                   onChanged: (usernameValue) => bloc.usernameSink.add(usernameValue),
@@ -268,7 +267,7 @@ class _SignUpFormFields extends StatelessWidget {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
                     labelText: localizations.password,
-                    helperText: ' ',
+                    helperText: " ",
                     errorText: validationMsgBuilder.messageForPassword(snapshot.data!)
                   ),
                   onChanged: (passwordValue) => bloc.passwordSink.add(passwordValue),
@@ -289,7 +288,7 @@ class _SignUpFormFields extends StatelessWidget {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
                     labelText: localizations.passwordConfirm,
-                    helperText: ' ',
+                    helperText: " ",
                     errorText: validationMsgBuilder.messageForPassword(snapshot.data!),
                   ),
                   onChanged: (passwordConfirmValue) => bloc.passwordConfirmSink.add(passwordConfirmValue),

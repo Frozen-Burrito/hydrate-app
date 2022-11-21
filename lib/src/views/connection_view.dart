@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:provider/provider.dart';
 
+import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/services/device_pairing_service.dart';
 import 'package:hydrate_app/src/utils/launch_url.dart';
 import 'package:hydrate_app/src/widgets/custom_sliver_appbar.dart';
@@ -85,8 +85,7 @@ class ConnectionView extends StatelessWidget {
 
                   if (isScanInProgress) {
                     return FloatingActionButton(
-                      //TODO: agregar i18n para "detener scan ble"
-                      tooltip: localizations.scan,
+                      tooltip: localizations.stopScan,
                       backgroundColor: Theme.of(context).colorScheme.error,
                       onPressed: devicePairingService.cancelScanResultsRefresh,
                       child: const Icon(Icons.stop),

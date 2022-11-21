@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/goal.dart';
@@ -18,6 +19,9 @@ class HydrationSliverList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return SafeArea(
       top: false,
       bottom: false,
@@ -30,7 +34,7 @@ class HydrationSliverList extends StatelessWidget {
                 child: WeekTotalsChart(
                   dailyTotals: hydrationRecordService.pastWeekMlTotals,
                   maxYValue: 2000.0,
-                  yUnit: 'ml',
+                  yUnit: localizations.mililitersAbbreviated,
                 ),
               ),
 
@@ -67,19 +71,17 @@ class HydrationSliverList extends StatelessWidget {
                                   ),
                                 );
                               } else {
-                                return const SliverToBoxAdapter(
+                                return SliverToBoxAdapter(
                                   child: DataPlaceholder(
-                                    //TODO: agregar i18n.
-                                    message: 'Aún no hay registros de hidratación. Toma agua y vuelve más tarde.',
+                                    message: "${localizations.noHydrationRecordsYet} ${localizations.drinkAndComeBackLater}",
                                     icon: Icons.fact_check_rounded,
                                   ),
                                 );
                               }
                             } else if (snapshot.hasError) {
-                              return const SliverToBoxAdapter(
+                              return SliverToBoxAdapter(
                                 child: DataPlaceholder(
-                                  //TODO: agregar i18n.
-                                  message: 'Hubo un error al intentar obtener registros de hidratación.',
+                                  message: localizations.errorFetchingHydration,
                                   icon: Icons.error_outline,
                                 ),
                               );
@@ -117,7 +119,7 @@ class _HydrationCard extends StatelessWidget {
 
   final MedicalData? associatedMedicalRecord;
 
-  String _getDateLabel() {
+  String _getDateLabel(BuildContext context) {
 
     final DateTime? timestamp;
 
@@ -129,6 +131,8 @@ class _HydrationCard extends StatelessWidget {
 
     assert(timestamp != null, "Una _HydrationCard fue creada sin registros de hidratacion ni medicos");
 
+    final localizations = AppLocalizations.of(context)!;
+
     if (timestamp != null) {
       final today = DateTime.now().onlyDate;
       final yesterday = today.subtract(const Duration(days: 1));
@@ -136,16 +140,14 @@ class _HydrationCard extends StatelessWidget {
       String dateAsString = timestamp.toString().substring(0,10);
     
       if (timestamp.isAfter(today)) {
-        //TODO: agregar i18n
-        dateAsString = 'Hoy';
+        dateAsString = localizations.today;
       } else if (timestamp.isAfter(yesterday)) {
-        //TODO: agregar i18n
-        dateAsString = 'Ayer';
+        dateAsString = localizations.yesterday;
       }
 
       return dateAsString;
     } else {
-      return "Unknown date";
+      return localizations.noDate;
     }
   }
 
@@ -160,9 +162,11 @@ class _HydrationCard extends StatelessWidget {
     }
   }
 
-  String _getHydrationRecordLabel(HydrationRecord hydrationRecord) {
+  String _getHydrationRecordLabel(BuildContext context, HydrationRecord hydrationRecord) {
     final timeAsString = hydrationRecord.date.toString().substring(11,16);
-    return "$timeAsString - ${hydrationRecord.volumeInMl} ml";
+    final localizations = AppLocalizations.of(context)!;
+
+    return "$timeAsString - ${hydrationRecord.volumeInMl} ${localizations.mililitersAbbreviated}";
   }
 
   @override
@@ -176,7 +180,7 @@ class _HydrationCard extends StatelessWidget {
         children: [
           ListTile(
             title: Text(
-              _getDateLabel(),
+              _getDateLabel(context),
               style: Theme.of(context).textTheme.headline4?.copyWith(fontWeight: FontWeight.w500),
             ),
             trailing: _DailyProgressText(
@@ -239,7 +243,7 @@ class _HydrationCard extends StatelessWidget {
                     ),
 
                     Text(
-                      _getHydrationRecordLabel(hydrationRecords[i]),
+                      _getHydrationRecordLabel(context, hydrationRecords[i]),
                       style: Theme.of(context).textTheme.bodyText1,
                     ),
                   ],
@@ -277,12 +281,16 @@ class _HydrationStatusChip extends StatelessWidget {
       return const SizedBox( height: 0.0 );
     }
 
-    final hasExceededTarget = totalWaterIntakeForDay + (mainTarget * 0.25) >= mainTarget;
+    final localizations = AppLocalizations.of(context)!;
+
+    final bool hasExceededTarget = totalWaterIntakeForDay + (mainTarget * 0.25) >= mainTarget;
+    final String warningText = hasExceededTarget 
+      ? localizations.exceedsHydration 
+      : localizations.stableHydration;
 
     return Chip(
       backgroundColor: hasExceededTarget ? Colors.red : Colors.green,
-      //TODO: Agregar i18n.
-      label: Text( hasExceededTarget ? "Exceso de líquidos" : "Líquidos estables"),
+      label: Text(warningText),
     );
   }
 }
@@ -297,17 +305,20 @@ class _DailyProgressText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return Consumer<GoalsService>(
       builder: (_, goalsService, __) {
         return FutureBuilder<Goal?>(
           future: goalsService.mainActiveGoal,
           builder: (context, snapshot) {
 
-            String amountLabel = "${totalIntake}ml";
+            String amountLabel = "$totalIntake${localizations.mililitersAbbreviated}";
             Color? textColor = Theme.of(context).colorScheme.primary;
 
             if (snapshot.hasData) {
-              amountLabel += " / ${snapshot.data!.quantity}ml";
+              amountLabel += " / ${snapshot.data!.quantity}${localizations.mililitersAbbreviated}";
 
               if (totalIntake < snapshot.data!.quantity) {
                 textColor = Theme.of(context).colorScheme.onSurface;
@@ -349,12 +360,14 @@ class _MedicalRecordData extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //TODO: agregar i18n
+
+    final localizations = AppLocalizations.of(context)!;
+
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
-        title: Text("Reporte médico"),
-        subtitle: Text("Tus datos médicos para este día:"),
+        title: Text(localizations.medicalReport),
+        subtitle: Text(localizations.yourMedicalData),
         leading: Icon(
           _getIconForGain(
             medicalRecord.actualGain, 
@@ -364,34 +377,34 @@ class _MedicalRecordData extends StatelessWidget {
         children: [
           GridView.count(
             primary: false,
-            mainAxisSpacing: 8.0,
+            mainAxisSpacing: 0.0,
             crossAxisSpacing: 8.0,
-            crossAxisCount: 2,
+            crossAxisCount: 1,
             shrinkWrap: true,
-            childAspectRatio: MediaQuery.of(context).size.width * 0.5 / 64.0,
+            childAspectRatio: MediaQuery.of(context).size.width / 64.0,
             children: [
               ListTile(
-                title: Text("Hipervolemia"),
+                title: Text(localizations.hypervolemia),
                 trailing: Text(medicalRecord.hypervolemia.toString()),
               ),
               ListTile(
-                title: Text("Peso post-diálisis"),
+                title: Text(localizations.postDialysisWeight),
                 trailing: Text(medicalRecord.postDialysisWeight.toString()),
               ),
               ListTile(
-                title: Text("Agua extracelular"),
+                title: Text(localizations.extraCellularWater),
                 trailing: Text(medicalRecord.extracellularWater.toString()),
               ),
               ListTile(
-                title: Text("Normovolemia"),
+                title: Text(localizations.normovolemia),
                 trailing: Text(medicalRecord.normovolemia.toString()),
               ),
               ListTile(
-                title: Text("Ganancia recomendada"),
+                title: Text(localizations.recommendedGain),
                 trailing: Text(medicalRecord.recommendedGain.toString()),
               ),
               ListTile(
-                title: Text("Ganancia real"),
+                title: Text(localizations.realGain),
                 trailing: Text(medicalRecord.actualGain.toString()),
               ),
             ],

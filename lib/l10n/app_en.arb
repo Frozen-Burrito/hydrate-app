@@ -28,11 +28,10 @@
   "@resourcesUnavailable": {
     "description": "El nombre de la pestaña de recursos informativos."
   },
-  "noBookmarks": "You have not bookmarked articles yet",
+  "noBookmarks": "You have not bookmarked any articles yet",
   "@noBookmarks": {
     "description": "El nombre de la pestaña de recursos informativos."
   },
-
   "resourceRemoved": "Resource removed",
   "@resourceRemoved": {
     "description": "Resource removed"
@@ -107,10 +106,80 @@
   "@noActTypes": {
     "description": "El nombre de la pestaña de historial."
   },
+  "noActivityRecords": "You haven´t recorded any activities yet. When you create one, you will find it here",
+  "@noActTypes": {
+    "description": "Mensaje cuando no hay registros de actividad"
+  },
+  "errorFetchingActivity": "An error occurred while trying to get your activity records. Please try later.",
+  "@errorFetchingActivity": {
+    "description": "Mensaje de error al intentar obtener registros de actividad"
+  },
 
+  "noHydrationRecordsYet": "There are no records of hydration yet.",
+  "@noHydrationRecordsYet": {
+    "description": "Mensaje cuando no hay registros de hidratacion"
+  },
+  "drinkAndComeBackLater": "Drink water and come back later.",
+  "@drinkAndComeBackLater": {
+    "description": "Mensaje para indicar que el usuario tome agua y regrese luego"
+  },
+  "errorFetchingHydration": "An error occurred while trying to get your hydration records.",
+  "@errorFetchingHydration": {
+    "description": "Mensaje de error al intentar obtener registros de hidratacion"
+  },
+  "exceedsHydration": "Excess of liquids",
+  "@exceedsHydration": {
+    "description": "Alerta de consumo excesivo de agua"
+  },
+  "stableHydration": "Hydration is stable",
+  "@stableHydration": {
+    "description": "Confirmacion de hidratacion estable"
+  },
+
+  "medicalReport": "Medical report",
+  "@medicalReport": {
+    "description": "Encabezado de reporte médico"
+  },
+  "yourMedicalData": "Your medical report data for this day:",
+  "@yourMedicalData": {
+    "description": ""
+  },
+  "hypervolemia": "Hypervolemia",
+  "@hypervolemia": {
+    "description": ""
+  },
+  "postDialysisWeight": "Post-dialysis weight",
+  "@postDialysisWeight": {
+    "description": ""
+  },
+  "extraCellularWater": "Extracellular water",
+  "@extraCellularWater": {
+    "description": ""
+  },
+  "normovolemia": "Normovolemia",
+  "@normovolemia": {
+    "description": ""
+  },
+  "recommendedGain": "Recommended gain",
+  "@recommendedGain": {
+    "description": ""
+  },
+  "realGain": "Real gain",
+  "@realGain": {
+    "description": ""
+  },
+
+  "yes": "Yes",
+  "@yes": {
+    "description": "Affirmation"
+  },
   "continueAction": "Continue",
   "@continueAction": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "confirmAction": "Confirm",
+  "@confirmAction": {
+    "description": "Confirmar una accion"
   },
   "cancel": "Cancel",
   "@cancel": {
@@ -131,6 +200,112 @@
   "skip": "Skip",
   "@skip": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "replace": "Replace",
+  "@replace": {
+    "description": "Reemplazar un elemento"
+  },
+  "purchaseFor": "Unlock for",
+  "@purchaseFor": {
+    "description": "Desbloquear contenido a cambio de algo"
+  },
+  "dontShowAgain": "Don't show again",
+  "@dontShowAgain": {
+    "description": "Evitar que algo sea mostrado otra vez"
+  },
+  "accept": "Accept",
+  "@accept": {
+    "description": "Aceptar algo"
+  },
+  "reject": "Reject",
+  "@reject": {
+    "description": "Rechazar algo"
+  },
+  "youHave": "You have",
+  "@youHave": {
+    "description": "El usuario tiene algo"
+  },
+
+  "dateFrom": "From",
+  "@dateFrom": {
+    "description": "El inicio de un rango de fechas"
+  },
+  "dateTo": "to",
+  "@dateTo": {
+    "description": "El final de un rango de fechas"
+  },
+  "today": "Today",
+  "@today": {
+    "description": "El día actual"
+  },
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "El día anterior al actual"
+  },
+
+  "meters": "meters",
+  "@meters": {
+    "description": "Unidad de distancia"
+  },
+  "metersAbbreviated": "m",
+  "@metersAbbreviated": {
+    "description": "Abreviación de metros"
+  },
+  "minutes": "minutes",
+  "@minutes": {
+    "description": "Unidad de tiempo"
+  },
+  "minutesAbbreviated": "min.",
+  "@minutesAbbreviated": {
+    "description": "Abreviación de minutos"
+  },
+  "mililiters": "mililiters",
+  "@mililiters": {
+    "description": "Unidad de volumen"
+  },
+  "mililitersAbbreviated": "ml",
+  "@mililitersAbbreviated": {
+    "description": "Abreviación de mililitros"
+  },
+  "liters": "liters",
+  "@liters": {
+    "description": "Unidad de volumen"
+  },
+  "litersAbbreviated": "L",
+  "@litersAbbreviated": {
+    "description": "Abreviación de litros"
+  },
+  "kilograms": "kilograms",
+  "@kilorgams": {
+    "description": "Unidad de peso"
+  },
+  "kilogramsAbbreviated": "kg",
+  "@kilogramsAbbreviated": {
+    "description": "Abreviación de kilogramos"
+  },
+  "kilocalories": "kilocalories",
+  "@kilogramsAbbreviated": {
+    "description": "Unidad de energía"
+  },
+  "kilocaloriesAbbreviated": "kCal",
+  "@kilocaloriesAbbreviated": {
+    "description": "Abreviación de kilocalorías"
+  },
+  "coins": "coins",
+  "@coins": {
+    "description": "Monedas de la app"
+  },
+  "day": "day",
+  "@day": {
+    "description": "Unidad de tiempo"
+  },
+  "week": "week",
+  "@week": {
+    "description": "Unidad de tiempo"
+  },
+  "month": "month",
+  "@month": {
+    "description": "Unidad de tiempo"
   },
 
   "settings": "Settings",
@@ -168,6 +343,14 @@
   "@contributeData": {
     "description": "El nombre de la pestaña de historial."
   },
+  "contributeDataTooltipSignedIn": "Send anonymous statistical data weekly",
+  "@contributeDataTooltipSignedIn": {
+    "description": "Tooltip que explica datos abiertos"
+  },
+  "contributeDataTooltipSignedOut": "You need a user account to contribute data",
+  "@contributeDataTooltipSignedOut": {
+    "description": "Tooltip de contribución de datos sin iniciar sesión"
+  },
 
   "notifications": "Notifications",
   "@notifications": {
@@ -181,17 +364,58 @@
   "@notifOptGoals": {
     "description": "El nombre de la pestaña de historial."
   },
-  "notifOptBattery": "Battery",
+  "notifOptBattery": "Low battery",
   "@notifOptBattery": {
     "description": "El nombre de la pestaña de historial."
   },
-  "notifOptActivity": "Activity & Routines",
+  "notifOptActivity": "Activity & routine reminders",
   "@notifOptActivity": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "notifyRest": "Rest reminders",
+  "@notifyRest": {
+    "description": "Tipo de notificaciones de descanso"
   },
   "notifOptAll": "All notifications",
   "@notifOptAll": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "notifCountActive": "enabled",
+  "@notifCountActive": {
+    "description": "El número de notificaciones activadas."
+  },
+  "setupNotifyDetails": "Choose the types of notifications which you wish to receive:",
+  "@setupNotifyDetails": {
+    "description": "Details about enabling notification sources"
+  },
+
+  "integrateHealthApps": "Connect health apps",
+  "@integrateHealthApps": {
+    "description": "Label de integraciones con apps de salud"
+  },
+  "integrateGoogleFit": "Connect Hydrate with Google Fit",
+  "@integrateGoogleFit": {
+    "description": "Label de integración con Google Fit"
+  },
+  "signInWithGoogle": "Sign in with Google",
+  "@signInWithGoogle": {
+    "description": "Label for Google Sign In"
+  },
+  "signOutWithGoogle": "Sign out of your Google account",
+  "@signOutWithGoogle": {
+    "description": "Label gor Google Sign out"
+  },
+  "fetchGoogleFit": "Sync with Google Fit",
+  "@fetchGoogleFit": {
+    "description": "Prompt to sync with Google Fit"
+  },
+  "googleFitUpdated": "Synced data with Google Fit",
+  "@googleFitUpdated": {
+    "description": "Google fit sync success"
+  },
+  "googleFitAlreadyUpToDate": "Hydrate is already up to date with Google Fit",
+  "@googleFitAlreadyUpToDate": {
+    "description": "Ya fue sincronizada la info con Google Fit"
   },
 
   "weeklyForms": "Weekly forms",
@@ -215,9 +439,21 @@
     "description": "El nombre de la pestaña de historial."
   },
 
+  "disconnected": "Not paired",
+  "@disconnected": {
+    "description": "El dispositivo BLE no está emparejado"
+  },
   "pairDevice": "Pair a Device",
   "@pairDevice": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "tryReconnect": "Try to pair again",
+  "@tryReconnect": {
+    "description": "Intentar emparejar otra vez el dispositivo"
+  },
+  "disconnectDevice": "Disconnect from device",
+  "@disconnectDevice": {
+    "description": "Desconectar un dispositivo"
   },
   "bleNotAvailable": "The device's BlueTooth adapter is not available",
   "@bleNotAvailable": {
@@ -227,9 +463,25 @@
   "@tryLocAndBt": {
     "description": "El nombre de la pestaña de historial."
   },
+  "noPairedDeviceYet": "You haven't paired a Hydrate device yet",
+  "@noPairedDeviceYet": {
+    "description": "Placeholder cuando no hay dispositivos conectados"
+  },
+  "checkDeviceList": "Check the device list below to discover nearby devices",
+  "@checkDeviceList": {
+    "description": "Prompt para revisar lista de dispositivos"
+  },
   "connectedDevice": "Connected device",
   "@connectedDevice": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "cannotConnectDevice": "Couldn't pair with chosen device",
+  "@cannotConnectDevice": {
+    "description": "Error al intentar emparejar dispositivo"
+  },
+  "deviceWasPaired": "Device pairing successful",
+  "@deviceWasPaired": {
+    "description": "El dispositivo pudo ser emparejado"
   },
   "availableDevices": "Available devices",
   "@availableDevices": {
@@ -238,6 +490,30 @@
   "scan": "Scan for devices",
   "@scan": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "stopScan": "Stop device discovery",
+  "@stopScan": {
+    "description": "Detener el escaneo de dispositivos"
+  },
+  "forgetDevice": "Forget device",
+  "@forgetDevice": {
+    "description": "Olvidar el dispositivo preferido"
+  },
+  "setupAutoconnect": "Enable autoconnect",
+  "@setupAutoconnect": {
+    "description": "Activar conexión automática"
+  },
+  "askSetupAutoconnect": "Enable automatic pairing?",
+  "@askSetupAutoconnect": {
+    "description": "Preguntar si el usuario desea conexion automatica"
+  },
+  "askSetupAutoconnectDetails": "Do you want this app to automatically try to pair with this device in the future?",
+  "@askSetupAutoconnectDetails": {
+    "description": "Explicar conexion automatica"
+  },
+  "continueWithoutAutoconnect": "Continue without auto pairing",
+  "@continueWithoutAutoconnect": {
+    "description": "Continuar sin activar conexion automatica."
   },
 
   "signIn": "Sign In",
@@ -268,6 +544,36 @@
   "createAccount": "Create Account",
   "@createAccount": {
     "description": "El nombre de la pestaña de historial."
+  },
+
+  "profileCreationError": "An error occurred while trying to setup your profile",
+  "@profileCreationError": {
+    "description": "Mensaje de error de creacion de perfil"
+  },
+  "noProfileSelected": "There is no selected user profile",
+  "@noProfileSelected": {
+    "description": "No hay un perfil seleccionado"
+  },
+
+  "askAccountLink": "Would you like to link this account with your local user profile?",
+  "@askAccountLink": {
+    "description": "Preguntar si el usuario desea asociar su cuenta con su perfil"
+  },
+  "profileHasNoLinkedAccount": "Your local user profile has no user account linked to it",
+  "@profileHasNoLinkedAccount": {
+    "description": "El perfil no tiene una cuenta asociada"
+  },
+  "accountLinkBenefits": "Linking an account allows you to use your profile on multiple devices",
+  "@accountLinkBenefits": {
+    "description": "Los beneficios de asociar una cuenta de usuario"
+  },
+  "continueWithoutLink": "Continue without linking",
+  "@continueWithoutLink": {
+    "description": "Continuar sin asociar una cuenta"
+  },
+  "linkProfileToAccount": "Link profile",
+  "@linkProfileToAccount": {
+    "description": "Asociar el perfil con la cuenta"
   },
   
   "profile": "Perfil",
@@ -337,9 +643,17 @@
   "@height": {
     "description": "El nombre de la pestaña de historial."
   },
+  "heightHint": "1.70",
+  "@heightHint": {
+    "description": "Hint del valor de estatura"
+  },
   "weight": "Weight",
   "@weight": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "weightHint": "65.0",
+  "@weightHint": {
+    "description": "Hint del valor de peso"
   },
 
   "medicalCondition": "Medical conditions",
@@ -401,6 +715,96 @@
     "description": "El nombre de la pestaña de historial."
   },
 
+  "daily": "Daily",
+  "@daily": {
+    "description": "Periodo de tiempo diario"
+  },
+  "weekly": "Weekly",
+  "@weekly": {
+    "description": "Periodo de tiempo semanal"
+  },
+  "monthly": "Monthly",
+  "@monthly": {
+    "description": "Periodo de tiempo mensual"
+  },
+  "goalTermHint": "What is your goal's timeline?",
+  "@goalTermHint": {
+    "description": "Hint para la selección de periodo de tiempo"
+  },
+  "startDate": "Start",
+  "@startDate": {
+    "description": "Fecha de inicio de la meta"
+  },
+  "endDate": "End",
+  "@endDate": {
+    "description": "Fecha de término de la meta"
+  },
+  "reward": "Reward",
+  "@reward": {
+    "description": "Label de recompensa"
+  },
+  "rewardHint": "20",
+  "@rewardHint": {
+    "description": "Hint para la selección de recompensa"
+  },
+  "amountMl": "Amount (ml)",
+  "@amountMl": {
+    "description": "Label para cantidad en mililitros"
+  },
+  "amountMlHint": "100 ml",
+  "@amountMlHint": {
+    "description": "Hint para la selección de cantidad de agua"
+  },
+  "notesLabel": "Notes",
+  "@notesLabel": {
+    "description": "Label para especificación de anotaciones"
+  },
+  "notesHint": "I should drink water whenever I...",
+  "@notesHint": {
+    "description": "Hint para anotaciones"
+  },
+  "tags": "Etiquetas",
+  "@tags": {
+    "description": "Header para etiquetas"
+  },
+
+  "noGoalsYet": "You haven't set any goals of hydration yet.",
+  "@noGoalsYet": {
+    "description": "Mensaje para notar que no hay metas."
+  },
+  "createNewGoal": "Set a new goal",
+  "@createNewGoal": {
+    "description": "Accion para crear una nueva meta"
+  },
+  "errorFetchingGoals": "An error occurred while trying to get your goals of hydration",
+  "@errorFetchingGoals": {
+    "description": "Mensaje de error al obtener metas"
+  },
+  "mainGoal": "Main Goal",
+  "@mainGoal": {
+    "description": "Header para meta principal"
+  },
+  "goalCreationError": "An error occurred while trying to set the new goal",
+  "@goalCreationError": {
+    "description": "Mensaje de error al crear meta"
+  },
+  "progressToHydrationGoals": "My progress towards my goals of hydration",
+  "@progressToHydrationGoals": {
+    "description": "Mensaje de progreso hacia metas"
+  },
+  "todayIReachedMyGoal": "today I reached my goal of drinking",
+  "@todayIReachedMyGoal": {
+    "description": "Parte de mensaje de progreso en metas"
+  },
+  "ofWaterEvery": "of water every",
+  "@ofWaterEvery": {
+    "description": "Parte de mensaje de progreso en metas"
+  },
+  "imProudOfMyResults": "I am very proud of my results!",
+  "@imProudOfMyResults": {
+    "description": "Parte de mensaje de progreso en metas"
+  },
+
   "newActivityRecord": "New Activity Record",
   "@newActivityRecord": {
     "description": "El nombre de la pestaña de historial."
@@ -429,37 +833,260 @@
   "@duration": {
     "description": "El nombre de la pestaña de historial."
   },
+  "durationHint": "20 min.",
+  "@durationHint": {
+    "description": "Hint para la duración de una actividad"
+  },
   "distance": "Distance",
   "@distance": {
     "description": "El nombre de la pestaña de historial."
+  },
+  "distanceHint": "1.2 km",
+  "@distanceHint": {
+    "description": "Hint para la distancia de una actividad"
   },
   "kcalBurned": "kCal Burned",
   "@kcalBurned": {
     "description": "El nombre de la pestaña de historial."
   },
+  "kcalHint": "300 kCal",
+  "@kCalHint": {
+    "description": "Hint para cal. quemadas en actividad"
+  },
   "outdoor": "Outdoors",
   "@outdoor": {
     "description": "El nombre de la pestaña de historial."
   },
-
-  "errUserExistsEmail": "A user with this email already exists",
-  "@errUserExistsEmail": {
-    "description": "El nombre de la pestaña de historial."
+  "recentIntenseActvity": "Recent intense activity",
+  "@recentIntenseActvity": {
+    "description": "Advertencia de actividad extenuante reciente"
   },
-  "errUserExistsName": "A user with this username already exists",
-  "@errUserExistsName": {
+
+  "askGoalReplacement": "Replace a goal of hydration?",
+  "@askGoalReplacement": {
+    "description": "Preguntar si desea reemplazar una meta"
+  },
+  "activeGoals": "active goal(s)",
+  "@activeGoals": {
+    "description": "Metas activas"
+  },
+  "reasonToReplaceGoal": "In order to set a new goal of hydration, you must replace at least one of your current active goals",
+  "@reasonToReplaceGoal": {
+    "description": "El motivo para reemplazar una meta"
+  },
+
+  "errUserExists": "An account already uses this email or username",
+  "@errUserExistsEmail": {
     "description": "El nombre de la pestaña de historial."
   },
   "errIncorrectPassword": "Password is incorrect",
   "@errIncorrectPassword": {
     "description": "El nombre de la pestaña de historial."
   },
-  "errNoUser": "There is no user with this identifier",
+  "errNoUser": "The user or password does not match",
   "@errNoUser": {
     "description": "El nombre de la pestaña de historial."
   },
   "errCheckInternetConn": "Check your internet connection and try again",
   "@errCheckInternetConn": {
     "description": "El nombre de la pestaña de historial."
-  }
+  },
+
+  "chooseEnvironment": "Choose a mini environment",
+  "@chooseEnvironment": {
+    "description": "Header para seleccionar entorno"
+  },
+  "loadingEnvironments": "Loading environments",
+  "@loadingEnvironments": {
+    "description": "Label para carga de entornos"
+  },
+  "canPurchaseEnvTooltip": "You can purchase this environment to unlock it",
+  "@canPurchaseEnvTooltip": {
+    "description": "Tooltip para entornos que pueden ser comprados"
+  },
+  "notEnoughCoins": "You don't have enough coins",
+  "@notEnoughCoins": {
+    "description": "Tooltip para entornos que no pueden ser comprados"
+  },
+  "cannotChooseSameEnv": "You cannot choose the same environment",
+  "@cannotChooseSameEnv": {
+    "description": "Tooltip para el entorno seleccionado"
+  },
+
+  "firstSteps": "Get started",
+  "@firstSteps": {
+    "description": "Header para primeros pasos"
+  },
+  "userGuideDetails": "The user guides can help you learn how to use this app and your Hydrate device",
+  "@userGuideDetails": {
+    "description": "Detalles sobre guías de usuario"
+  },
+  "askVisitUserGuides": "Would you like to consult them now? (You can visit them later)",
+  "@askVisitUserGuides": {
+    "description": "Preguntar si desea leer manual de usuario"
+  },
+  "goToUserGuides": "Yes, go to user guides",
+  "@goToUserGuides": {
+    "description": "Accion para visitar guias de usuario"
+  },
+
+  "monday": "Monday",
+  "@monday": {
+    "description": "Primer día de la semana"
+  },
+  "tuesday": "Tuesday",
+  "@tuesday": {
+    "description": "Segundo día de la semana"
+  },
+  "wednesday": "Wednesday",
+  "@wednesday": {
+    "description": "Tercer día de la semana"
+  },
+  "thursday": "Thursday",
+  "@thursday": {
+    "description": "Cuarto día de la semana"
+  },
+  "friday": "Friday",
+  "@friday": {
+    "description": "Quinto día de la semana"
+  },
+  "saturday": "Saturday",
+  "@saturday": {
+    "description": "Sexto día de la semana"
+  },
+  "sunday": "Sunday",
+  "@sunday": {
+    "description": "Séptimo día de la semana"
+  },
+
+  "anonymousProfile": "Anonymous Profile",
+  "@anonymousProfile": {
+    "description": "Un perfil de usuario sin nombre"
+  },
+  "savingProfile": "Saving changes to profile",
+  "@savingProfile": {
+    "description": "Indicador de progreso de guardar perfil"
+  },
+  "changesSaved": "Changes were saved",
+  "@changesSaved": {
+    "description": "Mensaje de guardado exitoso"
+  },
+  "modificationLimitReached": "You have reached the limit of yearly profile modifications",
+  "@modificationLimitReached": {
+    "description": "Alerta de limite de modificaciones a perfil"
+  },
+  "errorWhileSaving": "An error occurred while saving changes",
+  "@errorWhileSaving": {
+    "description": "Mensaje de error de guardado de cambios"
+  },
+  "tryAgain": "Please try again",
+  "@tryAgain": {
+    "description": "Prompt para intentar otra vez"
+  },
+
+  "setGoalFormTitle": "Set a New Goal",
+  "setGoalFormDetails": "Fill in the details of your new hydration goal:",
+  "newActivityFormTitle": "Record Activity",
+  "newActivityFormDetails": "Specify the details of the activity you performed:",
+  "initialFormTitle": "Welcome",
+  "initialFormDetails": "Please complete your information to know you better:",
+  "weeklyFormTitle": "Weekly Review",
+  "weeklyFormDetails": "Please enter the aproximate amount of daily hours, in average, that you dedicated to each one of the following activities during this week:",
+  "medicalFormTitle": "Medical Checkup", 
+  "medicalFormDetails": "Please enter the following data with the aid of your nephrologist:",
+  "viewNotFound": "404: View not found",
+
+  "characters": "characters",
+  "@characters": {
+    "description": "Caracteres de texto"
+  },
+
+  "usernameIsRequiredError": "The username is required",
+  "@usernameIsRequiredError": {
+    "description": "Error porque username es requerido"
+  },
+  "usernameTooShortError": "The username must be longer than",
+  "@usernameTooShortError": {
+    "description": "Error por longitud de username"
+  },
+  "usernameTooLongError": "The username must be shorter than",
+  "@usernameTooLongError": {
+    "description": "Error por longitud de username"
+  },
+  "usernameFormatError": "The username must contain only lowercase letters or numbers",
+  "@usernameFormatError": {
+    "description": "Error por formato de username"
+  },
+  "emailIsRequiredError": "The email is required",
+  "@emailIsRequiredError": {
+    "description": "Error porque el email es requerido"
+  },
+  "emailFormatError": "The email does not have a correct format",
+  "@emailFormatError": {
+    "description": "Error por formato de email"
+  },
+
+  "passwordIsRequiredError": "The password is required",
+  "@passwordIsRequiredError": {
+    "description": "Error porque la password es requerida"
+  },
+  "passwordTooShortError": "The password must be longer than",
+  "@passwordTooShortError": {
+    "description": "Error por longitud de password"
+  },
+  "passwordTooLongMsg": "The password must be shorter than",
+  "@passwordTooLongMsg": {
+    "description": "Error por longitud de password"
+  },
+  "passwordRequiresSymbolsMsg": "The password must include at least an uppercase letter and a symbol",
+  "@passwordRequiresSymbolsMsg": {
+    "description": "Error por formato de password"
+  },
+  "passwordConfirmIsRequiredMsg": "The password confirm is required",
+  "@passwordConfirmIsRequiredMsg": {
+    "description": "Error porque el password confirm es requerido"
+  },
+  "passwordConfirmDoesNotMatchMsg": "The password confirmation does not match",
+  "@passwordConfirmDoesNotMatchMsg": {
+    "description": "Error porque la password y la confirmacion no coinciden"
+  },
+
+  "activityTitleTooLong": "The title must be shorter than",
+  "activityDistanceIsTooSmall": "The distance must be longer than",
+  "activityDistanceExceedsRange": "The distance must be shorter than",
+  "activityDurationIsTooSmall": "The duration must be longer than",
+  "activityDurationExceedsRange": "The duration must be shorter than",
+  "activityCaloriesIsTooSmall": "The kilocalories burned must be more than",
+  "activityCaloriesExceedsRange": "The kilocalories burned must be less than",
+
+  "firstNameTooLong": "The first name must have less than",
+  "lastNameTooLong": "The last name must have less than",
+  "heightIsNaN": "The height must be a number",
+  "heightIsTooSmall": "The height must be greater than",
+  "heightIsTooLarge": "The height must be less than",
+  "weightIsNaN": "The weight must be a number",
+  "weightIsTooSmall": "The weight must be greater than",
+  "weightIsTooLarge": "The weight must be less than",
+
+  "termIsNaN": "Please choose a valid term",
+  "termIsEmpty": "The term is required",
+  "endDateRequired": "The end date is required",
+  "endDateBadFormat": "The end date does not have a correct format",
+  "endDateBeforeStart": "The end date must not be before the start date",
+  "endDateTooLarge": "The end date is too far from today",
+  "waterAmountIsNaN": "The amount of water must be a number",
+  "waterAmountIsRequired": "The amount of water is required",
+  "waterAmountTooSmall": "The amount of water must be greater than",
+  "waterAmountTooLarge": "The amount of water must be less than",
+  "rewardIsNaN": "The coin reward must be a number",
+  "rewardIsRequired": "The coin reward is required",
+  "rewardTooSmall": "The coin reward must be greater than",
+  "rewardTooLarge": "The coin reward must be less than",
+  "tagCountIsNaN": "The amount of tags must be a number",
+  "tagCountIsRequired": "The amount of tags is required",
+  "tagCountTooSmall": "The tag count must be greater than",
+  "tagCountTooLarge": "The tag count must be less than",
+  "notesAreRequired": "The notes are required",
+  "notesTooShort": "The notes must have more than",
+  "notesTooLong": "The notes must have less than"
 }

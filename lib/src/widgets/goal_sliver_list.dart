@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -36,6 +38,8 @@ class GoalSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final localizations = AppLocalizations.of(context)!;
+
     return SliverPadding(
       padding: const EdgeInsets.all(8.0),
       sliver: FutureBuilder<List<Goal>?>(
@@ -60,15 +64,14 @@ class GoalSliverList extends StatelessWidget {
               );
             } else if (showPlaceholderWhenEmpty) {
               // Retornar un placeholder si los datos están cargando, o no hay datos aín.
-              //TODO: Agregar i18n.
               return SliverToBoxAdapter(
                 child: DataPlaceholder(
-                  message: "Aún no has creado metas de hidratación.",
+                  message: localizations.noGoalsYet,
                   icon: Icons.flag,
                   hasTopSpacing: false,
                   action: ElevatedButton(
                     onPressed: () => Navigator.pushNamed(context, RouteNames.newHydrationGoal), 
-                    child: const Text("Crea una meta"),
+                    child: Text(localizations.createNewGoal),
                     style: ElevatedButton.styleFrom(
                       primary: Colors.blue,
                     ),
@@ -79,11 +82,10 @@ class GoalSliverList extends StatelessWidget {
           } else if (snapshot.hasError) {
             // Retornar un placeholder, indicando que hubo un error.
             print(snapshot.error);
-            return const SliverToBoxAdapter(
+            return SliverToBoxAdapter(
               child: DataPlaceholder(
                 isLoading: false,
-                //TODO: agregar i18n
-                message: "Hubo un error obteniendo tus metas de hidratación.",
+                message: "${localizations.errorFetchingGoals} ${localizations.tryAgain}",
                 icon: Icons.error,
                 hasTopSpacing: false,
               ),
@@ -121,22 +123,17 @@ class _GoalCard extends StatelessWidget {
   final Goal goal;
 
   final bool isRecommendation;
-
-  //TODO: Agregar i18n para plazos de tiempo
-  static const termLabels = <String>['Diario','Semanal','Mensual'];
-  static const timeMeasureNames = <String>["día", "semana", "mes"];
   
-  //TODO: Agregar i18n para rangos de fechas en metas
-  String _buildDateLabel(DateTime? start, DateTime? end) {
-
+  String _buildDateLabel(BuildContext context, DateTime? start, DateTime? end) {
+    final localizations = AppLocalizations.of(context)!;
     final strBuf = StringBuffer();
 
     if (start != null) {
-      strBuf.writeAll([ "Desde ", start.toLocalizedDate]);
+      strBuf.writeAll([ localizations.dateFrom, " ", start.toLocalizedDate(context)]);
     }
 
     if (end != null) {
-      strBuf.writeAll([ " hasta ", end.toLocalizedDate]);
+      strBuf.writeAll([ " ", localizations.dateTo, " ", end.toLocalizedDate(context)]);
     }
 
     return strBuf.toString();
@@ -150,7 +147,22 @@ class _GoalCard extends StatelessWidget {
     }
   }
 
-  String _getFormattedGoalTarget(BuildContext context) => "${goal.quantity.toString()}ml";
+  String _getFormattedGoalTarget(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final String goalTargetStr = goal.quantity.toString();
+    return "$goalTargetStr${localizations.mililitersAbbreviated}";
+  }
+
+  String _getLabelForTerm(BuildContext context, TimeTerm term) {
+    final localizations = AppLocalizations.of(context)!;
+    final termLabels = <String>[
+      localizations.daily,
+      localizations.weekly,
+      localizations.monthly,
+    ];
+
+    return termLabels[term.index];
+  }
 
   List<PopupMenuEntry<GoalCardAction>> _buildGoalActions(BuildContext context) {
     return <PopupMenuEntry<GoalCardAction>>[
@@ -182,8 +194,35 @@ class _GoalCard extends StatelessWidget {
     ];
   }
 
+  void _onGoalOptionSelected(BuildContext context, GoalCardAction selectedAction) {
+    final localizations = AppLocalizations.of(context)!;
+    final goalService = Provider.of<GoalsService>(context, listen: false);
+
+    final List<String> timeMeasureNames = <String>[
+      localizations.day,
+      localizations.week,
+      localizations.month,
+    ];
+
+    switch (selectedAction) {
+      case GoalCardAction.togglePrimary:
+        goalService.setMainGoal(goal.id);
+        break;
+      case GoalCardAction.share:
+        final String subject = localizations.progressToHydrationGoals; 
+        final String timeTermName = timeMeasureNames[goal.term.index];
+        final String message = "${localizations.todayIReachedMyGoal} ${goal.quantity}${localizations.mililitersAbbreviated} ${localizations.ofWaterEvery} $timeTermName. ${localizations.imProudOfMyResults}";
+        Share.share(message, subject: subject);
+        break;
+      case GoalCardAction.none:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
 
     final mainCard = Card(
       child: Padding(
@@ -241,21 +280,10 @@ class _GoalCard extends StatelessWidget {
                 Consumer<GoalsService>(
                   builder: (context, goalsService, __) {
                     return PopupMenuButton<GoalCardAction>(
-                      onSelected: (GoalCardAction selectedAction) {
-                        switch (selectedAction) {
-                          case GoalCardAction.togglePrimary:
-                            goalsService.setMainGoal(goal.id);
-                            break;
-                          case GoalCardAction.share:
-                            const String subject = "Progreso en mis metas de hidratación"; 
-                            final String timeTermName = timeMeasureNames[goal.term.index];
-                            final String message = "Este mes he alcanzado mi meta de tomar ${goal.quantity}ml de agua natural cada $timeTermName. Estoy muy orgullos@ de mis resultados!";
-                            Share.share(message, subject: subject);
-                            break;
-                          case GoalCardAction.none:
-                            break;
-                        }
-                      },
+                      onSelected: (selectedAction) => _onGoalOptionSelected(
+                        context, 
+                        selectedAction
+                      ),
                       itemBuilder: _buildGoalActions,
                       initialValue: GoalCardAction.none,
                     );
@@ -267,7 +295,7 @@ class _GoalCard extends StatelessWidget {
             const SizedBox( height: 8.0, ),
 
             Text(
-              termLabels[goal.term.index],
+              _getLabelForTerm(context, goal.term),
               style: Theme.of(context).textTheme.subtitle1?.copyWith(
                 color: Theme.of(context).colorScheme.primary
               )
@@ -297,7 +325,7 @@ class _GoalCard extends StatelessWidget {
             ),
               
             Text(
-              _buildDateLabel(goal.startDate, goal.endDate), 
+              _buildDateLabel(context, goal.startDate, goal.endDate), 
               style: Theme.of(context).textTheme.bodyText1,
               textAlign: TextAlign.left
             ),
@@ -319,8 +347,7 @@ class _GoalCard extends StatelessWidget {
           width: double.maxFinite,
           margin: const EdgeInsets.only( bottom: 8.0, left: 8.0 ),
           child: Text(
-            //TODO: agregar i18n
-            "Tu Meta Principal", 
+            localizations.mainGoal, 
             style: Theme.of(context).textTheme.headline5,
           )
         ),
@@ -474,16 +501,19 @@ class _GoalRecommendationActions extends StatelessWidget {
 
   void _showGoalCreateError(BuildContext context) {
     // Si por alguna razón no se agregó la meta de hidratación, mostrar el error. 
+    final localizations = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar( 
-        content: Text("Hubo un error al crear la meta"),
+      SnackBar( 
+        content: Text(localizations.goalCreationError),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    //TODO: agregar i18n.
+
+    final localizations = AppLocalizations.of(context)!;
+    
     return Container(
       padding: const EdgeInsets.only( top: 16.0 ),
       child: Row(
@@ -493,7 +523,7 @@ class _GoalRecommendationActions extends StatelessWidget {
               builder: (context, goalsService, __) {
                 return OutlinedButton.icon(
                   icon: const Icon( Icons.close, color: Colors.red, ),
-                  label: Text("Rechazar"),
+                  label: Text(localizations.reject),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
                     textStyle: Theme.of(context).textTheme.bodyText1,
@@ -509,7 +539,7 @@ class _GoalRecommendationActions extends StatelessWidget {
           Expanded(
             child: OutlinedButton.icon(
               icon: Icon( Icons.check, color: Colors.green.shade300, ),
-              label: Text("Aceptar"),
+              label: Text(localizations.accept),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
                 textStyle: Theme.of(context).textTheme.bodyText1,

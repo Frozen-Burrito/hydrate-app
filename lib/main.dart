@@ -31,7 +31,7 @@ Future<void> main() async {
     ProfileService.init(),
     DevicePairingService.init(),
     Workmanager().initialize(
-      BackgroundTasks.callbackDispatcher,
+      callbackDispatcher,
       isInDebugMode: true,
     ),
   ]);
@@ -145,7 +145,7 @@ class HydrateApp extends StatelessWidget {
                 darkTheme: AppThemes.appDarkTheme,
                 themeMode: settingsService.appThemeMode,
                 // Rutas de la app
-                routes: Routes.appRoutes,
+                routes: Routes.buildAppRoutes(context),
                 onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
                 // Localización e internacionalización
                 localizationsDelegates: const [

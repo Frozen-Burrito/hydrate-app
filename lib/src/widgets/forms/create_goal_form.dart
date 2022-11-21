@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/exceptions/entity_persistence_exception.dart';
@@ -8,6 +7,7 @@ import 'package:hydrate_app/src/models/enums/time_term.dart';
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/tag.dart';
+import 'package:hydrate_app/src/models/validators/goal_validator.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/services/form_control_bloc.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
@@ -46,17 +46,6 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     endDateController.dispose();
     super.dispose();
   }
-
-  final _termDropdownItems = TimeTerm.values
-    .map((e) {
-      //TODO: agregar i18n.
-      const termLabels = <String>['Diario','Semanal','Mensual'];
-
-      return DropdownMenuItem(
-        value: e.index,
-        child: Text(termLabels[e.index]),
-      );
-    }).toList();
 
   void _submit(BuildContext context) {
     FocusScope.of(context).unfocus();
@@ -150,6 +139,28 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
     );
   }
 
+  List<DropdownMenuItem<int>> _buildTermDropdownItems(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    final localizedLabels = <String>[
+      localizations.daily,
+      localizations.weekly,
+      localizations.monthly,
+    ];
+
+    return TimeTerm.values
+      .map((e) => DropdownMenuItem(
+        value: e.index,
+        child: Text(localizedLabels[e.index]),
+      )).toList();
+  }
+
+  String _buildNotesCountText(BuildContext context, String notes) {
+    final notesLengthStr = notes.characters.length.toString();
+    final maxNotesLengthStr = GoalValidator.notesLengthRange.max.toInt().toString();
+
+    return "$notesLengthStr/$maxNotesLengthStr";
+  }
+
   String? _validateGoalTerm(ValidationMessageBuilder messageBuilder, int? termIndex) {
     final termError = Goal.validator.validateTerm(termIndex);
     return messageBuilder.forGoalTerm(termError);
@@ -193,13 +204,12 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             initialData: TimeTerm.daily,
             builder: (context, snapshot) {
               return DropdownButtonFormField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   helperText: " ",
-                  //TODO: agregar i18n
-                  hintText: "¿Cuál es el plazo de tu meta?" 
+                  hintText: localizations.goalTermHint, 
                 ),
-                items: _termDropdownItems,
+                items: _buildTermDropdownItems(context),
                 value: snapshot.data?.index ?? 0,
                 validator: (int? value) => _validateGoalTerm(validationMessageBuilder, value),
                 onChanged: (int? newValue) => formControl.changeFieldValue(
@@ -219,12 +229,11 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                 child: TextFormField(
                   readOnly: true,
                   controller: startDateController,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    //TODO: agregar i18n
-                    labelText: 'Inicio',
-                    helperText: ' ', // Para evitar cambios en la altura del widget
-                    suffixIcon: Icon(Icons.event_rounded)
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.startDate,
+                    helperText: " ",
+                    suffixIcon: const Icon(Icons.event_rounded)
                   ),
                   onTap: () async {
                     DateTime? newStartDate = await showDatePicker(
@@ -251,12 +260,11 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                     return TextFormField(
                       readOnly: true,
                       controller: endDateController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        //TODO: agregar i18n
-                        labelText: 'Término',
-                        helperText: ' ',
-                        suffixIcon: Icon(Icons.event_rounded)
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.endDate,
+                        helperText: " ",
+                        suffixIcon: const Icon(Icons.event_rounded)
                       ),
                       validator: (value) => _validateEndDate(
                         validationMessageBuilder,
@@ -292,13 +300,12 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    //TODO: agregar i18n
-                    labelText: "Recompensa",
-                    hintText: "20",
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.reward,
+                    hintText: localizations.rewardHint,
                     helperText: " ",
-                    suffixIcon: Icon(Icons.monetization_on)
+                    suffixIcon: const Icon(Icons.monetization_on)
                   ),
                   onChanged: (value) => formControl.changeFieldValue(
                     Goal.rewardFieldName, 
@@ -314,11 +321,10 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    //TODO: agregar i18n
-                    labelText: "Cantidad (ml)",
-                    hintText: "100ml",
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.amountMl,
+                    hintText: localizations.amountMlHint,
                     helperText: " ",
                   ),
                   onChanged: (value) => formControl.changeFieldValue(
@@ -361,11 +367,10 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                 maxLines: 1,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
-                  //TODO: agregar i18n
-                  labelText: "Anotaciones",
-                  hintText: "Debo recordar tomar agua antes de...",
+                  labelText: localizations.notesLabel,
+                  hintText: localizations.notesHint,
                   helperText: " ",
-                  counterText: "${notes.characters.length.toString()}/${GoalValidator.notesLengthRange.max.toInt()}"
+                  counterText: _buildNotesCountText(context, notes),
                 ),
                 onChanged: (value) => formControl.changeFieldValue(Goal.notesFieldName, value,),
                 validator: (value) => _validateNotes(validationMessageBuilder, value),
@@ -380,14 +385,13 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
             children: <Widget>[
               Expanded(
                 child: ElevatedButton(
-                  //TODO: agregar i18n
                   style: ElevatedButton.styleFrom(
                     primary: Colors.grey.shade700,
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
                     textStyle: Theme.of(context).textTheme.button,
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
+                  child: Text(localizations.cancel),
                 ),
               ),
 
@@ -405,9 +409,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                     case FormFieldsState.empty:
                     case FormFieldsState.incomplete:
                       onPressed = null;
-                      child = const Text(
-                        //TODO: agregar i18n
-                        "Crear", 
+                      child = Text(
+                        localizations.create, 
                         textAlign: TextAlign.center,
                       );
                       break;
@@ -423,9 +426,8 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                     case FormFieldsState.error:
                     case FormFieldsState.success:
                       onPressed = () => _submit(context);
-                      child = const Text(
-                        //TODO: agregar i18n
-                        "Crear", 
+                      child = Text(
+                        localizations.create, 
                         textAlign: TextAlign.center,
                       );
                       break;
@@ -526,6 +528,13 @@ class _TagFormFieldState extends State<_TagFormField> {
     return messageBuilder.forGoalTagCount(tagCountError);
   }
 
+  String _buildTagCountText(List<Tag> tags) {
+    final tagCount = tags.length.toString();
+    final maxTagCount = GoalValidator.tagCountRange.max.toInt().toString();
+
+    return "$tagCount/$maxTagCount";
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -557,13 +566,11 @@ class _TagFormFieldState extends State<_TagFormField> {
                     _autocompleteTextController = textController;
 
                     return TextFormField(
-                      // keyboardType: TextInputType.text,
                       controller: _autocompleteTextController,
                       focusNode: focusNode,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        //TODO: agregar i18n
-                        labelText: "Etiquetas",
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        labelText: localizations.tags,
                       ),
                       validator: (_) => _validateTagCount(validationMessageBuilder, addedTags),
                     );
@@ -587,7 +594,7 @@ class _TagFormFieldState extends State<_TagFormField> {
                   ),
                   
                   Text(
-                    "${addedTags.length.toString()}/${GoalValidator.tagCountRange.max.toInt()}",
+                    _buildTagCountText(addedTags),
                     style: Theme.of(context).textTheme.bodyText2?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 12.0,

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/bloc/auth_form_bloc.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
+import 'package:hydrate_app/src/models/enums/error_types.dart';
 import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
-import 'package:hydrate_app/src/utils/auth_validators.dart';
 import 'package:hydrate_app/src/widgets/dialogs/link_account_dialog.dart';
 import 'package:hydrate_app/src/widgets/form_state_provider.dart';
-import 'package:provider/provider.dart';
 
 class LoginForm extends StatelessWidget {
 
@@ -56,8 +56,7 @@ class LoginForm extends StatelessWidget {
 
     switch (authResult) {
       case AuthResult.credentialsError:
-        //TODO: Add i18n
-        message = "El login o la contraseña no coinciden";
+        message = localizations.errNoUser;
         break;
       case AuthResult.serviceUnavailable:
         message = localizations.errCheckInternetConn;
@@ -217,7 +216,7 @@ class _LoginFormGroup extends StatelessWidget {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.person),
                     labelText: localizations.emailOrUsername,
-                    helperText: ' ',
+                    helperText: " ",
                     errorText: validationMsgBuilder.messageForUsername(snapshot.data!),
                   ),
                   onChanged: (inputValue) => bloc.usernameSink.add(inputValue),
@@ -239,7 +238,7 @@ class _LoginFormGroup extends StatelessWidget {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.vpn_key),
                     labelText: localizations.password,
-                    helperText: ' ',
+                    helperText: " ",
                     errorText: validationMsgBuilder.messageForPassword(snapshot.data!),
                   ),
                   onChanged: (inputValue) => bloc.passwordSink.add(inputValue),

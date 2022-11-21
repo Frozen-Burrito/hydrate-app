@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import 'package:hydrate_app/src/models/goal.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
@@ -16,14 +17,33 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
 
   final List<int> selectedGoals = <int>[];
 
-  //TODO: Agregar localizaciones.
+  String _buildGoalItemTitle(Goal hydrationGoal) {
+
+    final goalNotes = hydrationGoal.notes;
+    final waterVolumeStr = hydrationGoal.quantity.toString();
+
+    return "$waterVolumeStr ml, $goalNotes";
+  }
+
+  String _buildDialogDescription(BuildContext context, int goalCount) {
+    final localizations = AppLocalizations.of(context)!;
+
+    final StringBuffer strBuf = StringBuffer(localizations.youHave);
+    strBuf.writeAll([" ", goalCount]);
+    strBuf.writeAll([" ", localizations.activeGoals, "."]);
+    strBuf.writeAll([" ", localizations.reasonToReplaceGoal, "."]);
+
+    return strBuf.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
 
     final goalsProvider = Provider.of<GoalsService>(context);
+    final localizations = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: const Text('¿Reemplazar una meta?'),
+      title: Text(localizations.askGoalReplacement),
       content: FutureBuilder<List<Goal>?>(
         future: goalsProvider.goals,
         builder: (context, snapshot) {
@@ -38,7 +58,7 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Tienes ${goals.length} metas definidas. Para agregar una nueva meta, debes reeemplazar al menos una de ellas.'),
+                  Text(_buildDialogDescription(context, goals.length)),
 
                   const SizedBox(height: 8.0,),
 
@@ -63,7 +83,7 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
                               }
                             });
                           },
-                          title: Text('${goals[i].quantity.toString()} ml, ${goals[i].notes}'),
+                          title: Text(_buildGoalItemTitle(goals[i])),
                         );
                       },
                       itemCount: goals.length,
@@ -82,13 +102,13 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context, null), 
-          child: const Text('Cancelar'),
+          child: Text(localizations.cancel),
         ),
         TextButton(
           onPressed: selectedGoals.isNotEmpty
             ? () => Navigator.pop(context, selectedGoals)
             : null, 
-          child: const Text('Reemplazar'),
+          child: Text(localizations.replace),
         ),
       ],
     );
