@@ -145,7 +145,7 @@ class HydrateApp extends StatelessWidget {
                 darkTheme: AppThemes.appDarkTheme,
                 themeMode: settingsService.appThemeMode,
                 // Rutas de la app
-                routes: Routes.buildAppRoutes(context),
+                routes: Routes.appRoutes,
                 onUnknownRoute: (RouteSettings settings) => Routes.onUnknownRoute(settings),
                 // Localización e internacionalización
                 localizationsDelegates: const [

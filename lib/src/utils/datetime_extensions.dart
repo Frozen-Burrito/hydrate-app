@@ -5,13 +5,6 @@ import 'package:intl/intl.dart';
 
 
 extension DateTimeExtensions on DateTime {
-
-  //TODO: Localizar el formato de la fecha.
-  static const meses = <String>[
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
   /// Retorna un [DateTime] que solo tiene asignados el año, mes
   /// y día de esta fecha. Por esto, la hora, minuto y demás partes 
   /// de la fecha producida son igual a 0.
@@ -70,7 +63,7 @@ extension DateTimeExtensions on DateTime {
     final String locale = Localizations.localeOf(context).languageCode;
     
     final String dayOfWeek = DateFormat.EEEE(locale).format(this);
-    final String month = DateFormat.MMMMd(locale).format(this);
+    final String month = DateFormat.MMMM(locale).format(this);
     final String year = DateFormat.y(locale).format(this);
 
     String dateStr = "$dayOfWeek/$month/$year";
