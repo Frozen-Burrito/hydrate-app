@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 
 import 'package:hydrate_app/src/api/api_client.dart';
@@ -236,7 +236,8 @@ class DataApi {
       );
     }
 
-    final requestBody = data.map((record) => mapper(record, ApiClient.defaultJsonMapOptions));
+    final requestBody = data.map((record) => mapper(record, ApiClient.defaultJsonMapOptions))
+      .toList();
     
     final Response response = await _apiClient.post(
       resourceName, 
@@ -249,7 +250,7 @@ class DataApi {
       throw ApiException(
         ApiErrorType.requestError,
         httpStatusCode: response.statusCode,
-        message: "Error al intentar sincronizar datos del usuario",
+        message: "Error al intentar aportar datos estadísticos abiertos",
         problemDetails: response.body,
       );
     }

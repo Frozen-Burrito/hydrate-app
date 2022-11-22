@@ -62,11 +62,11 @@ extension DateTimeExtensions on DateTime {
 
     final String locale = Localizations.localeOf(context).languageCode;
     
-    final String dayOfWeek = DateFormat.EEEE(locale).format(this);
+    final String day = DateFormat.d(locale).format(this);
     final String month = DateFormat.MMMM(locale).format(this);
     final String year = DateFormat.y(locale).format(this);
 
-    String dateStr = "$dayOfWeek/$month/$year";
+    String dateStr = "$day/$month/$year";
 
     return dateStr;
   }

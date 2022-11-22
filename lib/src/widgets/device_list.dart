@@ -24,10 +24,10 @@ class BleDeviceList extends StatelessWidget {
     // usando un Dialog si desea configurar el emparejamiento automático.
     if (devicePairingService.getBondedDeviceId() != device.deviceId) {
       
-      final shouldSetUpAutoconnect = await showDialog(
+      final shouldSetUpAutoconnect = (await showDialog(
         context: context, 
         builder: (context) => const _PromptAutoconnectDialog()
-      ); 
+      )) ?? false; 
 
       if (shouldSetUpAutoconnect) {
         // El usuario desea activar el emparejamiento automático.

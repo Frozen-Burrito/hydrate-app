@@ -180,7 +180,7 @@ class SettingsService with ChangeNotifier {
 
     } else {
       // Cancelar tarea que aporta datos.
-      Workmanager().cancelByUniqueName(BackgroundTasks.sendStatsDataTaskName);
+      Workmanager().cancelByUniqueName(BackgroundTasks.sendOpenStatsUniqueTaskName);
     }
 
     if (settings.isGoogleFitIntegrated) {

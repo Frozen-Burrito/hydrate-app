@@ -205,6 +205,9 @@ class ApiClient {
         requestHeaders[authorizationHeader] = authCredential;
       }
 
+      debugPrint("Open data request headers: $requestHeaders");
+      debugPrint("Open data request body: $jsonBody");
+
       // Enviar la petición a la URL especificada, usando el cliente HTTP.
       return client.post(
         parsedUrl!, 

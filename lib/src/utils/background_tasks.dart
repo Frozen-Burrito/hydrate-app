@@ -1,15 +1,63 @@
 import 'package:flutter/foundation.dart';
-import 'package:hydrate_app/src/api/data_api.dart';
-import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import "package:workmanager/workmanager.dart";
 
+import 'package:hydrate_app/src/api/data_api.dart';
 import 'package:hydrate_app/src/api/api_client.dart';
 import "package:hydrate_app/src/db/sqlite_db.dart";
 import "package:hydrate_app/src/db/where_clause.dart";
+import 'package:hydrate_app/src/exceptions/api_exception.dart';
 import 'package:hydrate_app/src/models/activity_record.dart';
 import "package:hydrate_app/src/models/hydration_record.dart";
-import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/utils/jwt_parser.dart';
+
+/// Maneja los callbacks invocados por [Workmanager], para 
+/// realizar tareas en segundo plano.
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  // Ejecutar una tarea con Workmanager.
+  Workmanager().executeTask((taskName, inputData) async {
+    try {
+      switch(taskName) {
+        // Intentar enviar datos de hidratacion y actividad fisica a 
+        // API de datos abiertos.
+        case BackgroundTasks.sendOpenStatsTaskName:
+          // Esta tarea necesita inputData para poder completarse con éxito.
+          if (inputData == null) return false;
+
+          // Obtener las credenciales del usuario desde los inputs para 
+          // esta task.
+          final authToken = inputData[BackgroundTasks.taskInputAuthToken];
+          final profileId = getProfileIdFromJwt(authToken);
+
+          debugPrint("Token: $authToken, id del perfil: $profileId");
+
+          // Obtener los registros con los datos estadísticos.
+          final hydrationData = await BackgroundTasks.retrieveHydrationFromPastWeek(profileId);
+          final activityData = await BackgroundTasks.retrieveActivitiesFromPastWeek(profileId);
+
+          debugPrint("About to contribute ${hydrationData.length} hydration records and ${activityData.length} activity records to open data.");
+
+          // Enviar datos aportados por el usuario.
+          final bool result = await BackgroundTasks.sendStatisticalData(
+            authToken, 
+            hydrationData, 
+            activityData
+          );
+
+          return result;
+        default: 
+          // Esta función recibió un nombre de task que no reconoce, avisar que
+          // no puede completar esta task.
+          final String msg = "Advertencia, nombre de tarea no identificado: $taskName";
+          debugPrint(msg);
+          return Future.error(msg);
+      }
+    } catch (ex) {
+      debugPrint("Exception while executing background task ($ex)");
+      rethrow;
+    }
+  });
+}
 
 /// Contiene los datos de las tareas ejecutadas en segundo plano por la app, 
 /// además del callback que las invoca por su nombre.
@@ -19,7 +67,8 @@ import 'package:hydrate_app/src/utils/jwt_parser.dart';
 class BackgroundTasks {
 
   /// El nombre único para la task de aportación a datos abiertos.
-  static const String sendStatsDataTaskName = "com.hydrate.hydrateApp.taskAportarDatos";
+  static const String sendOpenStatsUniqueTaskName = "com.hydrate.hydrateApp.taskAportarDatos";
+  static const String sendOpenStatsTaskName = "taskAportarDatos";
 
   static const String taskInputAuthToken = "authToken";
 
@@ -31,8 +80,8 @@ class BackgroundTasks {
   /// Necesita [NetworkType.unmetered] y que [Constraints.requiresBatteryNotLow]
   /// sea igual a [true]. 
   static final TaskInfo sendStatsData = TaskInfo(
-    sendStatsDataTaskName.split(".").last, 
-    sendStatsDataTaskName,
+    sendOpenStatsTaskName, 
+    sendOpenStatsUniqueTaskName,
     // frequency: const Duration(days: 7),
     // initialDelay: const Duration(days: 7),
     frequency: const Duration(hours: 1),
@@ -43,54 +92,15 @@ class BackgroundTasks {
     ),
   );
 
-  /// Maneja los callbacks invocados por [Workmanager], para 
-  /// realizar tareas en segundo plano.
-  static void callbackDispatcher() {
-    // Ejecutar una tarea con Workmanager.
-    Workmanager().executeTask((taskName, inputData) async {
-      
-      switch(taskName) {
-        // Intentar enviar datos de hidratacion y actividad fisica a 
-        // API de datos abiertos.
-        case sendStatsDataTaskName:
-          // Esta tarea necesita inputData para poder completarse con éxito.
-          if (inputData == null) return false;
-
-          // Obtener las credenciales del usuario desde los inputs para 
-          // esta task.
-          final authToken = inputData[taskInputAuthToken];
-          final profileId = getProfileIdFromJwt(authToken);
-
-          // Obtener los registros con los datos estadísticos.
-          final hydrationData = await _retrieveHydrationFromPastWeek(profileId);
-          final activityData = await _retrieveActivitiesFromPastWeek(profileId);
-
-          // Enviar datos aportados por el usuario.
-          bool result = await _sendStatisticalData(
-            authToken, 
-            hydrationData, 
-            activityData
-          );
-
-          return result;
-        default: 
-          // Esta función recibió un nombre de task que no reconoce, avisar que
-          // no puede completar esta task.
-          print("Advertencia, nombre de tarea no identificado: $taskName");
-          return Future.value(false);
-      }
-    });
-  }
-
   /// Obtiene los [HydrationRecord] de la semana anterior, ordenados con los más
   /// recientes primero.
-  static Future<Iterable<HydrationRecord>> _retrieveHydrationFromPastWeek<T>(int profileId) async {
+  static Future<Iterable<HydrationRecord>> retrieveHydrationFromPastWeek<T>(int profileId) async {
     // Obtener los registros de hidratación locales.
     final queryResults = await SQLiteDB.instance.select<HydrationRecord>(
       HydrationRecord.fromMap, 
       HydrationRecord.tableName, 
-      where: [ WhereClause(HydrationRecord.profileIdFieldName, profileId.toString()), ],
-      orderByColumn: HydrationRecord.dateFieldName,
+      where: [ WhereClause(HydrationRecord.profileIdAttribute, profileId.toString()), ],
+      orderByColumn: HydrationRecord.dateAttribute,
       orderByAsc: false,
       limit: maxRecordsToSend,
     );
@@ -108,15 +118,16 @@ class BackgroundTasks {
 
     /// Obtiene los [ActivityRecord] de la semana anterior, ordenados con los más
   /// recientes primero.
-  static Future<Iterable<ActivityRecord>> _retrieveActivitiesFromPastWeek<T>(int profileId) async {
+  static Future<Iterable<ActivityRecord>> retrieveActivitiesFromPastWeek<T>(int profileId) async {
     // Obtener los registros de hidratación locales.
     final queryResults = await SQLiteDB.instance.select<ActivityRecord>(
       ActivityRecord.fromMap, 
       ActivityRecord.tableName, 
-      where: [ WhereClause(ActivityRecord.profileIdPropName, profileId.toString()), ],
+      where: [WhereClause(ActivityRecord.profileIdPropName, profileId.toString()),],
       orderByColumn: ActivityRecord.datePropName,
       orderByAsc: false,
       limit: maxRecordsToSend,
+      includeOneToMany: true
     );
 
     // Definir rango de fechas como la última semana.
@@ -136,7 +147,7 @@ class BackgroundTasks {
   /// de usuario, además de [Iterable]s con los registros específicos. 
   /// 
   /// Retorna [true] si los datos fueron enviados con éxito.
-  static Future<bool> _sendStatisticalData (
+  static Future<bool> sendStatisticalData (
     String authToken, 
     Iterable<HydrationRecord> hydrationData,
     Iterable<ActivityRecord> activityData
@@ -149,19 +160,32 @@ class BackgroundTasks {
     bool wasDataSendSuccessful;
     
     try {
-      final sendHydrationRequest = DataApi.instance.contributeOpenData<HydrationRecord>(
-        data: hydrationData,
-        mapper: (hydrationRecord, mapOptions) => hydrationRecord.toMap(options: mapOptions),
-      );
 
-      final sendActivitiesRequest = DataApi.instance.contributeOpenData<ActivityRecord>(
-        data: activityData,
-        mapper: (activityRecord, mapOptions) => activityRecord.toMap(options: mapOptions),
-      );
+      final Future<void> sendHydrationRequest;
+
+      if (hydrationData.isNotEmpty) {
+        sendHydrationRequest = DataApi.instance.contributeOpenData<HydrationRecord>(
+          data: hydrationData,
+          mapper: (hydrationRecord, _) => hydrationRecord.toJson(),
+        ); 
+      } else {
+        sendHydrationRequest = Future.value();
+      }
+
+      final Future<void> sendActivitiesRequest;
+
+      if (activityData.isNotEmpty) {
+        sendActivitiesRequest = DataApi.instance.contributeOpenData<ActivityRecord>(
+          data: activityData,
+          mapper: (activityRecord, _) => activityRecord.toJson(),
+        );
+      } else {
+        sendActivitiesRequest = Future.value();
+      }
 
       // Esperar a completar todas las peticiones para aportar datos.
       await Future.wait(
-        [ sendHydrationRequest, sendActivitiesRequest], 
+        [ sendHydrationRequest, sendActivitiesRequest ], 
         eagerError: true
       );
 

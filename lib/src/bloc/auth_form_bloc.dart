@@ -285,7 +285,7 @@ class AuthFormBloc {
     if (_authValidator.canUsernameBeTreatedAsEmail(inputUsername)) {
       _usernameError = _authValidator.validateEmail(inputUsername);
     } else {
-      _usernameError = _authValidator.validateEmail(inputUsername);
+      _usernameError = _authValidator.validateUsername(inputUsername);
     }
 
     _usernameErrorController.add(_usernameError);
