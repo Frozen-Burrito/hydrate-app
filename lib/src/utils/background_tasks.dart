@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import "package:workmanager/workmanager.dart";
 
@@ -160,7 +162,6 @@ class BackgroundTasks {
     bool wasDataSendSuccessful;
     
     try {
-
       final Future<void> sendHydrationRequest;
 
       if (hydrationData.isNotEmpty) {
@@ -194,6 +195,9 @@ class BackgroundTasks {
     } on ApiException catch(ex) {
       wasDataSendSuccessful = false;
       debugPrint("Exception while contributing open data ($ex)");
+    } on SocketException catch(ex) {
+      wasDataSendSuccessful = false;
+      debugPrint("Socket exception, check internet connection (${ex.message})");
     }
     
     return wasDataSendSuccessful;
