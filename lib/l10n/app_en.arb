@@ -715,6 +715,8 @@
     "description": "El nombre de la pestaña de historial."
   },
 
+  "recommendedGoal": "Recommended Goal",
+  "hydrationGoal": "Hydration Goal",
   "daily": "Daily",
   "@daily": {
     "description": "Periodo de tiempo diario"
@@ -995,6 +997,12 @@
   "medicalFormTitle": "Medical Checkup", 
   "medicalFormDetails": "Please enter the following data with the aid of your nephrologist:",
   "viewNotFound": "404: View not found",
+
+  "addData": "Add data",
+  "addDataDetails": "Register data about your activity, lifestyle, or health:",
+  "addActivity": "Record an activity",
+  "summarizeWeek": "Summarize your week",
+  "addMedicalResults": "Add medical results",
 
   "characters": "characters",
   "@characters": {

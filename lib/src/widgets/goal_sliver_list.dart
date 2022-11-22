@@ -140,10 +140,11 @@ class _GoalCard extends StatelessWidget {
   }
 
   String _getGoalTitle(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     if (isRecommendation) {
-      return "Meta Recomendada";
+      return localizations.recommendedGoal;
     } else {
-      return goal.notes ?? "Meta de hidratación";
+      return goal.notes ?? localizations.hydrationGoal;
     }
   }
 

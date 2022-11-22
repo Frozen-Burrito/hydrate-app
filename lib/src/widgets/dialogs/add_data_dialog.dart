@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+
 import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
-import 'package:provider/provider.dart';
 
 class AddDataDialog extends StatelessWidget {
 
@@ -27,26 +29,33 @@ class AddDataDialog extends StatelessWidget {
     }
   }
 
-  static const List<_AddDataNavOption> options = <_AddDataNavOption>[
-    _AddDataNavOption( 
-      title: "Registra una actividad físcia", 
-      icon: Icon( Icons.directions_run ), 
-      route: RouteNames.newActivity
-    ),
-    _AddDataNavOption( 
-      title: "Resume tu semana", 
-      icon: Icon( Icons.fact_check ), 
-      route: RouteNames.weeklyForm
-    ),
-    _AddDataNavOption( 
-      title: "Agrega resultados médicos", 
-      icon: Icon( Icons.monitor_heart ), 
-      route: RouteNames.medicalForm
-    ),
-  ];
+  List<_AddDataNavOption> _getDataOptions(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+
+    return <_AddDataNavOption>[
+      _AddDataNavOption( 
+        title: localizations.addActivity, 
+        icon: const Icon( Icons.directions_run ), 
+        route: RouteNames.newActivity
+      ),
+      _AddDataNavOption( 
+        title: localizations.summarizeWeek, 
+        icon: const Icon( Icons.fact_check ), 
+        route: RouteNames.weeklyForm
+      ),
+      _AddDataNavOption( 
+        title: localizations.addMedicalResults, 
+        icon: const Icon( Icons.monitor_heart ), 
+        route: RouteNames.medicalForm
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return Consumer<ProfileService>(
       builder: (context, profileService, __) {
         return FutureBuilder<UserProfile?>(
@@ -54,16 +63,17 @@ class AddDataDialog extends StatelessWidget {
           builder: (context, snapshot) {
 
             final profile = snapshot.data;
+            final options = _getDataOptions(context);
 
             return AlertDialog(
-              title: const Text("Agrega datos"),
+              title: Text(localizations.addData),
               content: SizedBox(
                 height: MediaQuery.of(context).size.height * 0.4,
                 width: double.maxFinite,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("Registra datos sobre tu actividad, estilo de vida, o salud:"),
+                    Text(localizations.addDataDetails),
 
                     const SizedBox(height: 8.0,),
 
@@ -93,7 +103,7 @@ class AddDataDialog extends StatelessWidget {
               actions: <Widget>[
                 TextButton(
                   onPressed: () => Navigator.pop(context, null), 
-                  child: const Text('Cancelar'),
+                  child: Text(localizations.cancel),
                 ),
               ],
             );

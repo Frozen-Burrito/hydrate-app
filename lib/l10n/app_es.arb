@@ -198,6 +198,8 @@
     "parent": "Padre o madre",
     "athlete": "Atleta",
 
+    "recommendedGoal": "Meta Recomendada",
+    "hydrationGoal": "Meta de hidratación",
     "daily": "Diario",
     "weekly": "Semanal",
     "monthly": "Mensual",
@@ -283,6 +285,12 @@
     "medicalFormTitle": "Chequeo Médico",
     "medicalFormDetails": "Introduce los siguientes datos con apoyo de tu nefrólogo:",
     "viewNotFound": "404: Vista no encontrada",
+
+    "addData": "Agrega datos",
+    "addDataDetails": "Registra datos sobre tu actividad, estilo de vida, o salud:",
+    "addActivity": "Registra una actividad físcia",
+    "summarizeWeek": "Resume tu semana",
+    "addMedicalResults": "Agrega resultados médicos",
 
     "characters": "caracteres",
 
