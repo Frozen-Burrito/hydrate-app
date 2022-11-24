@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/enums/time_term.dart';
@@ -250,4 +251,36 @@ class Goal extends SQLiteModel {
 
     return map;
   }
+
+  @override
+  bool operator==(Object? other) {
+
+    if (other is! Goal) return false;
+
+    final isIdEqual = id == other.id;
+    final isProfileIdEqual = profileId == other.profileId;
+    final isTermEqual = term.index == other.term.index;
+    final isStartDateEqual = startDate.isAtSameMomentAs(other.startDate);
+    final isEndDateEqual = endDate.isAtSameMomentAs(other.endDate);
+    final isRewardEqual = reward == other.reward;
+    final isWaterVolumeEqual = quantity == other.quantity;
+    final areTagsEqual = listEquals(tags, other.tags);
+
+    return isIdEqual && isProfileIdEqual && isTermEqual && isStartDateEqual &&
+          isEndDateEqual && isRewardEqual && isWaterVolumeEqual && areTagsEqual;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    profileId,
+    term,
+    startDate,
+    endDate,
+    reward,
+    quantity,
+    isMainGoal,
+    notes,
+    tags,
+  ]);
 }

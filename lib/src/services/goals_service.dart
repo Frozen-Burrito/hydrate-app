@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -56,6 +57,9 @@ class GoalsService extends ChangeNotifier {
     onDataRefreshed: (_) => notifyListeners()
   );
 
+  final List<Goal> _acceptedGoalRecommendations = <Goal>[];
+  final List<Goal> _rejectedGoalRecommendations = <Goal>[];
+
   static const int goalRepetitionsNeededForRecommendation = 5;
 
   bool _hasAskedForPeriodicalData = false;
@@ -73,9 +77,10 @@ class GoalsService extends ChangeNotifier {
   bool get hasGoalData => _goalCache.hasData;
 
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
-  Future<List<Goal>> get goals => _goalCache.data.then((data) {
-    return data ?? const <Goal>[];
-  });
+  Future<List<Goal>> get goals async {
+    final List<Goal>? activeGoals = await _goalCache.data;
+    return activeGoals ?? const <Goal>[];
+  }
 
   Future<Goal?> get mainActiveGoal => _goalCache.data.then((data) {
     final goals = data ?? const <Goal>[];
@@ -218,9 +223,7 @@ class GoalsService extends ChangeNotifier {
     int requiredDaysOfRecords = 1;
 
     for (final activeGoal in activeGoals) {
-      if (activeGoal.term.inDays > requiredDaysOfRecords) {
-        requiredDaysOfRecords = activeGoal.term.inDays;
-      }
+      requiredDaysOfRecords = max(requiredDaysOfRecords, activeGoal.term.inDays);
     }
 
     requiredDaysOfRecords *= goalRepetitionsNeededForRecommendation;
@@ -231,46 +234,99 @@ class GoalsService extends ChangeNotifier {
   Future<List<Goal>> getRecommendedGoals({ List<int>? totalWaterIntakeForPeriod }) async {
 
     final List<Goal> recommendations = <Goal>[];
+    final bool hasPreviousWaterIntake = totalWaterIntakeForPeriod != null && 
+                                        totalWaterIntakeForPeriod.isNotEmpty;
 
-    if (totalWaterIntakeForPeriod == null || totalWaterIntakeForPeriod.isEmpty) {
-      return recommendations;
-    }
+    if (hasPreviousWaterIntake) {
+      final activeGoals = (await _goalCache.data) ?? <Goal>[];
 
-    final activeGoals = (await _goalCache.data) ?? <Goal>[];
+      for (final hydrationGoal in activeGoals) {
+        
+        final hydrationDuringGoal = _groupDailyHydrationForTerm(
+          hydrationGoal.term, 
+          totalHydrationPerDay: totalWaterIntakeForPeriod,
+        );
 
-    for (final activeGoal in activeGoals) {
-      
-      final int daysOfHydrationToConsider = activeGoal.term.inDays * goalRepetitionsNeededForRecommendation;
-      final dailyHydrationDuringGoal = totalWaterIntakeForPeriod.sublist(0, daysOfHydrationToConsider);
+        final Goal? recommendedGoal = _createGoalRecommendation(hydrationGoal, hydrationDuringGoal);
 
-      final List<int> hydrationDuringGoal;
-
-      if (daysOfHydrationToConsider % goalRepetitionsNeededForRecommendation != 0) {
-        hydrationDuringGoal = <int>[];
-
-        for (int i = 0; i < daysOfHydrationToConsider; i += activeGoal.term.inDays) {
-          int totalForGoalPeriod = dailyHydrationDuringGoal
-            .sublist(i, i + activeGoal.term.inDays)
-            .reduce((total, totalForDay) => total += totalForDay);
-
-          hydrationDuringGoal.add(totalForGoalPeriod);
+        if (recommendedGoal != null) {
+          recommendations.add(recommendedGoal);
         }
-      } else {
-        hydrationDuringGoal = dailyHydrationDuringGoal;
-      }
-
-      final Goal? recommendedGoal = _createGoalRecommendation(activeGoal, hydrationDuringGoal,);
-
-      if (recommendedGoal != null) {
-        recommendations.add(recommendedGoal);
       }
     }
+
+    recommendations.removeWhere((recommendation) => _rejectedGoalRecommendations.contains(recommendation));
+
+    recommendations.removeWhere((recommendation) {
+      final goalsWithSameVolume = _acceptedGoalRecommendations.where((goal) => goal.quantity == recommendation.quantity);
+      final goalsWithSameTerm = _acceptedGoalRecommendations.where((goal) => goal.term == recommendation.term);
+
+      return goalsWithSameVolume.isNotEmpty && goalsWithSameTerm.isNotEmpty;
+    });
 
     return recommendations;
   }
 
+  List<int> _groupDailyHydrationForTerm(TimeTerm term, {List<int> totalHydrationPerDay = const <int>[]}) {
+
+    final int daysOfHydrationToConsider = term.inDays * goalRepetitionsNeededForRecommendation; // 35
+
+    final int endOfRange = min(daysOfHydrationToConsider, totalHydrationPerDay.length); // 27
+
+    final List<int> dailyHydrationDuringGoal = totalHydrationPerDay.sublist(0, endOfRange); // 0 .. 27
+    final int daysWithNoRecords = daysOfHydrationToConsider - totalHydrationPerDay.length;
+
+    if (daysWithNoRecords > 0) {
+      dailyHydrationDuringGoal.addAll(List<int>.filled(daysWithNoRecords, 0));
+    }
+
+    assert(dailyHydrationDuringGoal.length == daysOfHydrationToConsider);
+
+    final List<int> hydrationDuringPeriod;
+
+    if (dailyHydrationDuringGoal.length != goalRepetitionsNeededForRecommendation) {
+
+      hydrationDuringPeriod = List<int>.filled(goalRepetitionsNeededForRecommendation, 0);
+
+      for (int i = 0; i < daysOfHydrationToConsider; i += term.inDays) {
+        final periodStart = i * term.inDays;
+        final periodEnd = (i + 1) * term.inDays;
+
+        final int totalForGoalRepetition = dailyHydrationDuringGoal
+          .sublist(periodStart, periodEnd)
+          .reduce((totalForPeriod, totalForDay) => totalForPeriod += totalForDay);
+
+        hydrationDuringPeriod[i] = totalForGoalRepetition;
+      }
+    } else {
+      hydrationDuringPeriod = dailyHydrationDuringGoal;
+    }
+
+    assert(hydrationDuringPeriod.length == goalRepetitionsNeededForRecommendation);
+
+    return hydrationDuringPeriod;
+  }
+
+  Future<int> acceptRecommendedGoal(Goal acceptedGoal, { bool useActiveGoalLimit = false }) async {
+
+    _acceptedGoalRecommendations.add(acceptedGoal);
+
+    Future<int> goalCreation = useActiveGoalLimit
+      ? createHydrationGoalWithLimit(acceptedGoal)
+      : createHydrationGoal(acceptedGoal);
+      
+    final int result = await goalCreation;
+
+    if (result >= 0) {
+      _goalCache.refresh();
+    }
+
+    return goalCreation; 
+  }
+
   void rejectRecommendedGoal(Goal rejectedRecommendation) {
-  
+    _rejectedGoalRecommendations.add(rejectedRecommendation);
+    notifyListeners();
   }
 
   Future<void> syncUpdatedHydrationGoalsWithAccount() async {
