@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+
 import 'package:hydrate_app/src/routes/route_names.dart';
 
 class ReportAvailableDialog extends StatelessWidget {
@@ -20,6 +22,7 @@ class ReportAvailableDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
+    final localizations = AppLocalizations.of(context)!;
     final isMedical = reportType == ReportType.medical;
 
     return AlertDialog(
@@ -35,16 +38,19 @@ class ReportAvailableDialog extends StatelessWidget {
           Expanded(
             child: Container(
               margin: const EdgeInsets.only( left: 8.0 ),
-              child: Text( 'Reporte ${isMedical ? 'Médico' : 'Semanal'} Disponible', maxLines: 2, )
+              child: Text(
+                isMedical ? localizations.medicalReportAvailable : localizations.weeklySummaryAvailable, 
+                maxLines: 2, 
+              ),
             )
           ),
         ],
       ),
-      content: const Text('Ha pasado un tiempo desde tu último reporte. ¿Quieres agregar datos sobre tu progreso?'),
+      content: Text("${localizations.aWhileSinceLastReport}. ${localizations.askAddProgressData}"),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false), 
-          child: const Text('Por ahora no'),
+          child: Text(localizations.notNow),
         ),
         TextButton(
           onPressed: () => Navigator.popAndPushNamed(
@@ -52,7 +58,7 @@ class ReportAvailableDialog extends StatelessWidget {
             isMedical ? RouteNames.medicalForm : RouteNames.weeklyForm,
             result: true,
           ),
-          child: const Text('Responder'),
+          child: Text(localizations.respond),
         ),
       ],
     );

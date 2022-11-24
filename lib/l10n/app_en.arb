@@ -168,10 +168,15 @@
   "@realGain": {
     "description": ""
   },
+  "nextAppointment": "Next Appointment",
 
   "yes": "Yes",
   "@yes": {
     "description": "Affirmation"
+  },
+  "no": "No",
+  "@no": {
+    "description": "Negation"
   },
   "continueAction": "Continue",
   "@continueAction": {
@@ -225,6 +230,9 @@
   "@youHave": {
     "description": "El usuario tiene algo"
   },
+  "respond": "Respond",
+  "notNow": "Not now",
+  "thereAre": "There are",
 
   "dateFrom": "From",
   "@dateFrom": {
@@ -1016,6 +1024,16 @@
   "maxTemperatureDetails": "Last week's maximum temperature (Celsius):",
   "maxTemperatureLabel": "Maximum temperature",
   "maxTemperatureHint": "23.4 °C",
+
+  "askToCreateRoutine": "¿Would you like to set a routine?",
+  "askToCreateRoutineDetails": "¿Do you want to establish a routine with them?",
+  "createRoutine": "Yes, set routine",
+  "similarActivities": "records of activity during the past week which are similar to the activity you are about to record",
+
+  "medicalReportAvailable": "A Medical Report is Available",
+  "weeklySummaryAvailable": "Your Weekly Summary is Available",
+  "aWhileSinceLastReport": "It's been a while since your last report",
+  "askAddProgressData": "¿Would you like to add data to track your progress?",
 
   "characters": "characters",
   "@characters": {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/medical_data.dart';
@@ -49,6 +50,9 @@ class _MedicalFormState extends State<MedicalForm> {
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -63,9 +67,9 @@ class _MedicalFormState extends State<MedicalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Hipervolemia',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.hypervolemia,
                     helperText: ' ',
                   ),
                   onChanged: (value) => _userMedicalData.hypervolemia = double.tryParse(value) ?? 0,
@@ -78,9 +82,9 @@ class _MedicalFormState extends State<MedicalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Peso post-diálisis',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.postDialysisWeight,
                     helperText: ' ',
                   ),
                   onChanged: (value) => _userMedicalData.postDialysisWeight = double.tryParse(value) ?? 0,
@@ -98,9 +102,9 @@ class _MedicalFormState extends State<MedicalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Agua extracelular',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.extraCellularWater,
                     helperText: ' ',
                   ),
                   onChanged: (value) => _userMedicalData.extracellularWater = double.tryParse(value) ?? 0,
@@ -113,9 +117,9 @@ class _MedicalFormState extends State<MedicalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Normovolemia',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.normovolemia,
                     helperText: ' ',
                   ),
                   onChanged: (value) => _userMedicalData.normovolemia = double.tryParse(value) ?? 0,
@@ -133,9 +137,9 @@ class _MedicalFormState extends State<MedicalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Ganancia interdialítica recomendada',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.recommendedGain,
                     helperText: ' ',
                   ),
                   onChanged: (value) => _userMedicalData.recommendedGain = double.tryParse(value) ?? 0,
@@ -148,9 +152,9 @@ class _MedicalFormState extends State<MedicalForm> {
                 child: TextFormField(
                   autocorrect: false,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Ganancia interdialítica registrada',
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: localizations.realGain,
                     helperText: ' ',
                   ),
                   onChanged: (value) => _userMedicalData.actualGain = double.tryParse(value) ?? 0,
@@ -164,11 +168,11 @@ class _MedicalFormState extends State<MedicalForm> {
           TextFormField(
             readOnly: true,
             controller: nextAppointmentController,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Siguiente cita',
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.nextAppointment,
               helperText: ' ', // Para evitar cambios en la altura del widget
-              suffixIcon: Icon(Icons.event),
+              suffixIcon: const Icon(Icons.event),
             ),
             onTap: () async {
               DateTime? nextAppointmentDate = await showDatePicker(
@@ -187,17 +191,35 @@ class _MedicalFormState extends State<MedicalForm> {
 
           const SizedBox( width: 16.0, ),
 
-          Center(
-            child: SizedBox( 
-              width: MediaQuery.of(context).size.width * 0.3,
-              child: ElevatedButton(
-                child: const Text('Continuar'),
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blue,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.grey.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                    textStyle: Theme.of(context).textTheme.button,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(localizations.cancel),
                 ),
-                onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
               ),
-            ),
+
+              const SizedBox( width: 16.0, ),
+
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                    textStyle: Theme.of(context).textTheme.button,
+                  ),
+                  onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
+                  child: Text(localizations.continueAction),
+                ),
+              ),
+            ]
           ),
         ]
       ),

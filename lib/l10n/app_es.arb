@@ -45,8 +45,10 @@
     "normovolemia": "Normovolemia",
     "recommendedGain": "Ganancia recomendada",
     "realGain": "Ganancia real",
+    "nextAppointment": "Siguiente cita",
 
     "yes": "Sí",
+    "no": "No",
     "continueAction": "Continuar",
     "confirmAction": "Confirmar",
     "cancel": "Cancelar",
@@ -60,6 +62,9 @@
     "accept": "Aceptar",
     "reject": "Rechazar",
     "youHave": "Tienes",
+    "respond": "Responder",
+    "notNow": "Por ahora no",
+    "thereAre": "Hay",
 
     "dateFrom": "Desde",
     "dateTo": "hasta",
@@ -304,6 +309,16 @@
     "maxTemperatureDetails": "La temperatura máxima de la semana pasada:",
     "maxTemperatureLabel": "Temperatura máxima",
     "maxTemperatureHint": "23.4 °C",
+
+    "askToCreateRoutine": "¿Quieres crear una rutina?",
+    "askToCreateRoutineDetails": "¿Deseas establecer una rutina con ellas?",
+    "createRoutine": "Sí, crear rutina",
+    "similarActivities": "registros de actividad en la semana pasada que son similares a la actividad que estás registrando",
+
+    "medicalReportAvailable": "Reporte Médico Disponible",
+    "weeklySummaryAvailable": "Reporte Semanal Disponible",
+    "aWhileSinceLastReport": "Ha pasado un tiempo desde último reporte",
+    "askAddProgressData": "¿Quieres agregar datos sobre tu progreso?",
 
     "characters": "caracteres",
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class SuggestRoutineDialog extends StatelessWidget {
 
@@ -12,19 +13,20 @@ class SuggestRoutineDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    final content = '''Hay $similarActivityCount registros de actividad en la semana pasada que son similares a la actividad que estás registrando. ¿Deseas crear una rutina con ellas?''';
+    final localizations = AppLocalizations.of(context)!;
+    final content = """${localizations.thereAre} $similarActivityCount ${localizations.similarActivities}. ${localizations.askToCreateRoutineDetails}""";
 
     return AlertDialog(
-      title: const Text('¿Quieres crear una rutina?'),
+      title: Text(localizations.askToCreateRoutine),
       content: Text(content),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context, false), 
-          child: const Text('No'),
+          child: Text(localizations.no),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true), 
-          child: const Text('Sí, crear rutina'),
+          child: Text(localizations.createRoutine),
         ),
       ],
     );
