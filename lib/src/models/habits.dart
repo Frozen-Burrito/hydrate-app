@@ -2,6 +2,7 @@ import 'package:hydrate_app/src/db/sqlite_keywords.dart';
 import 'package:hydrate_app/src/db/sqlite_model.dart';
 import 'package:hydrate_app/src/models/map_options.dart';
 import 'package:hydrate_app/src/models/user_profile.dart';
+import 'package:hydrate_app/src/models/validators/habit_validator.dart';
 
 class Habits extends SQLiteModel {
 
@@ -14,6 +15,8 @@ class Habits extends SQLiteModel {
   double maxTemperature;
   DateTime date;
   int profileId;
+
+  double get totalHoursPerDay => hoursOfSleep + hoursOfActivity + hoursOfOccupation;
 
   Habits({
     required this.id,
@@ -34,6 +37,8 @@ class Habits extends SQLiteModel {
     date: DateTime.now(),
     profileId: -1
   );
+
+  static const HabitValidator validator = HabitValidator();
 
   static const String tableName = 'reporte_habitos';
 
@@ -104,28 +109,5 @@ class Habits extends SQLiteModel {
     if (id >= 0) map['id'] = id;
 
     return map;
-  }
-
-  /// Verifica que la suma total de horas en [dailyHourAvgs] esté entre 0 y 24.
-  static String? validateHourTotal(List<double> dailyHourAvgs) { 
-    
-    double sum = dailyHourAvgs.reduce((total, element) => total + element);
-
-    return (sum < 0 || sum > 24) 
-        ? 'El total de horas diarias debe estar entre 0 y 24 horas.'
-        : null;
-  }
-
-  /// Verifica que [inputTemperature] pueda convertirse a número decimal y esté 
-  /// en el rango requerido.
-  static String? validateTemperature(String? inputTemperature) {
-
-    if (inputTemperature == null) return 'Escribe la temperatura máxima';
-    
-    double newMaxTemperature = double.tryParse(inputTemperature) ?? 0.0;
-
-    return (newMaxTemperature < -60.0 || newMaxTemperature > 60.0) 
-        ? 'La temperatura máxima debe estar entre -60.0° y 60.0° Celsius.'
-        : null;
   }
 }

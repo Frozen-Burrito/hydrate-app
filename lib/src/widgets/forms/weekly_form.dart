@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/habits.dart';
+import 'package:hydrate_app/src/models/validators/validation_message_builder.dart';
 import 'package:hydrate_app/src/routes/route_names.dart';
 import 'package:hydrate_app/src/services/goals_service.dart';
 
@@ -17,8 +19,6 @@ class _WeeklyFormState extends State<WeeklyForm> {
   final _formKey = GlobalKey<FormState>();
 
   final Habits _userHabits = Habits.uncommitted();
-
-  final List<double> _hourTotals = <double>[0.0,0.0,0.0];
   
   /// Verifica cada campo del formulario. Si no hay errores, registra la nueva
   /// información del usuario en la DB y redirige a [redirectRoute]. 
@@ -39,15 +39,30 @@ class _WeeklyFormState extends State<WeeklyForm> {
       } else {
         // Si el reporte no fue guardado, mantener la app en la vista actual y 
         // notificar al usuario.
+        final localizations = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No fue posible guardar el reporte.')),
+          SnackBar(content: Text(localizations.weekSummarySaveError)),
         );
       }
     }
   }
+  
+  String? _validateDailyHours(ValidationMessageBuilder messageBuilder, String? inputValue) {
+    final totalHoursError = Habits.validator.validateHourTotal(_userHabits.totalHoursPerDay);
+    return messageBuilder.forTotalDailyHours(totalHoursError);
+  }
+
+  String? _validateMaxTemperature(ValidationMessageBuilder messageBuilder, String? inputValue) {
+    final maxTemperatureError = Habits.validator.validateMaxTemperature(inputValue);
+    return messageBuilder.forMaxTemperature(maxTemperatureError);
+  }
 
   @override
   Widget build(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+    final messageBuilder = ValidationMessageBuilder.of(context);
+
     return Form(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -58,21 +73,19 @@ class _WeeklyFormState extends State<WeeklyForm> {
           TextFormField(
             autocorrect: false,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Horas de sueño',
-              hintText: '8',
-              helperText: ' ',
-              suffixIcon: Icon(Icons.bedtime)
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.hoursOfSleep,
+              hintText: localizations.hoursOfSleepHint,
+              helperText: " ",
+              suffixIcon: const Icon(Icons.bedtime)
             ),
             onChanged: (value) {
-              _userHabits.hoursOfSleep = double.tryParse(value) ?? 0.0;
-
               setState(() {
-                _hourTotals[0] = _userHabits.hoursOfSleep;
+                _userHabits.hoursOfSleep = double.tryParse(value) ?? 0.0;
               });
             },
-            validator: (value) => Habits.validateHourTotal(_hourTotals),
+            validator: (value) => _validateDailyHours(messageBuilder, value),
           ),
 
           const SizedBox( height: 16.0, ),
@@ -80,21 +93,19 @@ class _WeeklyFormState extends State<WeeklyForm> {
           TextFormField(
             autocorrect: false,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Horas de actividad física',
-              hintText: '2',
-              helperText: ' ',
-              suffixIcon: Icon(Icons.directions_run)
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.hoursOfActivity,
+              hintText: localizations.hoursOfActivityHint,
+              helperText: " ",
+              suffixIcon: const Icon(Icons.directions_run)
             ),
             onChanged: (value) {
-              _userHabits.hoursOfActivity = double.tryParse(value) ?? 0.0;
-
               setState(() {
-                _hourTotals[2] = _userHabits.hoursOfActivity;
+                _userHabits.hoursOfActivity = double.tryParse(value) ?? 0.0;
               });
             },
-            validator: (value) => Habits.validateHourTotal(_hourTotals),
+            validator: (value) => _validateDailyHours(messageBuilder, value),
           ),
 
           const SizedBox( height: 16.0, ),
@@ -102,27 +113,23 @@ class _WeeklyFormState extends State<WeeklyForm> {
           TextFormField(
             autocorrect: false,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Horas de ocupación',
-              hintText: '6',
-              helperText: ' ',
-              suffixIcon: Icon(Icons.work)
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.hoursOfOccupation,
+              hintText: localizations.hoursOfOccupationHint,
+              helperText: " ",
+              suffixIcon: const Icon(Icons.work)
             ),
             onChanged: (value) {
-              _userHabits.hoursOfOccupation = double.tryParse(value) ?? 0.0;
-
               setState(() {
-                _hourTotals[0] = _userHabits.hoursOfOccupation;
+                _userHabits.hoursOfOccupation = double.tryParse(value) ?? 0.0;
               });
             },
-            validator: (value) => Habits.validateHourTotal(_hourTotals),
+            validator: (value) => _validateDailyHours(messageBuilder, value),
           ),
-
-          const SizedBox( height: 16.0, ),
 
           Text(
-            'La temperatura máxima de la semana pasada:', 
+            localizations.maxTemperatureDetails, 
             style: TextStyle(fontSize: 14.0, color: Colors.grey.shade700),
           ),
 
@@ -131,29 +138,51 @@ class _WeeklyFormState extends State<WeeklyForm> {
           TextFormField(
             autocorrect: false,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Temperatura máxima',
-              hintText: '23 °C',
-              helperText: ' ',
-              suffixIcon: Icon(Icons.thermostat)
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: localizations.maxTemperatureLabel,
+              hintText: localizations.maxTemperatureHint,
+              helperText: " ",
+              suffixIcon: const Icon(Icons.thermostat)
             ),
-            onChanged: (value) => _userHabits.maxTemperature = double.tryParse(value) ?? 0.0,
-            validator: (value) => Habits.validateTemperature(value),
+            onChanged: (value) {
+              setState(() {
+                _userHabits.maxTemperature = double.tryParse(value) ?? 0.0;
+              });
+            },
+            validator: (value) => _validateMaxTemperature(messageBuilder, value),
           ),
-          
-          Center(
-            child: SizedBox( 
-              width: MediaQuery.of(context).size.width * 0.3,
-              child: ElevatedButton(
-                child: const Text('Continuar'),
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blue,
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.grey.shade700,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                    textStyle: Theme.of(context).textTheme.button,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(localizations.cancel),
                 ),
-                onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
               ),
-            ),
-          )
+
+              const SizedBox( width: 16.0, ),
+
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16.0),
+                    textStyle: Theme.of(context).textTheme.button,
+                  ),
+                  onPressed: () => _validateAndSave(context, redirectRoute: RouteNames.home),
+                  child: Text(localizations.continueAction),
+                ),
+              ),
+            ]
+          ),
         ]
       ),
     );

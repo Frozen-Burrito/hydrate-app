@@ -79,6 +79,8 @@
     "kilocalories": "kilocalorías",
     "kilocaloriesAbbreviated": "kCal",
     "coins": "monedas",
+    "degrees": "grados",
+    "hours": "horas",
     "day": "día",
     "week": "semana",
     "month": "mes",
@@ -189,7 +191,7 @@
     "idealHydration": "Hidratación ideal",
     "firstName": "Nombre",
     "lastName": "Apellido",
-    "hoursOfActivity": "Horas por actividad",
+    "hoursPerActivity": "Horas por actividad",
 
     "occupation": "Ocupación",
     "student": "Estudiante",
@@ -292,6 +294,17 @@
     "summarizeWeek": "Resume tu semana",
     "addMedicalResults": "Agrega resultados médicos",
 
+    "weekSummarySaveError": "Hubo un error al intentar guardar los datos semanales.",
+    "hoursOfSleep": "Horas de sueño",
+    "hoursOfSleepHint": "8",
+    "hoursOfActivity": "Horas de actividad física",
+    "hoursOfActivityHint": "1.5",
+    "hoursOfOccupation": "Horas de ocupación",
+    "hoursOfOccupationHint": "7",
+    "maxTemperatureDetails": "La temperatura máxima de la semana pasada:",
+    "maxTemperatureLabel": "Temperatura máxima",
+    "maxTemperatureHint": "23.4 °C",
+
     "characters": "caracteres",
 
     "usernameIsRequiredError": "El nombre de usuario es requerido",
@@ -345,5 +358,15 @@
     "tagCountTooLarge": "El número de etiquetas debe ser menor a",
     "notesAreRequired": "Las notas son requeridas",
     "notesTooShort": "Las notas deben tener más de",
-    "notesTooLong": "Las notas deben tener menos de"
+    "notesTooLong": "Las notas deben tener menos de",
+
+    "maxTempIsNaN": "La temperatura máxima debe ser un número",
+    "maxTempIsRequired": "La temperatura máxima es requerida",
+    "maxTempTooSmall": "La temperatura máxima debe ser mayor a",
+    "maxTempTooLarge": "La temperatura máxima debe ser menor a",
+
+    "totalAvgHoursIsNaN": "El total de horas diarias promedio debe ser un número",
+    "totalAvgHoursIsRequired": "El total de horas diarias promedio es requerido",
+    "totalAvgHoursTooSmall": "El total de horas diarias promedio debe ser mayor a",
+    "totalAvgHoursTooLarge": "El total de horas diarias promedio debe ser menor a"
 }

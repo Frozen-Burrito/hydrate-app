@@ -5,6 +5,7 @@ import "package:hydrate_app/src/models/enums/error_types.dart";
 import "package:hydrate_app/src/models/validators/activity_validator.dart";
 import 'package:hydrate_app/src/models/validators/auth_validator.dart';
 import 'package:hydrate_app/src/models/validators/goal_validator.dart';
+import 'package:hydrate_app/src/models/validators/habit_validator.dart';
 import 'package:hydrate_app/src/models/validators/profile_validator.dart';
 
 class ValidationMessageBuilder {
@@ -337,6 +338,52 @@ class ValidationMessageBuilder {
         );
       default:
         print("Unhandled goal notes validation message for error: $notesError");
+        return null;
+    }
+  }
+
+  String? forMaxTemperature(NumericInputError temperatureError) {
+    switch (temperatureError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return _localizations.maxTempIsNaN;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.maxTempIsRequired;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.maxTempTooSmall, 
+          HabitValidator.maxTemperatureRange.min.toInt(),
+          units: _localizations.degrees
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.maxTempTooLarge, 
+          HabitValidator.maxTemperatureRange.max.toInt(),
+          units: _localizations.degrees
+        );
+      default:
+        print("Unhandled habits max temperature validation message for error: $temperatureError");
+        return null;
+    }
+  }
+
+  String? forTotalDailyHours(NumericInputError totalHoursError) {
+    switch (totalHoursError) {
+      case NumericInputError.none: return null;
+      case NumericInputError.isNaN: return _localizations.totalAvgHoursIsNaN;
+      case NumericInputError.isEmptyWhenRequired: return _localizations.totalAvgHoursIsRequired;
+      case NumericInputError.inputIsBeforeRange: 
+        return _buildAmountError(
+          _localizations.totalAvgHoursTooSmall, 
+          HabitValidator.dailyHoursRange.min.toInt(),
+          units: _localizations.hours
+        );
+      case NumericInputError.inputIsAfterRange:
+        return _buildAmountError(
+          _localizations.totalAvgHoursTooLarge, 
+          HabitValidator.dailyHoursRange.max.toInt(),
+          units: _localizations.hours
+        );
+      default:
+        print("Unhandled Habits validation message for error: $totalHoursError");
         return null;
     }
   }

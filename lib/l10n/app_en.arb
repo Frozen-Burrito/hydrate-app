@@ -295,6 +295,8 @@
   "@coins": {
     "description": "Monedas de la app"
   },
+  "degrees": "degrees",
+  "hours": "hours",
   "day": "day",
   "@day": {
     "description": "Unidad de tiempo"
@@ -685,8 +687,8 @@
   "@lastName": {
     "description": "El nombre de la pestaña de historial."
   },
-  "hoursOfActivity": "Hours per activity",
-  "@hoursOfActivity": {
+  "hoursPerActivity": "Hours per activity",
+  "@hoursPerActivity": {
     "description": "El nombre de la pestaña de historial."
   },
 
@@ -1004,6 +1006,17 @@
   "summarizeWeek": "Summarize your week",
   "addMedicalResults": "Add medical results",
 
+  "weekSummarySaveError": "An errror occurred while trying to save your weekly summary.",
+  "hoursOfSleep": "Hours of sleep",
+  "hoursOfSleepHint": "8",
+  "hoursOfActivity": "Hours of activity or sports",
+  "hoursOfActivityHint": "1.5",
+  "hoursOfOccupation": "Horas of occupation",
+  "hoursOfOccupationHint": "7",
+  "maxTemperatureDetails": "Last week's maximum temperature (Celsius):",
+  "maxTemperatureLabel": "Maximum temperature",
+  "maxTemperatureHint": "23.4 °C",
+
   "characters": "characters",
   "@characters": {
     "description": "Caracteres de texto"
@@ -1096,5 +1109,14 @@
   "tagCountTooLarge": "The tag count must be less than",
   "notesAreRequired": "The notes are required",
   "notesTooShort": "The notes must have more than",
-  "notesTooLong": "The notes must have less than"
+  "notesTooLong": "The notes must have less than",
+  "maxTempIsNaN": "The maximum temperature must be a number",
+  "maxTempIsRequired": "The maximum temperature is required",
+  "maxTempTooSmall": "The maximum temperature must be greater than",
+  "maxTempTooLarge": "The maximum temperature must be less than",
+
+  "totalAvgHoursIsNaN": "The total average daily hours must be a number",
+  "totalAvgHoursIsRequired": "The total average daily hours is required",
+  "totalAvgHoursTooSmall": "The total average daily hours must be greater than",
+  "totalAvgHoursTooLarge": "The total average daily hours must be less than"
 }
