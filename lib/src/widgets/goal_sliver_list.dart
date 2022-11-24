@@ -166,11 +166,14 @@ class _GoalCard extends StatelessWidget {
   }
 
   List<PopupMenuEntry<GoalCardAction>> _buildGoalActions(BuildContext context) {
+
+    final localizations = AppLocalizations.of(context)!;
+
     return <PopupMenuEntry<GoalCardAction>>[
       PopupMenuItem(
         value: GoalCardAction.none,
         child: ListTile(
-          title: Text(goal.notes ?? "Meta de hidratación"),
+          title: Text(goal.notes ?? localizations.hydrationGoal),
         ),
       ),
       const PopupMenuDivider(),
@@ -180,16 +183,16 @@ class _GoalCard extends StatelessWidget {
           builder: (_, goalsService, __) {
             return ListTile(
               leading: Icon( goal.isMainGoal ? Icons.flag : Icons.flag_outlined ), 
-              title: Text(goal.isMainGoal ? "Quitar meta principal" : "Hacer meta principal"),
+              title: Text(goal.isMainGoal ? localizations.removeMainGoal : localizations.setAsMainGoal),
             );
           }
         ),
       ),
-      const PopupMenuItem(
+      PopupMenuItem(
         value: GoalCardAction.share,
         child: ListTile(
-          leading: Icon( Icons.share ), 
-          title: Text("Compartir"),
+          leading: const Icon( Icons.share ), 
+          title: Text(localizations.share),
         ),
       ),
     ];
@@ -450,7 +453,7 @@ class _GoalRecommendationActions extends StatelessWidget {
 
     while (!wasGoalCreated && canCreateNewGoal && goalCreationAttemptCount <= _maxGoalPersistAttempts) {
       try {
-        final int createdGoalId = await goalService.createHydrationGoalWithLimit(recommendedGoal);
+        final int createdGoalId = await goalService.acceptRecommendedGoal(recommendedGoal, useActiveGoalLimit: true);
 
         wasGoalCreated = createdGoalId >= 0;
 

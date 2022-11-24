@@ -70,7 +70,7 @@ class AuthView extends StatelessWidget {
                       Text(
                         ((isSignIn) 
                           ? localizations.dont
-                          : localizations.already) + localizations.haveAccount
+                          : localizations.already) + " " + localizations.haveAccount
                       ),
 
                       TextButton(

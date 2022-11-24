@@ -92,8 +92,9 @@ class HomeTab extends StatelessWidget {
                           sortByDateAscending: false,
                         ),
                         builder: (context, snapshot) {
+                          final totalHydrationPerDay = snapshot.data;
                           final recommendedGoals = goalsService.getRecommendedGoals(
-                            totalWaterIntakeForPeriod: snapshot.data
+                            totalWaterIntakeForPeriod: totalHydrationPerDay
                           );
 
                           return GoalSliverList(

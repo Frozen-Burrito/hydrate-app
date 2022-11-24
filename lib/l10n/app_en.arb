@@ -233,6 +233,7 @@
   "respond": "Respond",
   "notNow": "Not now",
   "thereAre": "There are",
+  "share": "Share",
 
   "dateFrom": "From",
   "@dateFrom": {
@@ -586,7 +587,7 @@
     "description": "Asociar el perfil con la cuenta"
   },
   
-  "profile": "Perfil",
+  "profile": "Profile",
   "@profile": {
     "description": "El nombre de la pestaña de historial."
   },
@@ -779,6 +780,8 @@
   "@tags": {
     "description": "Header para etiquetas"
   },
+  "setAsMainGoal": "Set as main goal",
+  "removeMainGoal": "Remove as main goal",
 
   "noGoalsYet": "You haven't set any goals of hydration yet.",
   "@noGoalsYet": {

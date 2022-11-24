@@ -65,6 +65,7 @@
     "respond": "Responder",
     "notNow": "Por ahora no",
     "thereAre": "Hay",
+    "share": "Compartir",
 
     "dateFrom": "Desde",
     "dateTo": "hasta",
@@ -220,6 +221,8 @@
     "notesLabel": "Anotaciones",
     "notesHint": "Debo recordar tomar agua antes de...",
     "tags": "Etiquetas",
+    "setAsMainGoal": "Convertir en meta principal",
+    "removeMainGoal": "Quitar como meta principal",
 
     "noGoalsYet": "Aún no has creado metas de hidratación.",
     "createNewGoal": "Crea una meta",
