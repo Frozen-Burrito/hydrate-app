@@ -288,7 +288,7 @@ class GoalsService extends ChangeNotifier {
 
       hydrationDuringPeriod = List<int>.filled(goalRepetitionsNeededForRecommendation, 0);
 
-      for (int i = 0; i < daysOfHydrationToConsider; i += term.inDays) {
+      for (int i = 0; i < goalRepetitionsNeededForRecommendation; i++) {
         final periodStart = i * term.inDays;
         final periodEnd = (i + 1) * term.inDays;
 

@@ -199,9 +199,9 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
     
-          StreamBuilder<TimeTerm>(
-            stream: formControl.getFieldValueStream<TimeTerm>(Goal.termFieldName),
-            initialData: TimeTerm.daily,
+          StreamBuilder<int>(
+            stream: formControl.getFieldValueStream<int>(Goal.termFieldName),
+            initialData: TimeTerm.daily.index,
             builder: (context, snapshot) {
               return DropdownButtonFormField(
                 decoration: InputDecoration(
@@ -210,11 +210,11 @@ class _CreateGoalFormState extends State<CreateGoalForm> {
                   hintText: localizations.goalTermHint, 
                 ),
                 items: _buildTermDropdownItems(context),
-                value: snapshot.data?.index ?? 0,
+                value: snapshot.data ?? 0,
                 validator: (int? value) => _validateGoalTerm(validationMessageBuilder, value),
                 onChanged: (int? newValue) => formControl.changeFieldValue(
                   Goal.termFieldName, 
-                  TimeTerm.values[newValue ?? 0]
+                  TimeTerm.values[newValue ?? 0].index
                 ),
               );
             }

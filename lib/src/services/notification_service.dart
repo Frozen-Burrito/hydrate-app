@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -113,6 +114,8 @@ class NotificationService {
 
       } on ApiException catch (ex) {
         debugPrint("Error while sending FCM token for storage ($ex)");
+      } on SocketException catch (ex) {
+        debugPrint("No hay conexión a internet, no se puede enviar token FCM (${ex.message})");
       }
     }
   }

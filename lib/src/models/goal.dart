@@ -140,8 +140,8 @@ class Goal extends SQLiteModel {
       attribute: attributeNames[startDateFieldName]!,
       defaultValue: DateTime.now()
     )!;
-
     final DateTime endDate = map.getDateTimeOrDefault(
+
       attribute: attributeNames[endDateFieldName]!,
       defaultValue: DateTime.now().add(defaultGoalDuration)
     )!;

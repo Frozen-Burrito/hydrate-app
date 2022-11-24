@@ -87,7 +87,7 @@ class BackgroundTasks {
     // frequency: const Duration(days: 7),
     // initialDelay: const Duration(days: 7),
     frequency: const Duration(hours: 1),
-    initialDelay: const Duration(hours: 1),
+    initialDelay: const Duration(minutes: 1),
     constraints: Constraints(
       networkType: NetworkType.unmetered,
       requiresBatteryNotLow: true

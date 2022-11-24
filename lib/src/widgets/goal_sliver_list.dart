@@ -327,12 +327,50 @@ class _GoalCard extends StatelessWidget {
                 }
               ),
             ),
-              
-            Text(
-              _buildDateLabel(context, goal.startDate, goal.endDate), 
-              style: Theme.of(context).textTheme.bodyText1,
-              textAlign: TextAlign.left
+
+            Container(
+              margin: const EdgeInsets.only( top: 8.0 ),
+              child: Column(
+                children: [
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.date_range,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+
+                      const SizedBox( width: 4.0 ),
+
+                      Text(
+                        goal.startDate.toLocalizedDate(context), 
+                        style: Theme.of(context).textTheme.bodyText1,
+                        textAlign: TextAlign.left
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox( height: 4.0 ),
+
+                  Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.subdirectory_arrow_right_outlined,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+
+                      const SizedBox( width: 4.0 ),
+
+                      Text(
+                        goal.endDate.toLocalizedDate(context), 
+                        style: Theme.of(context).textTheme.bodyText1,
+                        textAlign: TextAlign.left
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+              
 
             ( isRecommendation 
             ? _GoalRecommendationActions( recommendedGoal: goal, )

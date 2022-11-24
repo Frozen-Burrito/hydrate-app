@@ -58,10 +58,16 @@ extension MapExtensions on Map<String, Object?> {
       entityCollection.addAll(
         entitiesFromMap.map((entity) => mapper(entity))
       );
-    } else if (entitiesFromMap is List<dynamic> && existingEntities != null) {
-      entityCollection.addAll(
-        existingEntities.where((entity) => entitiesFromMap.contains(entity.id))
-      );
+    } else if (entitiesFromMap is List<dynamic> && entitiesFromMap.isNotEmpty) {
+      if (existingEntities != null && existingEntities.isNotEmpty) {
+        entityCollection.addAll(
+          existingEntities.where((entity) => entitiesFromMap.contains(entity.id))
+        );
+      } else if (entitiesFromMap.first is T){
+        entityCollection.addAll([
+          for (final e in entitiesFromMap) e as T,
+        ]);
+      }
     }
 
     return entityCollection;

@@ -776,7 +776,7 @@
   "@notesHint": {
     "description": "Hint para anotaciones"
   },
-  "tags": "Etiquetas",
+  "tags": "Tags",
   "@tags": {
     "description": "Header para etiquetas"
   },
