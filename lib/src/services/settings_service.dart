@@ -116,10 +116,13 @@ class SettingsService with ChangeNotifier {
       // el permiso de recibir notificaciones.
       if (wereNotificationsDisabled) {
         canNotificationPrefsBeChanged = true;
-      } else if (await Permission.notification.isDenied) {
-        canNotificationPrefsBeChanged = await openAppSettings();
       } else {
-        canNotificationPrefsBeChanged = false;
+        if (await Permission.notification.isDenied) {
+          final wasSettingsPageOpened = await openAppSettings();
+          canNotificationPrefsBeChanged = wasSettingsPageOpened && !(await Permission.notification.isDenied);
+        } else {
+          canNotificationPrefsBeChanged = true;
+        }
       }
 
       if (canNotificationPrefsBeChanged) {
