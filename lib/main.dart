@@ -127,6 +127,21 @@ class HydrateApp extends StatelessWidget {
                 await hydrationService.syncLocalHydrationRecordsWithAccount();
               });
 
+              devicePairingService.addOnNewHydrationRecordListener("goal_progress", (hydrationRecord) async { 
+                final activeGoals = await goalService.goals;
+
+                for (final goal in activeGoals) {
+                  final int previousProgressForGoal = await hydrationService.getGoalProgressInMl(goal);
+                  final int progressWithNewHydration = previousProgressForGoal + hydrationRecord.volumeInMl;
+
+                  if (previousProgressForGoal < goal.quantity && goal.quantity <= progressWithNewHydration) {
+                    // El usuario completó su meta.
+                    profileService.profileChanges.addCoins(goal.reward);
+                    await profileService.saveProfileChanges();
+                  }
+                }
+              });
+
               settingsService.applyCurrentSettings(
                 userAuthToken: profileService.authToken,
                 activityService: activityService,
