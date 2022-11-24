@@ -517,8 +517,13 @@ class HydrateDevice {
 
     debugPrint("About to sync a new record: $record");
 
-    if (record != null && record.id < 0) {
-      _hydrationRecordsController.sink.add(record);
+    if (record != null) {
+      final isRecordNotYetTracked = record.id <= 0;
+      final isRecordDateValid = record.date.isAfter(DateTime(2022, 1, 1));
+
+      if (isRecordNotYetTracked && isRecordDateValid) {
+        _hydrationRecordsController.sink.add(record);
+      }
     }
   }
 
