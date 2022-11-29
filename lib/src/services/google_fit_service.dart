@@ -190,83 +190,27 @@ class GoogleFitService {
       return 0;
     }
 
-    final dataSourcesResponse = await _fitnessApi?.users.dataSources.list(
-      _currentUserId, 
-      dataTypeName: <String>[ _hydrationDataType.name ?? _hydrationDataTypeName ],
-      // $fields: _dataSourceStreamIdFieldAndName,
+    final hydrationDataSources = await _fetchDataSources(
+      <String>[ _hydrationDataType.name ?? _hydrationDataTypeName ],
+      dataSourceName: _hydrateHydrationDataSourceName,
+      dataSourceType: _rawDataSourceType,
     );
 
-    final hydrationDataSources = dataSourcesResponse?.dataSource
-        ?.where((dataSource) => dataSource.dataStreamName == _hydrateHydrationDataSourceName && dataSource.type == _rawDataSourceType).toList() 
-        ?? const <DataSource>[];
-
-    // Revisar si es necesario crear un DataSource para la hidratacion, antes
-    // de intentar agregar los datos de hidratacion.
     if (hydrationDataSources.isEmpty) {
-      final newHydrationDataSource = DataSource(
-        dataStreamName: _hydrateHydrationDataSourceName,
-        application: hydrateAppDetails,
-        type: _rawDataSourceType,
-        dataType: _hydrationDataType,
-      );
-
-      try {
-        final createdDataSource = await _fitnessApi?.users.dataSources.create(
-          newHydrationDataSource, 
-          _currentUserId,
-          $fields: _dataStreamIdField,
-        );
-
-        _hydrationDataStreamId = createdDataSource?.dataStreamId;
-
-      } on AccessDeniedException catch (ex) {
-        debugPrint("La app no cuenta con permisos suficientes para crear el DataSource");
-        debugPrint(ex.toString());
-        return 0;
-      }
-      on ApiRequestError catch (error) {
-        debugPrint("Error creating new DataSource for hydration data: $error");
-        return 0;
-      }
+      final createdDataSource = await _createHydrationDataSource();
+      _hydrationDataStreamId = createdDataSource?.dataStreamId;
     } else {
       _hydrationDataStreamId = hydrationDataSources.last.dataStreamId;
     }
 
     if (_hydrationDataStreamId != null && _hydrationDataStreamId!.isNotEmpty) {
 
-      final List<DataPoint> hydrationDataPoints = [];
-
-      hydrationRecords.sort((a, b) => a.date.compareTo(b.date));
-
-      final DateTime minStartTime = hydrationRecords.first.date;
-      final DateTime maxEndTime = hydrationRecords.last.date; 
-
-      for (final hydrationRecord in hydrationRecords) {
-
-        final dataPoint = DataPoint(
-          startTimeNanos: hydrationRecord.date.nanosecondsSinceEpoch.toString(),
-          endTimeNanos: hydrationRecord.date.nanosecondsSinceEpoch.toString(),
-          dataTypeName: _hydrationDataType.name,
-          value: <Value>[
-            Value(
-              fpVal: hydrationRecord.volumeInLiters,
-            ),
-          ]
-        );
-
-        hydrationDataPoints.add(dataPoint);
-      }
-
-      final Dataset hydrationRecordsDataSet = Dataset(
-        dataSourceId: _hydrationDataStreamId,
-        minStartTimeNs: minStartTime.nanosecondsSinceEpoch.toString(),
-        maxEndTimeNs: maxEndTime.nanosecondsSinceEpoch.toString(),
-        point: hydrationDataPoints
-      );
-
-      //Invalid StartTimeNanos: com.google.hydration [1970-01-01T00:00:13Z - 1970-01-01T00:00:13Z] [0.074] raw:com.google.hydration:845399101862:HydrateAppHydration
+      final hydrationRecordsDataSet = _buildHydrationDataset(hydrationRecords);
 
       try {
+        final DateTime minStartTime = hydrationRecords.first.date;
+        final DateTime maxEndTime = hydrationRecords.last.date;
+
         final newDataset = await _fitnessApi?.users.dataSources.datasets.patch(
           hydrationRecordsDataSet,
           _currentUserId,
@@ -306,7 +250,7 @@ class GoogleFitService {
       final activityType = supportedGoogleFitActTypes[session.activityType] 
         ?? const ActivityType.uncommited(); 
 
-      return GoogleFitActivityExtension.fromSession(session, activityType, _hydrateProfileId);
+      return session.toActivityRecord(activityType, _hydrateProfileId);
     }).toList();
 
     activityRecords.sort((a, b) => a.date.compareTo(b.date));
@@ -381,6 +325,92 @@ class GoogleFitService {
     final sessionData = listSessionResponse?.session ?? const <Session>[];
 
     return sessionData;
+  }
+
+  Future<List<DataSource>> _fetchDataSources(
+    List<String> dataTypes, {
+      String? dataSourceName,
+      String? dataSourceType,
+      String? fields,
+  }) async {
+    final dataSourcesResponse = await _fitnessApi?.users.dataSources.list(
+      _currentUserId, 
+      dataTypeName: <String>[ _hydrationDataType.name ?? _hydrationDataTypeName ],
+      $fields: fields,
+    );
+
+    final dataSources = dataSourcesResponse?.dataSource
+        ?.where((dataSource) {
+          final isDataStreamEqual = dataSource.dataStreamName == dataSourceName;
+          final isDataTypeEqual = dataSource.type == dataSourceType;
+
+          return isDataStreamEqual && isDataTypeEqual; 
+        }).toList() 
+        ?? const <DataSource>[];
+
+    return dataSources;
+  }
+
+  Future<DataSource?> _createHydrationDataSource() async {
+
+    final newHydrationDataSource = DataSource(
+      dataStreamName: _hydrateHydrationDataSourceName,
+      application: hydrateAppDetails,
+      type: _rawDataSourceType,
+      dataType: _hydrationDataType,
+    );
+
+    try {
+      final createdDataSource = await _fitnessApi?.users.dataSources.create(
+        newHydrationDataSource, 
+        _currentUserId,
+        $fields: _dataStreamIdField,
+      );
+
+      return createdDataSource;
+
+    } on AccessDeniedException catch (ex) {
+      debugPrint("La app no cuenta con permisos suficientes para crear el DataSource");
+      debugPrint(ex.toString());
+    }
+    on ApiRequestError catch (error) {
+      debugPrint("Error creating new DataSource for hydration data: $error");
+    }
+
+    return null;
+  }
+
+  Dataset _buildHydrationDataset(List<HydrationRecord> hydrationRecords) {
+
+    final List<DataPoint> hydrationDataPoints = [];
+
+    hydrationRecords.sort((a, b) => a.date.compareTo(b.date));
+
+    final DateTime minStartTime = hydrationRecords.first.date;
+    final DateTime maxEndTime = hydrationRecords.last.date; 
+
+    for (final hydrationRecord in hydrationRecords) {
+
+      final dataPoint = DataPoint(
+        startTimeNanos: hydrationRecord.date.nanosecondsSinceEpoch.toString(),
+        endTimeNanos: hydrationRecord.date.nanosecondsSinceEpoch.toString(),
+        dataTypeName: _hydrationDataType.name,
+        value: <Value>[
+          Value(
+            fpVal: hydrationRecord.volumeInLiters,
+          ),
+        ]
+      );
+
+      hydrationDataPoints.add(dataPoint);
+    }
+
+    return Dataset(
+      dataSourceId: _hydrationDataStreamId,
+      minStartTimeNs: minStartTime.nanosecondsSinceEpoch.toString(),
+      maxEndTimeNs: maxEndTime.nanosecondsSinceEpoch.toString(),
+      point: hydrationDataPoints
+    );
   }
 
   void dispose() {
@@ -468,22 +498,22 @@ class GoogleFitService {
   }
 }
 
-extension GoogleFitActivityExtension on ActivityRecord {
+extension GoogleFitSessionExtension on Session {
 
-  static ActivityRecord fromSession(Session session, ActivityType activityType, int profileId) {
+  ActivityRecord toActivityRecord(ActivityType activityType, int profileId) {
 
-    final int startMsSinceEpoch = int.tryParse(session.startTimeMillis ?? "0") ?? 0;
-    final int endMsSinceEpoch = int.tryParse(session.endTimeMillis ?? "0") ?? 0;
+    final int startMsSinceEpoch = int.tryParse(startTimeMillis ?? "0") ?? 0;
+    final int endMsSinceEpoch = int.tryParse(endTimeMillis ?? "0") ?? 0;
 
     final DateTime activityDate = DateTime.fromMillisecondsSinceEpoch(startMsSinceEpoch); 
     final DateTime endDate = DateTime.fromMillisecondsSinceEpoch(endMsSinceEpoch); 
     final Duration activityDuration = endDate.difference(activityDate);
 
     final sessionActivityRecord = ActivityRecord(
-      title: session.name ?? "Untitled Session Activity",
+      title: name ?? "Untitled Session Activity",
       date: activityDate,
       duration: activityDuration.inMinutes,
-      doneOutdoors: _isGoogleFitActivityDoneOutdoors(session.activityType ?? GoogleFitActivityType.unknown),
+      doneOutdoors: _isGoogleFitActivityDoneOutdoors(this.activityType ?? GoogleFitActivityType.unknown),
       activityType: activityType,
       profileId: profileId,
     );
