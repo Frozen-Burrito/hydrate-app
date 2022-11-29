@@ -77,18 +77,11 @@ class GoalsService extends ChangeNotifier {
   bool get hasGoalData => _goalCache.hasData;
 
   /// Retorna todos los registros de [Goal] disponibles, de forma asíncrona.
-  Future<List<Goal>> get goals async {
-    final List<Goal>? activeGoals = await _goalCache.data;
-    return activeGoals ?? const <Goal>[];
-  }
+  Future<List<Goal>> get goals => _getAllHydrationGoals();
 
-  Future<Goal?> get mainActiveGoal => _goalCache.data.then((data) {
-    final goals = data ?? const <Goal>[];
+  Future<List<Goal>> get activeGoals => _getActiveHydrationGoals();
 
-    if (goals.isEmpty) return null;
-
-    return goals.firstWhere((goal) => goal.isMainGoal, orElse: () => goals.first);
-  });
+  Future<Goal?> get mainActiveGoal => _getMainActiveGoal();
 
   /// Es [true] si hay una lista de [Goal] de hidratación, aunque esté vacía.
   bool get hasTagData => _tagsCache.hasData;
@@ -214,6 +207,32 @@ class GoalsService extends ChangeNotifier {
         "El perfil actual ha alcanzado el límite de metas activas. Debe eliminar una meta antes de crear una nueva."
       );
     }
+  }
+
+  Future<List<Goal>> _getAllHydrationGoals() async {
+    final List<Goal>? goals = await _goalCache.data;
+    return goals ?? const <Goal>[];
+  }
+
+  Future<List<Goal>> _getActiveHydrationGoals() async {
+    final List<Goal> goals = await _getAllHydrationGoals();
+    final now = DateTime.now();
+
+    final activeGoals = goals
+      .where((goal) => goal.startDate.isBefore(now) && goal.endDate.isAfter(now))
+      .toList();
+
+    assert(activeGoals.length <= Goal.maxSimultaneousGoals);
+
+    return activeGoals;
+  }
+
+  Future<Goal?> _getMainActiveGoal() async {
+    final activeGoals = await _getActiveHydrationGoals();
+
+    if (activeGoals.isEmpty) return null;
+
+    return activeGoals.firstWhere((goal) => goal.isMainGoal, orElse: () => activeGoals.first);
   }
 
   Future<int> getNumberOfDaysForRecommendation() async {

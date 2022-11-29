@@ -128,7 +128,7 @@ class HydrateApp extends StatelessWidget {
               });
 
               devicePairingService.addOnNewHydrationRecordListener("goal_progress", (hydrationRecord) async { 
-                final activeGoals = await goalService.goals;
+                final activeGoals = await goalService.activeGoals;
 
                 for (final goal in activeGoals) {
                   final int previousProgressForGoal = await hydrationService.getGoalProgressInMl(goal);

@@ -67,7 +67,7 @@ class HomeTab extends StatelessWidget {
           Consumer<GoalsService>(
             builder: (_, hydrationGoalService, __) {
               return GoalSliverList(
-                hydrationGoalSource: hydrationGoalService.goals,
+                hydrationGoalSource: hydrationGoalService.activeGoals,
               );
             }
           ),

@@ -45,7 +45,7 @@ class _ReplaceGoalDialogState extends State<ReplaceGoalDialog> {
     return AlertDialog(
       title: Text(localizations.askGoalReplacement),
       content: FutureBuilder<List<Goal>?>(
-        future: goalsProvider.goals,
+        future: goalsProvider.activeGoals,
         builder: (context, snapshot) {
 
           final goals = snapshot.data;
