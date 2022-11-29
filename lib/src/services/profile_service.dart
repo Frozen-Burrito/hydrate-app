@@ -135,7 +135,7 @@ class ProfileService extends ChangeNotifier {
 
     final currentProfile = _profileCache.cachedData;
 
-    final bool isDefaultProfile = currentProfile?.id == UserProfile.defaultProfile.id;
+    final bool isDefaultProfile = _profileId == UserProfile.defaultProfile.id;
     final bool isNotAuthenticated = !_isAuthenticated();
     final bool isProfileLinkedToAccount = currentProfile?.isLinkedToAccount ?? false;
 

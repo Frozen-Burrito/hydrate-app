@@ -123,21 +123,6 @@ class _GoalCard extends StatelessWidget {
   final Goal goal;
 
   final bool isRecommendation;
-  
-  String _buildDateLabel(BuildContext context, DateTime? start, DateTime? end) {
-    final localizations = AppLocalizations.of(context)!;
-    final strBuf = StringBuffer();
-
-    if (start != null) {
-      strBuf.writeAll([ localizations.dateFrom, " ", start.toLocalizedDate(context)]);
-    }
-
-    if (end != null) {
-      strBuf.writeAll([ " ", localizations.dateTo, " ", end.toLocalizedDate(context)]);
-    }
-
-    return strBuf.toString();
-  }
 
   String _getGoalTitle(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;

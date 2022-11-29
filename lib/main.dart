@@ -52,7 +52,7 @@ class HydrateApp extends StatelessWidget {
   const HydrateApp({Key? key}) : super(key: key);
 
   String _getInitialAppRoute(int appStartupCount, bool doesDefaultProfileRequireSignIn) {
-    if (appStartupCount <= 0) {
+    if (appStartupCount <= 1) {
       return RouteNames.initialForm;
     } else if (doesDefaultProfileRequireSignIn) {
       return RouteNames.authentication;
@@ -153,7 +153,7 @@ class HydrateApp extends StatelessWidget {
                 title: "Hydrate App",
                 initialRoute: _getInitialAppRoute(
                   settingsService.appStartups, 
-                  false,
+                  profileService.doesDefaultProfileRequireSignIn,
                 ),
                 // Configuracion del tema de color.
                 theme: AppThemes.appLightTheme,

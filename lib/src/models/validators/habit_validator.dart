@@ -8,7 +8,7 @@ class HabitValidator extends Validator {
   const HabitValidator();
 
   static const Range dailyHoursRange = Range(max: 24);
-  static const Range maxTemperatureRange = Range(min: -40.0, max: 75.0);
+  static const Range maxTemperatureRange = Range(min: -60.0, max: 60.0);
 
   static const Set<String> requiredFields = <String>{
     Habits.hoursOfSleepFieldName,

@@ -141,7 +141,7 @@ class _ProfileFormState extends State<ProfileForm> {
               firstNameValidator: UserProfile.validator.validateFirstName,
               lastNameValidator: UserProfile.validator.validateLastName,
               maxFirstNameLength: ProfileValidator.firstNameLengthRange.max.toInt(),
-              maxLastNameLength: ProfileValidator.lastNameLengthRange.min.toInt(),
+              maxLastNameLength: ProfileValidator.lastNameLengthRange.max.toInt(),
               initialFirstName: profileChanges.firstName,
               initialLastName: profileChanges.lastName,
               onFirstNameChanged: (value) => profileChanges.firstName = value, 
