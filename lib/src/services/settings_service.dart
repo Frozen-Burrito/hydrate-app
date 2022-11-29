@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:workmanager/workmanager.dart';
 
 import 'package:hydrate_app/src/api/config_api.dart';
 import 'package:hydrate_app/src/exceptions/api_exception.dart';
@@ -170,20 +169,10 @@ class SettingsService with ChangeNotifier {
     // estadísticos a la API web.
     if (settings.shouldContributeData) {
       // Registrar tarea para aportar datos cada semana.
-      Workmanager().registerPeriodicTask(
-        BackgroundTasks.sendStatsData.uniqueName,
-        BackgroundTasks.sendStatsData.taskName,
-        frequency: BackgroundTasks.sendStatsData.frequency,
-        initialDelay: BackgroundTasks.sendStatsData.initialDelay,
-        constraints: BackgroundTasks.sendStatsData.constraints,
-        inputData: <String, dynamic>{
-          BackgroundTasks.taskInputAuthToken: userAuthToken,
-        },
-      );
-
+      BackgroundTasks.instance.enableDataContribution(userAuthToken);
     } else {
       // Cancelar tarea que aporta datos.
-      Workmanager().cancelByUniqueName(BackgroundTasks.sendOpenStatsUniqueTaskName);
+      BackgroundTasks.instance.cancelOpenDataContributions();
     }
 
     if (settings.isGoogleFitIntegrated) {

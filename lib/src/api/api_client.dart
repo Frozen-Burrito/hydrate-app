@@ -46,7 +46,7 @@ class ApiClient {
   };
 
   static final Map<String, String> _apiMap = {
-    'aportarDatos/hidr': '$_apiUrl/datos-abiertos/hidratacion',
+    'aportarDatos/hidratacion': '$_apiUrl/datos-abiertos/hidratacion',
     'aportarDatos/actividad': '$_apiUrl/datos-abiertos/act-fisica',
     'login': '$_apiUrl/usuarios/login',
     'signUp': '$_apiUrl/usuarios/registro', 
@@ -204,9 +204,6 @@ class ApiClient {
 
         requestHeaders[authorizationHeader] = authCredential;
       }
-
-      debugPrint("Open data request headers: $requestHeaders");
-      debugPrint("Open data request body: $jsonBody");
 
       // Enviar la petición a la URL especificada, usando el cliente HTTP.
       return client.post(

@@ -6,7 +6,6 @@ import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
 import 'package:hydrate_app/src/models/settings.dart';
-import 'package:hydrate_app/src/models/user_profile.dart';
 import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
@@ -127,14 +126,10 @@ class SettingsItems extends StatelessWidget {
 
           const Divider( height: 1.0, ),
           
-          FutureBuilder<UserProfile?>(
-            future: Provider.of<ProfileService>(context).profile,
-            builder: (context, snapshot) {
-
-              final userAccountId = snapshot.data?.userAccountID ?? ""; 
-
+          Consumer<ProfileService>(
+            builder: (context, profileService, _) {
               return Tooltip(
-                message: userAccountId.isNotEmpty 
+                message: profileService.isAuthenticated
                   ? localizations.contributeDataTooltipSignedIn
                   : localizations.contributeDataTooltipSignedOut,
                 child: StreamBuilder<bool>(
@@ -152,7 +147,7 @@ class SettingsItems extends StatelessWidget {
                       title: Text(localizations.contributeData),
                       contentPadding: const EdgeInsets.all( 16.0, ),
                       value: isSharingData,
-                      onChanged: userAccountId.isNotEmpty && snapshot.hasData
+                      onChanged: profileService.isAuthenticated && snapshot.hasData
                       ? (bool value) {
                         _editSettings.shouldContributeDataSink.add(value);
                       }

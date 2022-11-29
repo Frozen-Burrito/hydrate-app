@@ -29,7 +29,7 @@ class DataApi {
   static const String activityRecordsResourceName = "actividadFisica";
   static const String routinesResourceName = "rutinas";
 
-  static const String openDataHydrationResourceName = "aportarDatos/hidr";
+  static const String openDataHydrationResourceName = "aportarDatos/hidratacion";
   static const String openDataActivityResourceName = "aportarDatos/actividad";
 
   static const _defaultPaginationParams = PaginationParameters(
@@ -90,6 +90,8 @@ class DataApi {
     String? authToken, 
     required T Function(Map<String, Object?>) mapper, 
     PaginationParameters? paginationParameters, 
+    DateTime? from,
+    DateTime? to,
   }) async 
   {
     final Iterable<T> data = <T>[];
@@ -107,9 +109,21 @@ class DataApi {
       );
     }
 
+    final queryParams = <String, String>{};
+
+    queryParams.addAll(paginationParameters.toMap());
+
+    if (from != null && from.isAfter(DateTime(2022, 1, 1))) {
+      queryParams["desde"] = from.toIso8601String();
+    }
+
+    if (to != null && !(to.isAfter(DateTime.now()))) {
+      queryParams["hasta"] = to.toIso8601String();
+    }
+
     final response = await _apiClient.get(
       resourceName,
-      queryParameters: paginationParameters.toMap(),
+      queryParameters: queryParams,
       authType: _authenticationType,
       authorization: _authToken,
     );
