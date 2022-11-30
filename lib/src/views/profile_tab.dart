@@ -35,9 +35,9 @@ class _ProfileTabState extends State<ProfileTab> {
   bool isEditModeActive = false;
   bool isSaving = false;
 
-  Future<void> _toggleEditMode(BuildContext context) async {
+  Future<void> _toggleEditMode(BuildContext context, {bool saveChanges = true}) async {
 
-    if (isEditModeActive) {
+    if (isEditModeActive && saveChanges) {
 
       setState(() { isSaving = true; });
 
@@ -59,7 +59,7 @@ class _ProfileTabState extends State<ProfileTab> {
           break;
       }
     } else {
-      isEditModeActive = true;
+      isEditModeActive = !isEditModeActive;
     }
 
     isSaving = false;
@@ -105,7 +105,6 @@ class _ProfileTabState extends State<ProfileTab> {
             CoinDisplay(),
           ],
           actions: <Widget>[
-
             Builder(
               builder: (context) {
                 if (isSaving) {
@@ -132,7 +131,16 @@ class _ProfileTabState extends State<ProfileTab> {
                 }
               }
             ),
-            const AuthOptionsMenu()
+
+            (isEditModeActive 
+            ? IconButton(
+                icon: const Icon( Icons.close ),
+                color: Colors.red.shade400,
+                onPressed: () => _toggleEditMode(context, saveChanges: false), 
+              )
+            : const AuthOptionsMenu()
+            ),
+            
           ],
         ),
   
@@ -158,17 +166,37 @@ class _ProfileTabState extends State<ProfileTab> {
                             )
                           : null,
                           child: ClipPath(
-                          clipper: WaveImageClipper(),
+                            clipper: WaveImageClipper(),
                           child: FittedBox(
                             fit: BoxFit.cover,
                             child: AssetFadeInImage(
                               image: isEditModeActive 
-                                ? profile.selectedEnvironment.baseImagePath
-                                : profileProvider.profileChanges.selectedEnvironment.baseImagePath,
+                                ? profileProvider.profileChanges.selectedEnvironment.baseImagePath
+                                : profile.selectedEnvironment.baseImagePath,
                               duration: const Duration(milliseconds: 500),
                             ),
                           ),
                         ), 
+                      ),
+                    ),
+
+                    if (isEditModeActive) 
+                    Positioned(
+                      top: 8.0,
+                      left: 8.0,
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+                          shape: const CircleBorder(),
+                        ),
+                        child: Icon( 
+                          Icons.edit,
+                          color: Theme.of(context).colorScheme.surface
+                        ),
+                        onPressed: () => showDialog(
+                          context: context, 
+                          builder: (context) => const EnvironmentSelectDialog(), 
+                        ),
                       ),
                     ),
                     

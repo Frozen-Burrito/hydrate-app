@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:provider/provider.dart';
 
 import 'package:hydrate_app/src/models/hydrate_device.dart';
@@ -20,122 +21,138 @@ class SettingsView extends StatelessWidget {
 
     final localizations = AppLocalizations.of(context)!;
     
-    return Scaffold(
-      body: SafeArea(
-        top: false,
-        bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: <Widget> [
-            CustomSliverAppBar(
-              title: localizations.settings,
-              leading: <Widget> [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back), 
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    Navigator.pop(context);
-                  }
-                ),
-              ],
-              actions: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.phonelink_ring),
-                  onPressed: () => Navigator.pushNamed(context, RouteNames.bleConnection),
-                )
-              ],
-            ),
+    return Consumer<SettingsService>(
+      builder: (_, settingsProvider, __) {
 
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    margin: const EdgeInsets.symmetric( vertical: 24.0, horizontal: 24.0 ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          localizations.batteryHeading, 
-                          style: Theme.of(context).textTheme.headline5,
-                          textAlign: TextAlign.start,
-                        ),
+        final editSettingsBloc = EditSettingsBloc(settingsProvider.currentSettings);
 
-                        const SizedBox( height: 8.0 ),
-
-                        Consumer<DevicePairingService>(
-                          builder: (_, devicePairingService, __) {
-                            return StreamBuilder<HydrateDevice?>(
-                              stream: devicePairingService.selectedDevice,
-                              builder: (context, snapshot) {
-
-                                final deviceName = snapshot.data?.name ?? localizations.disconnected;
-
-                                return Text(
-                                  deviceName,
-                                  style: Theme.of(context).textTheme.subtitle1?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface
-                                  ),
-                                  textAlign: TextAlign.start,
-                                );
-                              }
-                            );
-                          }
-                        )
-                      ],
-                    ),
-                  ),
-            
-                  const _BatteryUsageChart(),
-                ]
-              )
-            ),
-
-            Consumer<HydrationRecordService>(
-              builder: (_, hydrationProvider, __) {
-                return FutureBuilder<List<HydrationRecord>?>(
-                  future: hydrationProvider.recordsInPast24h,
-                  initialData: const [],
-                  builder: (context, snapshot) {
-
-                    final String lastBatteryUpdate;
-
-                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                      // Determinar actualización más reciente de nivel de batería.
-                      lastBatteryUpdate = snapshot.data!.first.date
-                          .toString()
-                          .substring(0,16);
-                    } else {
-                      lastBatteryUpdate = localizations.noDate;
-                    }
-
-                    return SliverToBoxAdapter(
-                      child: Container(
-                        margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
-                        child: Text(
-                          "${localizations.lastUpdate}: $lastBatteryUpdate", 
-                          style: Theme.of(context).textTheme.bodyText2,
-                        ),
+        return StreamBuilder<bool>(
+            stream: editSettingsBloc.isSavePromptActive,
+            builder: (context, snapshot) {
+              final userCanSaveChanges = snapshot.data ?? false;
+              
+              return Scaffold(
+                body: SafeArea(
+                  top: false,
+                  bottom: false,
+                  child: CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: <Widget> [
+                      CustomSliverAppBar(
+                        title: localizations.settings,
+                        leading: <Widget> [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back), 
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              Navigator.pop(context);
+                            }
+                          ),
+                        ],
+                        actions: <Widget>[
+                          IconButton(
+                            icon: const Icon(Icons.phonelink_ring),
+                            onPressed: () => Navigator.pushNamed(context, RouteNames.bleConnection),
+                          )
+                        ],
                       ),
-                    );
-                  }
-                );
-              }
-            ),
 
-            SliverToBoxAdapter(
-              child: Consumer<SettingsService>(
-                builder: (_, settingsProvider, __) {
-                  return SettingsItems(
-                    currentSettings: settingsProvider.currentSettings,
-                  );
-                }
-              )
-            ),
-          ], 
-        ),
-      ),
-    );
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Container(
+                              margin: const EdgeInsets.symmetric( vertical: 24.0, horizontal: 24.0 ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    localizations.batteryHeading, 
+                                    style: Theme.of(context).textTheme.headline5,
+                                    textAlign: TextAlign.start,
+                                  ),
+
+                                  const SizedBox( height: 8.0 ),
+
+                                  Consumer<DevicePairingService>(
+                                    builder: (_, devicePairingService, __) {
+                                      return StreamBuilder<HydrateDevice?>(
+                                        stream: devicePairingService.selectedDevice,
+                                        builder: (context, snapshot) {
+
+                                          final deviceName = snapshot.data?.name ?? localizations.disconnected;
+
+                                          return Text(
+                                            deviceName,
+                                            style: Theme.of(context).textTheme.subtitle1?.copyWith(
+                                              color: Theme.of(context).colorScheme.onSurface
+                                            ),
+                                            textAlign: TextAlign.start,
+                                          );
+                                        }
+                                      );
+                                    }
+                                  )
+                                ],
+                              ),
+                            ),
+                      
+                            const _BatteryUsageChart(),
+                          ]
+                        )
+                      ),
+
+                      Consumer<HydrationRecordService>(
+                        builder: (_, hydrationProvider, __) {
+                          return FutureBuilder<List<HydrationRecord>?>(
+                            future: hydrationProvider.recordsInPast24h,
+                            initialData: const [],
+                            builder: (context, snapshot) {
+
+                              final String lastBatteryUpdate;
+
+                              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                                // Determinar actualización más reciente de nivel de batería.
+                                lastBatteryUpdate = snapshot.data!.first.date
+                                    .toString()
+                                    .substring(0,16);
+                              } else {
+                                lastBatteryUpdate = localizations.noDate;
+                              }
+
+                              return SliverToBoxAdapter(
+                                child: Container(
+                                  margin: const EdgeInsets.only( top: 8.0, left: 24.0 ),
+                                  child: Text(
+                                    "${localizations.lastUpdate}: $lastBatteryUpdate", 
+                                    style: Theme.of(context).textTheme.bodyText2,
+                                  ),
+                                ),
+                              );
+                            }
+                          );
+                        }
+                      ),
+
+                      SliverToBoxAdapter(
+                        child: SettingsItems(editSettingsBloc),
+                      ),
+                    ], 
+                  ),
+                ),
+                floatingActionButton: (userCanSaveChanges) 
+                  ? FloatingActionButton(
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                      foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                      onPressed: () => editSettingsBloc.saveChanges(context),
+                      child: const Icon( Icons.save ),
+                    )
+                  : null,
+              );
+            }
+        );
+      }
+    ); 
   }
 }
 

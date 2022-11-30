@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:hydrate_app/src/api/api_client.dart';
 import 'package:hydrate_app/src/bloc/edit_settings_bloc.dart';
 import 'package:hydrate_app/src/models/enums/notification_source.dart';
-import 'package:hydrate_app/src/models/settings.dart';
 import 'package:hydrate_app/src/services/google_fit_service.dart';
 import 'package:hydrate_app/src/services/profile_service.dart';
 import 'package:hydrate_app/src/services/settings_service.dart';
@@ -15,35 +14,9 @@ import 'package:hydrate_app/src/widgets/url_list_tile.dart';
 
 class SettingsItems extends StatelessWidget {
 
-  SettingsItems({ 
-    Key? key, 
-    required this.currentSettings,
-  }) : _editSettings = EditSettingsBloc(currentSettings), super(key: key);
+  const SettingsItems(this._editSettingsBloc, { Key? key, }) : super(key: key);
 
-  final Settings currentSettings;
-
-  final EditSettingsBloc _editSettings;
-
-  void _toggleSaveSnackbar(BuildContext context, bool isSnackbarActive) {
-    if (isSnackbarActive) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.unsavedChanges),
-          duration: EditSettingsBloc.savePromptDuration,
-          action: SnackBarAction(
-            label: AppLocalizations.of(context)!.save, 
-            onPressed: () {
-              _editSettings.saveChanges(context);
-            },
-          ),
-        )
-      );
-    } else {
-      // Si no hay ya un Snackbar de confirmación de cambios y el usuario 
-      // realizó cambios, mostrar el snackbar.
-      ScaffoldMessenger.of(context).clearSnackBars();
-    }
-  }
+  final EditSettingsBloc _editSettingsBloc;
 
   int _getEnabledNotificationSourcesCount(Set<NotificationSource> enabledSources) {
     if (enabledSources.contains(NotificationSource.disabled)) {
@@ -58,12 +31,13 @@ class SettingsItems extends StatelessWidget {
   }
 
   void _onGoogleFitIntegratedChanged(bool value) {
-    _editSettings.isGoogleFitIntegratedSink.add(value);
+    _editSettingsBloc.isGoogleFitIntegratedSink.add(value);
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final currentSettings = Provider.of<SettingsService>(context).currentSettings;
 
     final themeLabels = [
       localizations.themeOptSys,
@@ -101,7 +75,7 @@ class SettingsItems extends StatelessWidget {
             trailing: SizedBox(
               width: MediaQuery.of(context).size.width * 0.4,
               child: StreamBuilder<ThemeMode>(
-                stream: _editSettings.appThemeMode,
+                stream: _editSettingsBloc.appThemeMode,
                 initialData: currentSettings.appThemeMode,
                 builder: (context, snapshot) {
 
@@ -116,7 +90,7 @@ class SettingsItems extends StatelessWidget {
                     items: _themeDropdownItems,
                     onChanged: (int? newValue) {
                       final selectedTheme = ThemeMode.values[newValue ?? 0];
-                      _editSettings.appThemeModeSink.add(selectedTheme);
+                      _editSettingsBloc.appThemeModeSink.add(selectedTheme);
                     },
                   );
                 }
@@ -133,7 +107,7 @@ class SettingsItems extends StatelessWidget {
                   ? localizations.contributeDataTooltipSignedIn
                   : localizations.contributeDataTooltipSignedOut,
                 child: StreamBuilder<bool>(
-                  stream: _editSettings.shouldContributeData,
+                  stream: _editSettingsBloc.shouldContributeData,
                   initialData: currentSettings.shouldContributeData,
                   builder: (context, snapshot) {
 
@@ -149,7 +123,7 @@ class SettingsItems extends StatelessWidget {
                       value: isSharingData,
                       onChanged: profileService.isAuthenticated && snapshot.hasData
                       ? (bool value) {
-                        _editSettings.shouldContributeDataSink.add(value);
+                        _editSettingsBloc.shouldContributeDataSink.add(value);
                       }
                       : null,
                     );
@@ -168,7 +142,7 @@ class SettingsItems extends StatelessWidget {
             title: Text(localizations.notifications),
             contentPadding: const EdgeInsets.all( 16.0, ),
             trailing: StreamBuilder<Set<NotificationSource>>(
-              stream: _editSettings.enabledNotificationSources,
+              stream: _editSettingsBloc.enabledNotificationSources,
               initialData: currentSettings.notificationPreferences,
               builder: (context, snapshot) {
 
@@ -189,7 +163,7 @@ class SettingsItems extends StatelessWidget {
                         );
 
                         if (enabledNotifSources != null) {
-                          _editSettings.notificationSourcesSink.add(enabledNotifSources);
+                          _editSettingsBloc.notificationSourcesSink.add(enabledNotifSources);
                         }
                       }
                       : null, 
@@ -202,7 +176,7 @@ class SettingsItems extends StatelessWidget {
 
           const Divider( height: 1.0, ),
           StreamBuilder<bool>(
-            stream: _editSettings.areWeeklyFormsEnabled,
+            stream: _editSettingsBloc.areWeeklyFormsEnabled,
             initialData: currentSettings.areWeeklyFormsEnabled,
             builder: (context, snapshot) {
 
@@ -217,7 +191,7 @@ class SettingsItems extends StatelessWidget {
                 contentPadding: const EdgeInsets.all( 16.0, ),
                 value: areWeeklyFormsEnabled,
                 onChanged: (bool value) {
-                  _editSettings.areWeeklyFormsEnabledSink.add(value);
+                  _editSettingsBloc.areWeeklyFormsEnabledSink.add(value);
                 },
               );
             }
@@ -225,7 +199,7 @@ class SettingsItems extends StatelessWidget {
 
           const Divider( height: 1.0, ),
           StreamBuilder<bool>(
-            stream: _editSettings.isGoogleFitIntegrated,
+            stream: _editSettingsBloc.isGoogleFitIntegrated,
             initialData: currentSettings.isGoogleFitIntegrated,
             builder: (context, snapshot) {
 
@@ -346,18 +320,6 @@ class SettingsItems extends StatelessWidget {
                 );
               }
             ),
-          ),
-        
-          StreamBuilder<bool>(
-            stream: _editSettings.isSavePromptActive,
-            builder: (_, snapshot) {
-              
-              _editSettings.isSavePromptActive.listen((isPromptActive) {
-                _toggleSaveSnackbar(context, isPromptActive);
-              });
-
-              return const SizedBox( height: 0.0 );
-            }
           ),
         ],
       ),
