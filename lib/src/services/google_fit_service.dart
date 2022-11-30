@@ -104,7 +104,8 @@ class GoogleFitService {
 
   set hydrateProfileId(int profileId) => _hydrateProfileId = profileId;
 
-  bool get isSignedInWithGoogle => _isGoogleUserSignedIn();
+  bool get isUserSignedInWithGoogle => _isGoogleUserSignedIn();
+  Stream<bool> get isSignedInWithGoogle => _userSignedInController.stream;
 
   bool get isSigningIn => _isSigningIn;
 
@@ -149,7 +150,11 @@ class GoogleFitService {
       _isSigningIn = false;
     }
 
-    return (_currentUser != null);
+    final bool isUserSignedIn = _isGoogleUserSignedIn();
+
+    _userSignedInController.sink.add(isUserSignedIn);
+
+    return isUserSignedIn;
   }
 
   Future<bool> signOut() async {
@@ -161,8 +166,14 @@ class GoogleFitService {
 
     debugPrint("Signed out of Google account: $_currentUser");
 
-    return !(_isGoogleUserSignedIn());
+    final bool isUserSignedIn = _isGoogleUserSignedIn();
+
+    _userSignedInController.sink.add(isUserSignedIn);
+
+    return !(isUserSignedIn);
   }
+
+  final StreamController<bool> _userSignedInController = StreamController<bool>.broadcast();
 
   void addHydrationRecordToSyncQueue(HydrationRecord hydrationRecord) {
 
@@ -236,8 +247,8 @@ class GoogleFitService {
     DateTime? startTime, 
     DateTime? endTime,
     Map<int, ActivityType> supportedGoogleFitActTypes = const {},
-  }) async {
-
+  }) async 
+  {
     if (!_hasAuthForGoogleFitApi()) {
       debugPrint("No user or API instance from which to sync Sessions data");
       return const <ActivityRecord>[];

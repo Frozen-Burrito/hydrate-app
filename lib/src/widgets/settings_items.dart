@@ -259,45 +259,52 @@ class SettingsItems extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: <Widget>[
-              
-                        (GoogleFitService.instance.isSignedInWithGoogle
-                        ? Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            Chip(
-                              avatar: CircleAvatar(
-                                foregroundImage: NetworkImage(
-                                  GoogleFitService.instance.googleAccountPhotoUrl ?? "",
-                                ),
-                                child: Text(
-                                  GoogleFitService.instance.googleAccountInitials,
-                                ),
-                              ),
-                              label: Text(
-                                GoogleFitService.instance.googleAccountDisplayName ?? 
-                                GoogleFitService.instance.googleAccountEmail,
-                              ),
-                            ),
-              
-                            const SizedBox( width: 8.0, ),
-              
-                            Tooltip(
-                              message: localizations.signOutWithGoogle,
-                              child: IconButton(
+
+                        StreamBuilder<bool>(
+                          stream: GoogleFitService.instance.isSignedInWithGoogle,
+                          builder: (context, snapshot) {
+                            final isSignedIn = snapshot.data ?? false;
+                            if (isSignedIn) {
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: <Widget>[
+                                  Chip(
+                                    avatar: CircleAvatar(
+                                      foregroundImage: NetworkImage(
+                                        GoogleFitService.instance.googleAccountPhotoUrl ?? "",
+                                      ),
+                                      child: Text(
+                                        GoogleFitService.instance.googleAccountInitials,
+                                      ),
+                                    ),
+                                    label: Text(
+                                      GoogleFitService.instance.googleAccountDisplayName ?? 
+                                      GoogleFitService.instance.googleAccountEmail,
+                                    ),
+                                  ),
+                    
+                                  const SizedBox( width: 8.0, ),
+                    
+                                  Tooltip(
+                                    message: localizations.signOutWithGoogle,
+                                    child: IconButton(
+                                      onPressed: () {
+                                        GoogleFitService.instance.signOut();
+                                      }, 
+                                      icon: const Icon(Icons.logout),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return TextButton(
                                 onPressed: () {
-                                  GoogleFitService.instance.signOut();
-                                }, 
-                                icon: const Icon(Icons.logout),
-                              ),
-                            ),
-                          ],
-                        )
-                        : TextButton(
-                            onPressed: () {
-                              GoogleFitService.instance.signInWithGoogle();
-                            },
-                            child: Text(localizations.signInWithGoogle), 
-                          )
+                                  GoogleFitService.instance.signInWithGoogle();
+                                },
+                                child: Text(localizations.signInWithGoogle), 
+                              );
+                            }
+                          },
                         ),
               
                         SyncGoogleFitButton(

@@ -178,7 +178,7 @@ class SettingsService with ChangeNotifier {
     if (settings.isGoogleFitIntegrated) {
       GoogleFitService.instance.signInWithGoogle();
 
-    } else if (GoogleFitService.instance.isSignedInWithGoogle) {
+    } else if (GoogleFitService.instance.isUserSignedInWithGoogle) {
       GoogleFitService.instance.signOut();
     }
 
@@ -228,7 +228,7 @@ class SettingsService with ChangeNotifier {
     if (settings.isGoogleFitIntegrated && authToken.isNotEmpty) {
       GoogleFitService.instance.hydrateProfileId = getProfileIdFromJwt(authToken);
 
-      bool isSignedInWithGoogle = GoogleFitService.instance.isSignedInWithGoogle;
+      bool isSignedInWithGoogle = GoogleFitService.instance.isUserSignedInWithGoogle;
 
       final requiresGoogleSignIn = !(GoogleFitService.instance.isSigningIn || isSignedInWithGoogle);
 
